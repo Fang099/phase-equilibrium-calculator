@@ -1,5 +1,5 @@
 """
-input_checker.py  --  Stage 1 of the Phase Equilibrium Calculator (revised)
+input_checker.py  --  Stage 1 of the Phase Equilibrium Calculator
 
 Decides whether the information a user gives is sufficient to calculate
 phase equilibrium, which equilibria can be calculated, and what is missing.
@@ -7,29 +7,35 @@ phase equilibrium, which equilibria can be calculated, and what is missing.
 FREE-FORM INPUT
 The user lists whatever they know, one quantity per line:
 
-    components = water, sucrose
+    components = benzene, naphthalene
     P = 1 atm
     sweep = x
-    water.Tm = 273.15 K
-    water.dHfus = 6.01 kJ/mol
-    sucrose.nonvolatile = yes
+    benzene.Tm = 278.68 K
+    benzene.dHfus = 9.87 kJ/mol
+    activity = vanlaar
+    A(benzene, naphthalene) = 0.2
     kij(propane, n-butane) = 0.003
     x(L) = 0.3                 (n or n-1 mole fractions, in component order)
+
+Every quantity is optional. The checker works out what can be calculated
+from whatever is given, so the same input format serves any mixture.
 
 Run `python input_checker.py` for demos, or
     `python input_checker.py my_input.txt` to check your own file.
 Type `python input_checker.py --vocab` to list every recognized quantity.
 
-FRAMEWORK (Tester & Modell)
+FRAMEWORK
 Calculations use the Helmholtz form of the fundamental equation,
     dA = -S dT - P dV + sum_i mu_i dN_i              (+ Phi dm with a field)
 Phi = g z (gravity) or -omega^2 r^2 / 2 (centrifugal); m = sum_i M_i N_i.
   * Cubic EOS (vdW, PR, SRK) are pressure-explicit, so they give A directly:
         A_res(T, V, N) = -integral_inf^V (P - N R T / V) dV
     and mu_i, fugacity coefficients, densities follow by differentiation.
-  * Latent heats / melting points give the difference in chemical potential
-    of a pure component between two phases (Gibbs-Helmholtz). They are used
-    when a component has no meaningful critical constants (e.g. sucrose).
+  * Vapor pressures, latent heats and melting points give the chemical
+    potential of a pure component in each phase (Gibbs-Helmholtz); an
+    optional activity model (Margules, van Laar, NRTL) corrects the liquid
+    for non-ideal mixing. This route needs no critical constants, so it also
+    covers components that never vaporize.
   * Each phase has n + 2 + m independent variables; equality of T, P and
     mu_i (or mu_i + M_i Phi with a field) gives
         F = n + 2 + m - pi            (open specification)
@@ -114,6 +120,7 @@ VOCAB = {
     # ---- system definition ----
     ("system", "components"): ("names", None, "component names, comma separated"),
     ("system", "model"): ("word", None, "cubic EOS: vdW, PR or SRK (optional)"),
+    ("system", "activity"): ("word", None, "liquid activity model: ideal (default), margules, vanlaar or nrtl"),
     ("system", "phases"): ("word", None, "restrict to one equilibrium: 'L, V' or 'L, S(name)'"),
     ("system", "sweep"): ("word", None, "variable swept to draw a diagram: x, T or P"),
     # ---- state ----
@@ -150,12 +157,19 @@ VOCAB = {
     ("component", "nonvolatile"): ("bool", None, "yes if the component never enters the vapor"),
     # ---- pair data ----
     ("pair", "kij"): ("scalar", "none", "binary interaction parameter for the EOS"),
+    ("pair", "A"): ("scalar", "none", "Margules / van Laar: A(i, j) = ln gamma_i at infinite dilution in j"),
+    ("pair", "dg"): ("scalar", "energy_mol", "NRTL: dg(i, j) = g_ij - g_jj, so tau_ij = dg(i, j)/RT"),
+    ("pair", "alpha"): ("scalar", "none", "NRTL non-randomness alpha(i, j) (default 0.3)"),
 }
 
 MODEL_ALIASES = {"vdw": "vdW", "vanderwaals": "vdW", "van der waals": "vdW",
                  "pr": "PR", "pengrobinson": "PR", "peng-robinson": "PR",
                  "srk": "SRK", "soave": "SRK", "soaveredlichkwong": "SRK",
                  "soave-redlich-kwong": "SRK"}
+ACTIVITY_ALIASES = {"ideal": "ideal", "none": "ideal", "margules": "margules",
+                    "vanlaar": "vanlaar", "van laar": "vanlaar", "nrtl": "nrtl"}
+ORDERED_PAIR = {"A", "dg"}           # value depends on the order (i, j)
+PAIR_QTYS = {"kij", "A", "dg", "alpha"}
 FIELD_ALIASES = {"gravity": "gravity", "gravitational": "gravity",
                  "centrifugal": "centrifugal", "centrifuge": "centrifugal"}
 
@@ -215,6 +229,8 @@ class Inputs:
     reference: Optional[float] = None
     props: dict = field(default_factory=dict)       # comp -> {name: value}
     pairs: dict = field(default_factory=dict)       # frozenset -> {name: value}
+    opairs: dict = field(default_factory=dict)      # (i, j) -> {name: value}, ordered
+    activity: str = "ideal"
 
 
 LINE_RE = re.compile(
@@ -260,7 +276,7 @@ def parse_input(text):
         first, second, arg, raw = m.groups()
         if second:                          # component.property
             scope, qty, target = "component", second, first
-        elif arg and first == "kij":
+        elif arg and first in PAIR_QTYS:
             scope, qty, target = "pair", first, arg
         else:
             scope, qty, target = "system", first, arg
@@ -287,6 +303,12 @@ def parse_input(text):
                 if k not in MODEL_ALIASES and raw.lower() not in MODEL_ALIASES:
                     raise ValueError(f"unknown model '{raw}' (use vdW, PR or SRK)")
                 inp.model = MODEL_ALIASES.get(k) or MODEL_ALIASES[raw.lower()]
+            elif qty == "activity":
+                k = raw.lower().strip()
+                if k not in ACTIVITY_ALIASES:
+                    raise ValueError(f"unknown activity model '{raw}' "
+                                     f"(use ideal, margules, vanlaar or nrtl)")
+                inp.activity = ACTIVITY_ALIASES[k]
             elif qty == "field":
                 k = raw.lower().strip()
                 if k in ("electric", "magnetic"):
@@ -335,13 +357,19 @@ def parse_input(text):
             if scope == "pair":
                 names = [s.strip() for s in target.split(",")]
                 if len(names) != 2 or names[0].lower() == names[1].lower():
-                    raise ValueError("write kij(component1, component2)")
+                    raise ValueError(f"write {qty}(component1, component2)")
                 unknown = [n for n in names if n.lower() not in known]
                 if unknown:
                     raise ValueError(f"'{unknown[0]}' is not in the component list")
-                pair = frozenset(known[n.lower()] for n in names)
                 vals = convert(qty, raw, dim, lineno)
-                inp.pairs.setdefault(pair, {})[qty] = vals[0]
+                if len(vals) != 1:
+                    raise ValueError("expected a single value")
+                if qty in ORDERED_PAIR:
+                    key2 = (known[names[0].lower()], known[names[1].lower()])
+                    inp.opairs.setdefault(key2, {})[qty] = vals[0]
+                else:
+                    pair = frozenset(known[n.lower()] for n in names)
+                    inp.pairs.setdefault(pair, {})[qty] = vals[0]
                 continue
 
             if target.lower() not in known:
@@ -515,8 +543,35 @@ def eos_route(inp):
     return (not missing), missing, notes
 
 
+ACTIVITY_LABEL = {"ideal": "ideal solution (gamma = 1)",
+                  "margules": "two-parameter Margules activity model",
+                  "vanlaar": "van Laar activity model",
+                  "nrtl": "NRTL activity model"}
+
+
+def activity_check(inp):
+    """Parameters the chosen liquid activity model still needs.
+    Returns (missing, notes)."""
+    model, missing, notes = inp.activity, [], []
+    if model == "ideal":
+        return missing, notes
+    for ci, cj in combinations(inp.components, 2):
+        if model in ("margules", "vanlaar"):
+            for a, b in ((ci, cj), (cj, ci)):
+                if "A" not in inp.opairs.get((a, b), {}):
+                    missing.append(f"A({a}, {b}) for the {model} model "
+                                   f"(ln gamma of {a} at infinite dilution in {b})")
+        else:
+            for a, b in ((ci, cj), (cj, ci)):
+                if "dg" not in inp.opairs.get((a, b), {}):
+                    missing.append(f"dg({a}, {b}) for the NRTL model (energy, e.g. J/mol)")
+            if "alpha" not in inp.pairs.get(frozenset((ci, cj)), {}):
+                notes.append(f"alpha({ci}, {cj}) not given; 0.3 will be used")
+    return missing, notes
+
+
 def vapor_pressure_route(inp):
-    """Ideal solution + ideal gas + pure-component vapor pressures.
+    """Pure-component vapor pressures + liquid activity model + ideal gas.
     Returns (ok, missing, notes, volatile_components)."""
     volatile = [c for c in inp.components if not inp.props[c].get("nonvolatile")]
     missing, notes = [], []
@@ -533,9 +588,14 @@ def vapor_pressure_route(inp):
     nonvol = [c for c in inp.components if c not in volatile]
     if nonvol and volatile:
         notes.append(f"nonvolatile: {', '.join(nonvol)} -- absent from the vapor")
+    a_miss, a_notes = activity_check(inp)
+    missing += a_miss
+    notes += a_notes
     if not missing:
-        notes.insert(0, "ideal liquid solution (gamma = 1) and ideal-gas vapor; "
-                        "no azeotropes can be predicted")
+        lead = f"liquid: {ACTIVITY_LABEL[inp.activity]}; vapor: ideal gas"
+        if inp.activity == "ideal":
+            lead += "; no azeotropes can be predicted"
+        notes.insert(0, lead)
     return (not missing), missing, notes, volatile
 
 
@@ -619,25 +679,35 @@ def evaluate(inp, phases, global_errors):
         absent = [f"{solid}.{q} ({d})" for q, d in
                   (("Tm", "melting point"), ("dHfus", "enthalpy of fusion")) if q not in p]
         res.missing += absent
+        a_miss, a_notes = activity_check(inp)
+        res.missing += a_miss
+        res.notes += a_notes
         res.route = (f"solid {solid}: dHfus and Tm (Gibbs-Helmholtz); "
-                     f"liquid: ideal solution")
+                     f"liquid: {ACTIVITY_LABEL[inp.activity]}")
         route_kind = "thermal"
         if "dCp_fus" not in p:
             res.notes.append(f"{solid}.dCp_fus not given; heat-capacity term neglected")
         if inp.model:
-            res.notes.append("the EOS is not used for the solid; liquid treated as "
-                             "an ideal solution")
+            res.notes.append(f"the EOS is not used for solid-liquid equilibrium; the "
+                             f"liquid uses the {ACTIVITY_LABEL[inp.activity]}")
     else:
         e_ok, e_miss, e_notes = eos_route(inp)
         v_ok, v_miss, v_notes, volatile = vapor_pressure_route(inp)
         if e_ok:
             route_kind, res.route = "eos", f"cubic EOS ({inp.model}) for both phases"
             res.notes += e_notes
+            if inp.activity != "ideal":
+                res.notes.append(f"the {inp.activity} activity model is not used for "
+                                 f"vapor-liquid equilibrium on the EOS route")
             if any(inp.props[c].get("nonvolatile") for c in inp.components):
                 res.notes.append("'nonvolatile' is ignored on the EOS route; the EOS "
                                  "decides each component's volatility")
         elif v_ok:
-            route_kind, res.route = "vp", "vapor pressures + ideal solution (Raoult's law)"
+            route_kind = "vp"
+            res.route = ("vapor pressures + ideal solution (Raoult's law)"
+                         if inp.activity == "ideal" else
+                         f"vapor pressures + {ACTIVITY_LABEL[inp.activity]} "
+                         f"(modified Raoult's law)")
             vapor_comps = volatile
             res.notes += v_notes
             if inp.model:
@@ -793,6 +863,13 @@ def _global_checks(inp, errors, warnings):
     n = len(inp.components)
     if 0 < n < 2:
         errors.append("at least two components are needed for a mixture")
+    if inp.activity in ("margules", "vanlaar") and n > 2:
+        errors.append(f"the {inp.activity} model is for binary mixtures; use "
+                      f"activity = nrtl for {n} components")
+    if inp.activity == "ideal" and (inp.opairs or any(
+            q in v for v in inp.pairs.values() for q in ("alpha",))):
+        warnings.append("activity-model parameters given but activity = ideal; "
+                        "they are ignored (set activity = margules, vanlaar or nrtl)")
     if inp.T is not None and inp.T <= 0:
         errors.append("temperature must be above 0 K")
     if inp.P is not None and inp.P <= 0:
@@ -913,7 +990,7 @@ def print_vocabulary():
     for scope in ("system", "component", "pair"):
         print(f"\n{scope.upper()} quantities"
               + {"system": "", "component": "  (write  name.quantity = ...)",
-                 "pair": "  (write  kij(name1, name2) = ...)"}[scope])
+                 "pair": "  (write  kij(name1, name2) = ...; A and dg depend on the order)"}[scope])
         for (s, q), (kind, dim, desc) in VOCAB.items():
             if s == scope:
                 unit = f"[default {DEFAULT_UNIT[dim]}]" if dim and dim != "none" else ""
@@ -922,7 +999,7 @@ def print_vocabulary():
 
 # ==========================================================================
 # 8. Demo cases  (property values are typical literature values, for
-#    demonstration only -- take your own from Tester & Modell's appendix)
+#    demonstration only -- check them against a data source before real use)
 # ==========================================================================
 DEMOS = {
     "1. Propane / n-butane, PR, Pxy diagram at 300 K": """
@@ -948,17 +1025,18 @@ n-butane.Tc = 425.1 K
 n-butane.Pc = 37.96 bar
 P = 5 bar
 """,
-    "3. Sugar / water at 1 atm (instructor's example)": """
-components = water, sucrose
+    "3. Benzene / naphthalene at 1 atm from latent heats only": """
+components = benzene, naphthalene
 P = 1 atm
 sweep = x
-water.Tb = 373.15 K
-water.dHvap = 40.65 kJ/mol
-water.Tm = 273.15 K
-water.dHfus = 6.01 kJ/mol
-sucrose.nonvolatile = yes
-sucrose.Tm = 459 K
-sucrose.dHfus = 46 kJ/mol
+benzene.Tb = 353.24 K
+benzene.dHvap = 30.72 kJ/mol
+benzene.Tm = 278.68 K
+benzene.dHfus = 9.87 kJ/mol
+naphthalene.Tb = 491.14 K
+naphthalene.dHvap = 43.2 kJ/mol
+naphthalene.Tm = 353.43 K
+naphthalene.dHfus = 19.01 kJ/mol
 """,
     "4. Propane / n-butane flash in a 500 m gravity column, one molar mass missing": """
 components = propane, n-butane
@@ -990,6 +1068,16 @@ ethanol.M = 46.07 g/mol
 water.M = 18.015 g/mol
 ethanol.V_L = 58.7 cm3/mol
 water.V_L = 18.07 cm3/mol
+""",
+    "8. Ethanol / water at 1 atm, van Laar activity model": """
+components = ethanol, water
+P = 1 atm
+sweep = x
+activity = vanlaar
+A(ethanol, water) = 1.6798
+A(water, ethanol) = 0.9227
+ethanol.Psat = exp(16.8958 - 3795.17/(T - 273.15 + 230.918)) [kPa, K]
+water.Psat   = exp(16.3872 - 3885.70/(T - 273.15 + 230.170)) [kPa, K]
 """,
     "6. Input mistakes: typo and bad composition": """
 components = methane, ethane

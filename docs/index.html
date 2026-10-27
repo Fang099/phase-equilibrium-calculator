@@ -109,7 +109,9 @@ pre {
   line-height: 1.5;
   margin: 0 0 1.2rem;
 }
+.katex { font-size: 1.04em; }
 .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.2rem 0; margin: 0.9rem 0 1.1rem; }
+.katex-display > .katex { font-size: 1.08em; }
 
 /* ---------------- hero ---------------- */
 .hero {
@@ -250,21 +252,30 @@ details.data table { font-size: 0.84rem; }
 details.data th, details.data td { padding: 0.25rem 0.6rem 0.25rem 0; }
 
 /* ---------------- pipeline ---------------- */
-.pipeline { list-style: none; margin: 1.6rem 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.9rem; counter-reset: step; }
-.pipeline li { counter-increment: step; background: var(--surface); border: 1px solid var(--hair); border-radius: 8px; padding: 0.9rem 1rem; position: relative; }
-.pipeline li::before { content: counter(step); font-family: var(--sans); font-weight: 650; font-size: 0.85rem; color: var(--muted); display: block; margin-bottom: 0.2rem; }
-.pipeline h4 { margin: 0 0 0.35rem; font-size: 1.02rem; }
-.pipeline p { margin: 0; font-size: 0.93rem; color: var(--ink-2); line-height: 1.5; }
-.pipeline code { font-size: 0.8em; }
-.status { font-family: var(--sans); font-size: 0.8rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.6rem; }
+.pipeline { list-style: none; margin: 1.4rem 0 1.8rem; padding: 0; counter-reset: step; border-top: 1px solid var(--hair); }
+.pipeline li { counter-increment: step; display: grid; grid-template-columns: 1.6rem 12.5rem minmax(0, 1fr) 5.5rem; gap: 0.2rem 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--hair); align-items: baseline; }
+.pipeline li::before { content: counter(step); font-family: var(--sans); font-weight: 650; font-size: 0.9rem; color: var(--muted); }
+.pipeline h4 { margin: 0; font-size: 1rem; }
+.pipeline h4 code { display: block; font-weight: 400; font-size: 0.78rem; color: var(--ink-2); margin-top: 0.15rem; background: none; padding: 0; }
+.pipeline p { margin: 0; font-size: 0.95rem; color: var(--ink-2); line-height: 1.5; }
+.status { font-family: var(--sans); font-size: 0.82rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; justify-self: end; white-space: nowrap; }
 .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .status.built { color: var(--built); }
 .status.planned { color: var(--planned); }
 .status.planned::before { background: transparent; border: 1.5px solid currentColor; width: 7px; height: 7px; }
-.pipeline li.planned { background: transparent; border-style: dashed; }
+
+/* ---------------- gallery ---------------- */
+.gallery { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.4rem; margin: 1.4rem 0; }
+.gallery figure { margin: 0; }
+.gallery img { display: block; width: 100%; height: auto; border: 1px solid var(--hair); border-radius: 8px; background: #fcfcfb; }
+.gallery figcaption { margin-top: 0.5rem; }
+.gallery .span2 { grid-column: 1 / -1; }
 
 /* ---------------- misc ---------------- */
 .verdict { font-family: var(--sans); font-size: 0.84rem; font-weight: 500; white-space: nowrap; }
+table.results td:last-child { white-space: nowrap; }
+table.eos td:first-child { white-space: nowrap; }
+.routes td:first-child { width: 42%; }
 dl.params { margin: 0 0 1.2rem; }
 dl.params dt { font-family: var(--mono); font-size: 0.86rem; overflow-wrap: anywhere; margin-top: 0.7rem; }
 dl.params dd { margin: 0.1rem 0 0 1.2rem; color: var(--ink-2); font-size: 0.96rem; }
@@ -281,17 +292,20 @@ details.toc-mobile { display: none; }
   details.toc-mobile summary { cursor: pointer; font-weight: 500; }
   details.toc-mobile ol { margin: 0.6rem 0 0.2rem; padding-left: 1.3rem; line-height: 1.9; }
   main { padding-top: 1.6rem; }
-  .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
   body { font-size: 1rem; }
   .hero-inner, .layout, footer .inner { padding-left: 16px; padding-right: 16px; }
   .panels { grid-template-columns: minmax(0, 1fr); }
-  .pipeline { grid-template-columns: 1fr; }
+  .pipeline li { grid-template-columns: 1.6rem minmax(0, 1fr); }
+  .pipeline p, .pipeline .status { grid-column: 2; justify-self: start; }
+  .gallery { grid-template-columns: minmax(0, 1fr); }
+  table.results td:last-child { white-space: normal; }
   h2 { font-size: 1.5rem; }
   .chart-figure, .hero-figure { padding: 0.8rem 0.7rem 0.6rem; }
   .hero .fundamental { padding: 0.2rem 0.6rem; }
   .hero .fundamental .katex-display { font-size: 0.8em; }
+  .katex-display > .katex { font-size: 0.94em; }
 }
 </style>
 </head>
@@ -301,7 +315,7 @@ details.toc-mobile { display: none; }
   <div class="hero-inner">
     <div>
       <h1>Phase diagrams from the fundamental equation</h1>
-      <p class="lede">A Python tool for mixtures that first works out whether the data you have are enough, then calculates vapor–liquid and solid–liquid equilibrium, including in gravity and centrifugal fields.</p>
+      <p class="lede">A Python tool that takes whatever you know about a mixture, works out which phase equilibria that information can decide, then calculates and plots them, including in gravity and centrifugal fields.</p>
       <div class="fundamental">\[ dA = -S\,dT - P\,dV + \sum_i \mu_i\,dN_i \;\big[\, + \,\Phi\,dm \,\big] \]</div>
       <div class="hero-links">
         <a href="#getting-started">Run it yourself</a>
@@ -327,13 +341,14 @@ details.toc-mobile { display: none; }
           <li><a href="#fundamental">Fundamental equation</a></li>
           <li><a href="#criteria">Equilibrium and the phase rule</a></li>
           <li><a href="#eos">Cubic equations of state</a></li>
-          <li><a href="#thermal">Latent-heat route</a></li>
+          <li><a href="#solution">Solutions and solids</a></li>
           <li><a href="#fields">External fields</a></li>
         </ol>
       </li>
       <li><a href="#pipeline">How it is built</a></li>
       <li><a href="#input">Describing a system</a></li>
       <li><a href="#examples">Worked examples</a></li>
+      <li><a href="#plots">Plots</a></li>
       <li><a href="#verification">Verification</a></li>
       <li><a href="#limits">Limitations and roadmap</a></li>
       <li><a href="#getting-started">Getting started</a></li>
@@ -351,6 +366,7 @@ details.toc-mobile { display: none; }
         <li><a href="#pipeline">How it is built</a></li>
         <li><a href="#input">Describing a system</a></li>
         <li><a href="#examples">Worked examples</a></li>
+        <li><a href="#plots">Plots</a></li>
         <li><a href="#verification">Verification</a></li>
         <li><a href="#limits">Limitations and roadmap</a></li>
         <li><a href="#getting-started">Getting started</a></li>
@@ -362,69 +378,83 @@ details.toc-mobile { display: none; }
     <!-- ============================================================ -->
     <section id="overview">
       <h2>What the tool does</h2>
-      <p>This is a course project for Chemical Engineering Thermodynamics. The reference text is <i>Thermodynamics and Its Applications</i> by Tester and Modell. The tool takes a description of a mixture in plain text, decides what can be calculated from it, solves the equilibrium conditions, and reports phase compositions, saturation points, phase diagrams and, in a field, profiles of pressure and composition with position.</p>
-      <p>Most phase-equilibrium software assumes the right data are available and stops with an error when they are not. This tool starts one step earlier: given whatever the user knows (critical constants, vapor pressures, latent heats, melting points), it works out which equilibria are calculable, which calculation the given variables imply, and exactly what is missing for the rest.</p>
-      <p>Every result traces back to one place: the fundamental equation, written in its Helmholtz form, and the criterion that chemical potentials are equal in coexisting phases. Cubic equations of state, latent-heat relations and external fields all enter through that same route, so there is one equilibrium solver for all of them.</p>
+      <p>This is a course project for Chemical Engineering Thermodynamics. You describe a mixture in plain text by listing what you know about it. The tool decides what can be calculated from that, solves the equilibrium conditions, and reports phase compositions, saturation points and phase diagrams, and, in a field, how pressure and composition vary with position. It then draws the results.</p>
+      <p>The central idea is that <b>the information you have decides the route</b>. There is no fixed set of required inputs. Critical constants allow an equation of state; vapor pressures or a boiling point with its latent heat give the pure-liquid fugacity; a melting point with its enthalpy of fusion gives the fugacity of a solid; activity-coefficient parameters correct the liquid for non-ideal mixing. The checker combines whatever is given, reports every equilibrium it can decide, and says exactly what is missing for the rest.</p>
       <div class="table-wrap">
-        <table>
-          <thead><tr><th>Handles now</th><th>Not yet</th></tr></thead>
+        <table class="routes">
+          <thead><tr><th>If you know</th><th>The tool can calculate</th></tr></thead>
           <tbody>
-            <tr><td>Vapor–liquid equilibrium: bubble and dew points, flash, Pxy and Txy diagrams</td><td>Liquid–liquid and three-phase equilibrium</td></tr>
-            <tr><td>Solid–liquid equilibrium with a pure solid, including the eutectic</td><td>Activity-coefficient models for non-ideal liquids</td></tr>
-            <tr><td>van der Waals, Soave–Redlich–Kwong and Peng–Robinson equations of state</td><td>Plots and 3D surfaces (next module)</td></tr>
-            <tr><td>Ideal-solution route from vapor pressures or latent heats</td><td>Comparison with experimental data</td></tr>
-            <tr><td>Gravity and centrifugal fields</td><td>Electric and magnetic fields</td></tr>
+            <tr><td>\(T_c, P_c, \omega\) (or van der Waals \(a, b\)) for each component</td><td>Both phases from one cubic equation of state, valid at high pressure, with densities</td></tr>
+            <tr><td>Antoine constants, a typed \(P^{\mathrm{sat}}(T)\) relation, or \(T_b\) with \(\Delta H_{\mathrm{vap}}\)</td><td>Vapor–liquid equilibrium through the pure-liquid fugacity</td></tr>
+            <tr><td>Activity-model parameters (Margules, van Laar or NRTL)</td><td>Non-ideal liquids: azeotropes, larger deviations from Raoult's law</td></tr>
+            <tr><td>\(T_m\) with \(\Delta H_{\mathrm{fus}}\) (and optionally \(\Delta C_p\))</td><td>Solid–liquid equilibrium: freezing and solubility curves, the eutectic</td></tr>
+            <tr><td>That a component never vaporizes</td><td>It is kept out of the vapor; it still takes part in solid–liquid equilibrium</td></tr>
+            <tr><td>Molar masses, plus liquid volumes when there is no equation of state</td><td>Pressure and composition profiles in a gravity or centrifugal field</td></tr>
           </tbody>
         </table>
       </div>
+      <p>Every route ends in the same place: the chemical potential of each component in each phase, from the fundamental equation. One equilibrium solver therefore serves all of them, and different routes can be combined in one system.</p>
     </section>
 
     <!-- ============================================================ -->
     <section id="theory">
       <h2>Theory</h2>
-      <p>This section follows the structure of Tester and Modell: start from the fundamental equation, derive the equilibrium criteria and the phase rule, and then choose a model that supplies the chemical potentials. Notation may differ slightly from the book.</p>
+      <p>The tool starts from the fundamental equation, derives the equilibrium criteria and the phase rule from it, and then uses whichever model the available data support to supply the chemical potentials.</p>
 
       <h3 id="fundamental">The fundamental equation and why the Helmholtz form</h3>
       <p>For a simple system of \(n\) components, the fundamental equation in energy form is</p>
       \[ dU = T\,dS - P\,dV + \sum_{i=1}^{n} \mu_i\,dN_i . \]
-      <p>Its Legendre transforms contain exactly the same information in different natural variables. The tool uses the Helmholtz energy \(A = U - TS\):</p>
-      \[ dA = -S\,dT - P\,dV + \sum_{i} \mu_i\,dN_i , \qquad P = -\left(\frac{\partial A}{\partial V}\right)_{T,\mathbf N}, \qquad \mu_i = \left(\frac{\partial A}{\partial N_i}\right)_{T,V,N_{j\neq i}} . \]
-      <p>The reason is practical. A cubic equation of state gives pressure as a function of \(T\), \(V\) and composition, which are exactly the natural variables of \(A\). One integration over volume turns the equation of state into a complete fundamental relation, and everything else is obtained by differentiation. \(U\) is used for the derivations themselves; the Gibbs form appears where its natural variables \(T, P\) fit better, in the latent-heat route below.</p>
+      <p>Its Legendre transforms contain exactly the same information in different natural variables. The tool uses the Helmholtz energy \(A = U - TS\),</p>
+      \[ dA = -S\,dT - P\,dV + \sum_{i} \mu_i\,dN_i , \]
+      <p>from which pressure and chemical potentials are derivatives:</p>
+      \[ P = -\left(\frac{\partial A}{\partial V}\right)_{T,\mathbf N}, \qquad \mu_i = \left(\frac{\partial A}{\partial N_i}\right)_{T,V,N_{j\neq i}} . \]
+      <p>The reason is practical. A cubic equation of state gives pressure as a function of \(T\), \(V\) and composition, which are exactly the natural variables of \(A\). One integration over volume turns the equation of state into a complete fundamental relation, and everything else follows by differentiation. The Gibbs form is used where its natural variables \(T\) and \(P\) fit better: for solutions and solids, below.</p>
 
       <h3 id="criteria">Equilibrium criteria and the phase rule</h3>
       <p>Maximizing entropy (equivalently, minimizing \(A\) at fixed \(T\) and \(V\)) for phases that can exchange energy, volume and matter gives uniform \(T\) and \(P\), and equal chemical potentials of every component in every phase. Written with fugacities, which is the form the solver uses:</p>
       \[ \mu_i^{\alpha} = \mu_i^{\beta} \quad\Longleftrightarrow\quad \hat f_i^{\alpha}(T,P,\mathbf x^{\alpha}) = \hat f_i^{\beta}(T,P,\mathbf x^{\beta}) . \]
-      <p>Each phase has \(n+2\) independent variables, one fewer for its intensive state by the Gibbs–Duhem equation. An external field adds one work term per field, so \(m\) more. Subtracting the equilibrium constraints from the variables gives the number of intensive variables that can be fixed independently:</p>
+      <p>Each phase has \(n+2\) independent variables, one fewer for its intensive state by the Gibbs–Duhem equation. An external field adds one work term, so \(m\) more for \(m\) fields. Subtracting the equilibrium constraints from the variables gives the number of intensive variables that can be fixed independently:</p>
       \[ F = n + 2 + m - \pi . \]
       <p>For a closed system with a known feed composition, Duhem's theorem applies instead: \(2 + m\) variables fix the state. The input checker uses these counts, with \(m = 1\) when a gravity or centrifugal field is present.</p>
 
       <h3 id="eos">Cubic equations of state in Helmholtz form</h3>
-      <p>The three cubic equations share one form, differing only in two constants and in how \(a\) depends on temperature:</p>
+      <p>The three cubic equations share one form and differ in two constants and in how \(a\) depends on temperature:</p>
       \[ P = \frac{RT}{v-b} - \frac{a(T)}{(v+\delta_1 b)(v+\delta_2 b)} \]
       <div class="table-wrap">
-        <table>
-          <thead><tr><th>Model</th><th>\(\delta_1,\ \delta_2\)</th><th>\(a(T)\)</th><th>Pure-component data</th></tr></thead>
+        <table class="eos">
+          <thead><tr><th>Model</th><th>\(\delta_1\)</th><th>\(\delta_2\)</th><th>\(a\) depends on \(T\)</th><th>Data per component</th></tr></thead>
           <tbody>
-            <tr><td>van der Waals</td><td>0, 0</td><td>constant</td><td>\(T_c, P_c\) or \(a, b\)</td></tr>
-            <tr><td>Soave–Redlich–Kwong</td><td>1, 0</td><td>\(a_c\,[1+m(1-\sqrt{T/T_c})]^2\), \(m = 0.480 + 1.574\omega - 0.176\omega^2\)</td><td>\(T_c, P_c, \omega\)</td></tr>
-            <tr><td>Peng–Robinson</td><td>\(1+\sqrt2,\ 1-\sqrt2\)</td><td>same form, \(m = 0.37464 + 1.54226\omega - 0.26992\omega^2\)</td><td>\(T_c, P_c, \omega\)</td></tr>
+            <tr><td>van der Waals</td><td>0</td><td>0</td><td>no</td><td>\(T_c, P_c\) or \(a, b\)</td></tr>
+            <tr><td>Soave–Redlich–Kwong</td><td>1</td><td>0</td><td>yes</td><td>\(T_c, P_c, \omega\)</td></tr>
+            <tr><td>Peng–Robinson</td><td>\(1+\sqrt2\)</td><td>\(1-\sqrt2\)</td><td>yes</td><td>\(T_c, P_c, \omega\)</td></tr>
           </tbody>
         </table>
       </div>
+      <p>For SRK and PR, \(a(T) = a_c\,[1 + m(1-\sqrt{T/T_c})]^2\), with</p>
+      \[ \begin{aligned} m_{\text{SRK}} &= 0.480 + 1.574\,\omega - 0.176\,\omega^2 \\ m_{\text{PR}} &= 0.37464 + 1.54226\,\omega - 0.26992\,\omega^2 \end{aligned} \]
       <p>For mixtures, the van der Waals one-fluid mixing rules apply, with one binary interaction parameter per pair:</p>
       \[ a = \sum_i\sum_j x_i x_j \sqrt{a_i a_j}\,(1-k_{ij}), \qquad b = \sum_i x_i b_i . \]
       <p>Integrating \(P - NRT/V\) over volume from the ideal-gas limit gives the residual Helmholtz energy in closed form,</p>
-      \[ \frac{A^{\mathrm{res}}}{NRT} = -\ln\!\left(1-\frac{b}{v}\right) - \frac{a}{bRT(\delta_1-\delta_2)}\,\ln\frac{v+\delta_1 b}{v+\delta_2 b} \qquad\left(\text{van der Waals: } -\frac{a}{RTv}\right), \]
-      <p>and the fugacity coefficient of each component is one derivative of it:</p>
+      \[ \frac{A^{\mathrm{res}}}{NRT} = -\ln\!\left(1-\frac{b}{v}\right) - \frac{a}{bRT(\delta_1-\delta_2)}\,\ln\frac{v+\delta_1 b}{v+\delta_2 b} , \]
+      <p>which reduces to \(-\ln(1-b/v) - a/(RTv)\) for van der Waals. The fugacity coefficient of each component is one derivative of it:</p>
       \[ \ln\hat\varphi_i = \left(\frac{\partial\,(A^{\mathrm{res}}/RT)}{\partial N_i}\right)_{T,V,N_{j\neq i}} - \ln Z , \qquad \hat f_i = x_i\,\hat\varphi_i\,P . \]
-      <p>At a given \(T\) and \(P\), the cubic in \(Z\) can have three real roots. The smallest is used for a liquid, the largest for a vapor, and the root with the lower Gibbs energy when the phase is not known.</p>
+      <p>At a given \(T\) and \(P\) the cubic in \(Z\) can have three real roots. The smallest is used for a liquid, the largest for a vapor, and the root with the lower Gibbs energy when the phase is not known.</p>
 
-      <h3 id="thermal">When there is no equation of state: the latent-heat route</h3>
-      <p>Some components cannot be described by a cubic equation of state. Sucrose decomposes before it boils, so it has no meaningful critical point. For these cases the tool uses the Gibbs-energy route with an ideal liquid solution:</p>
-      \[ \hat f_i^{L} = x_i\, f_i^{L}, \qquad f_i^{L} = P_i^{\mathrm{sat}} \exp\!\left[\frac{V_i^{L}\,(P-P_i^{\mathrm{sat}})}{RT}\right], \qquad \hat f_i^{V} = y_i P . \]
-      <p>The vapor pressure comes from whichever source the user gave: Antoine constants, a typed relation \(P^{\mathrm{sat}}(T)\), or the Clausius–Clapeyron equation from the normal boiling point and enthalpy of vaporization. For a pure solid, the Gibbs–Helmholtz equation integrated from the melting point gives its fugacity relative to the pure liquid:</p>
-      \[ \ln\frac{f_i^{S}}{f_i^{L}} = -\frac{\Delta H_{\mathrm{fus}}}{R}\left(\frac1T - \frac1{T_m}\right) + \frac{\Delta C_p}{R}\left(\frac{T_m}{T} - 1 - \ln\frac{T_m}{T}\right). \]
-      <p>A non-volatile solute never enters the vapor, so its pure-liquid reference fugacity is never needed in absolute terms: it appears on both sides of its solid–liquid equation and cancels. That is why sugar–water can be calculated from latent heats and melting points alone.</p>
+      <h3 id="solution">Solutions and solids: the Gibbs-energy route</h3>
+      <p>Without an equation of state, each component's fugacity is built from its pure-component properties and an activity coefficient:</p>
+      \[ \hat f_i^{L} = x_i\,\gamma_i\,f_i^{L}, \qquad \hat f_i^{V} = y_i\,P . \]
+      <p>The pure-liquid fugacity includes the Poynting correction when a liquid volume is given:</p>
+      \[ f_i^{L} = P_i^{\mathrm{sat}} \exp\!\left[\frac{V_i^{L}\,(P-P_i^{\mathrm{sat}})}{RT}\right] . \]
+      <p>The vapor pressure comes from whichever source the user gave: Antoine constants, a typed relation \(P^{\mathrm{sat}}(T)\), or the Clausius–Clapeyron equation from the normal boiling point and enthalpy of vaporization,</p>
+      \[ \ln\frac{P^{\mathrm{sat}}}{P^{\circ}} = -\frac{\Delta H_{\mathrm{vap}}}{R}\left(\frac1T - \frac1{T_b}\right) . \]
+      <p>Activity coefficients are derivatives of an excess Gibbs energy, \(\ln\gamma_i = \partial(nG^E/RT)/\partial n_i\). Three simple models are available; with none chosen, \(\gamma_i = 1\) (an ideal solution).</p>
+      \[ \text{Margules:}\quad \frac{G^E}{RT} = x_1x_2\,(A_{21}x_1 + A_{12}x_2) \]
+      \[ \text{van Laar:}\quad \frac{G^E}{RT} = \frac{A_{12}A_{21}\,x_1x_2}{A_{12}x_1 + A_{21}x_2} \]
+      \[ \text{NRTL:}\quad \frac{G^E}{RT} = \sum_i x_i\,\frac{\sum_j \tau_{ji}G_{ji}x_j}{\sum_k G_{ki}x_k}, \qquad \tau_{ij} = \frac{\Delta g_{ij}}{RT},\quad G_{ij} = e^{-\alpha_{ij}\tau_{ij}} \]
+      <p>For Margules and van Laar, \(A_{12} = \ln\gamma_1^{\infty}\), the value for component 1 at infinite dilution in component 2. That gives the parameters a direct physical meaning. NRTL works for any number of components.</p>
+      <p>For a pure solid, the Gibbs–Helmholtz equation integrated from the melting point gives its fugacity relative to the pure liquid:</p>
+      \[ \ln\frac{f_i^{S}}{f_i^{L}} = -\frac{\Delta H_{\mathrm{fus}}}{R}\left(\frac1T - \frac1{T_m}\right) + \frac{\Delta C_p}{R}\left(\frac{T_m}{T} - 1 - \ln\frac{T_m}{T}\right) . \]
+      <p>A component that never vaporizes needs no vapor pressure at all: its pure-liquid fugacity appears on both sides of its own solid–liquid equation and cancels. So a full phase diagram can come from latent heats and melting points alone, for any mixture.</p>
 
       <h3 id="fields">External fields</h3>
       <p>A gravity or centrifugal field does work on the mass of the system, so the fundamental equation gains a term \(\Phi\,dm\), with \(m = \sum_i M_i N_i\). The potential per unit mass is</p>
@@ -433,50 +463,52 @@ details.toc-mobile { display: none; }
       \[ \ln \hat f_i(T, P, \mathbf x) + \frac{M_i\,\Phi}{RT} = \text{constant throughout the system}. \]
       <p>Three consequences follow, and the tool shows each one.</p>
       <p><b>The local phase diagram does not change.</b> Two phases that coexist at one position have the same \(\Phi\), so the field term cancels between them. The Pxy diagram at the bottom of a column is the ordinary one.</p>
-      <p><b>Pressure varies hydrostatically, without being imposed.</b> Summing \(x_i\,d\mu_i = -x_i M_i\,d\Phi\) and using the Gibbs–Duhem equation at constant temperature, \(\sum_i x_i\,d\mu_i = v\,dP\), gives \(dP = -\rho\,d\Phi\). The solver never uses this equation, yet its profiles satisfy it to about \(10^{-7}\) bar.</p>
+      <p><b>Pressure varies hydrostatically, without being imposed.</b> Summing \(x_i\,d\mu_i = -x_i M_i\,d\Phi\) over components and using the Gibbs–Duhem equation at constant temperature, \(\sum_i x_i\,d\mu_i = v\,dP\), gives \(dP = -\rho\,d\Phi\). The solver never uses this equation, yet its profiles satisfy it to about \(10^{-7}\) bar.</p>
       <p><b>Composition varies with position, and phases can appear.</b> The heavier component concentrates where \(\Phi\) is lowest. If the falling pressure brings the local fluid to saturation, a second phase forms there: a gas cap at the top of a tall liquid column, for example.</p>
     </section>
 
     <!-- ============================================================ -->
     <section id="pipeline">
       <h2>How it is built</h2>
-      <p>The work runs as a pipeline of modules. Each one takes the output of the previous one, so they can be developed and tested separately.</p>
+      <p>The work runs as a pipeline. Each module takes the output of the previous one, so they can be developed and tested separately.</p>
       <ol class="pipeline">
         <li>
-          <h4>Input checker</h4>
-          <p><code>input_checker.py</code> reads the free-form input, converts units, counts degrees of freedom and decides which equilibria can be calculated.</p>
+          <h4>Input checker<code>input_checker.py</code></h4>
+          <p>Reads the free-form input, converts units, counts degrees of freedom and decides which equilibria can be calculated and how.</p>
           <span class="status built">Built</span>
         </li>
         <li>
-          <h4>Thermodynamic models</h4>
-          <p><code>thermo_models.py</code> turns the checked input into a fugacity model for each phase: cubic EOS, ideal solution, ideal gas, pure solid, field potential.</p>
+          <h4>Thermodynamic models<code>thermo_models.py</code></h4>
+          <p>Turns the checked input into a fugacity model for each phase: cubic EOS, solution with an activity model, ideal gas, pure solid, field potential.</p>
           <span class="status built">Built</span>
         </li>
         <li>
-          <h4>Equilibrium solver</h4>
-          <p><code>equilibrium_solver.py</code> solves bubble and dew points, flashes, diagrams, solid–liquid curves and field profiles.</p>
+          <h4>Equilibrium solver<code>equilibrium_solver.py</code></h4>
+          <p>Bubble and dew points, flashes, diagrams with azeotropes, solid–liquid curves and the eutectic, field profiles.</p>
           <span class="status built">Built</span>
         </li>
-        <li class="planned">
-          <h4>Plots</h4>
-          <p>Pxy, Txy and solid–liquid diagrams, field profiles, and 3D P–T–x surfaces.</p>
+        <li>
+          <h4>Plotter<code>plotter.py</code></h4>
+          <p>Diagrams, complete T–x diagrams, composition charts, field profiles, and 3D P–T–x and Gibbs-energy surfaces.</p>
+          <span class="status built">Built</span>
+        </li>
+        <li>
+          <h4>Validation</h4>
+          <p>Comparison with experimental data, with average absolute deviations and fitted parameters.</p>
           <span class="status planned">Next</span>
         </li>
-        <li class="planned">
-          <h4>Validation</h4>
-          <p>Comparison with experimental data, with average absolute deviations and fitted \(k_{ij}\).</p>
-          <span class="status planned">Planned</span>
-        </li>
-        <li class="planned">
+        <li>
           <h4>Interface</h4>
-          <p>A notebook or web interface where the user types what they know and gets the diagram.</p>
+          <p>A notebook or web page where the user types what they know and gets the diagrams.</p>
           <span class="status planned">Planned</span>
         </li>
       </ol>
       <h3>Numerical methods</h3>
       <p><b>Vapor–liquid.</b> With \(K_i = y_i/x_i = \hat\varphi_i^{L}/\hat\varphi_i^{V}\), a material balance on a feed \(\mathbf z\) split into a vapor fraction \(\beta\) gives the Rachford–Rice equation,</p>
       \[ \sum_i \frac{z_i\,(K_i-1)}{1+\beta\,(K_i-1)} = 0 . \]
-      <p>Setting \(\beta = 0\) gives a bubble point and \(\beta = 1\) a dew point, so one routine handles both, solving for the unknown \(T\) or \(P\) with Brent's method. Because \(K\) depends on the phase compositions, it is updated by successive substitution until it stops changing. Starting values come from Wilson's correlation, \(K_i \approx (P_{c,i}/P)\exp[5.373(1+\omega_i)(1-T_{c,i}/T)]\). A solution with \(\mathbf x = \mathbf y\) (the trivial solution near a critical point) is detected and reported rather than returned.</p>
+      <p>Setting \(\beta = 0\) gives a bubble point and \(\beta = 1\) a dew point, so one routine handles both, solving for the unknown \(T\) or \(P\) with Brent's method. Because \(K\) depends on the phase compositions, it is updated by successive substitution until it stops changing. For an equation of state, starting values come from Wilson's correlation,</p>
+      \[ K_i \approx \frac{P_{c,i}}{P}\exp\!\left[5.373\,(1+\omega_i)\left(1-\frac{T_{c,i}}{T}\right)\right] , \]
+      <p>and a solution with \(\mathbf x = \mathbf y\) (the trivial solution near a critical point) is reported rather than returned. With an activity model, \(\mathbf x = \mathbf y\) can be a real azeotrope; the diagram routine finds it where \(y_1 - x_1\) changes sign.</p>
       <p><b>Solid–liquid.</b> One equation, \(\hat f_i^{L} = f_i^{S}\), solved for temperature or composition. The eutectic is the composition where the two liquidus curves meet.</p>
       <p><b>Field profiles.</b> At each position, the field equation above is solved for \(\ln P\) and the free mole fractions. The march starts at the reference position, uses the hydrostatic estimate \(P - \rho\,\Delta\Phi\) as the first guess, and halves any step that fails. After each step, the local fluid is tested against its own bubble or dew pressure. When saturation is crossed, the contact is located by bisection and the march continues in the new phase.</p>
     </section>
@@ -484,24 +516,29 @@ details.toc-mobile { display: none; }
     <!-- ============================================================ -->
     <section id="input">
       <h2>Describing a system</h2>
-      <p>The user writes down what they know, one quantity per line, in any order, with units. Lines starting with <code>#</code> are comments. This is the instructor's sugar–water example:</p>
-<pre><code>components = water, sucrose
+      <p>The user writes down what they know, one quantity per line, in any order, with units. Lines starting with <code>#</code> are comments. This input contains only boiling points, melting points and latent heats:</p>
+<pre><code>components = benzene, naphthalene
 P = 1 atm
-sweep = x                      # draw the full diagram in composition
-water.Tb = 373.15 K
-water.dHvap = 40.65 kJ/mol
-water.Tm = 273.15 K
-water.dHfus = 6.01 kJ/mol
-sucrose.nonvolatile = yes
-sucrose.Tm = 459 K
-sucrose.dHfus = 46 kJ/mol</code></pre>
-      <p>Property values in the examples are typical literature values for demonstration. Take your own from the appendix of Tester and Modell or another cited source.</p>
+sweep = x                       # draw the full diagram in composition
+benzene.Tb = 353.24 K
+benzene.dHvap = 30.72 kJ/mol
+benzene.Tm = 278.68 K
+benzene.dHfus = 9.87 kJ/mol
+naphthalene.Tb = 491.14 K
+naphthalene.dHvap = 43.2 kJ/mol
+naphthalene.Tm = 353.43 K
+naphthalene.dHfus = 19.01 kJ/mol</code></pre>
+      <p>From this, the checker finds three equilibria it can calculate: boiling, benzene crystallizing and naphthalene crystallizing. Three more lines would switch the liquid to an activity model, for example:</p>
+<pre><code>activity = vanlaar
+A(benzene, naphthalene) = 0.10
+A(naphthalene, benzene) = 0.08</code></pre>
+      <p>Property values in the examples are typical literature values for demonstration. Check them against a source you can cite before relying on the results.</p>
 
       <h3>What the checker reports</h3>
       <p>For every possible equilibrium (vapor–liquid, plus solid–liquid for any component with a melting point), the checker writes out the fundamental relation, chooses how each chemical potential will be calculated, counts the degrees of freedom, and gives a verdict:</p>
       <dl class="params">
         <dt>SUFFICIENT</dt><dd>The data and the state specification are complete. It names the calculation, for example "Txy diagram at fixed P".</dd>
-        <dt>INSUFFICIENT</dt><dd>Lists what is missing, with alternatives (for example, either the acentric factor for the equation of state or vapor pressures for the ideal-solution route), and suggests valid specifications.</dd>
+        <dt>INSUFFICIENT</dt><dd>Lists what is missing, with alternatives (for example, either the acentric factor for the equation of state, or vapor pressures for the solution route), and suggests valid specifications.</dd>
         <dt>OVERSPECIFIED</dt><dd>More intensive variables were fixed than the phase rule allows. It says how many to remove.</dd>
         <dt>INVALID</dt><dd>The input itself is wrong: an unknown quantity (with a spelling suggestion), mole fractions that do not add up to 1, an unknown unit.</dd>
       </dl>
@@ -520,31 +557,34 @@ sucrose.dHfus = 46 kJ/mol</code></pre>
           <thead><tr><th>Written as</th><th>Meaning</th></tr></thead>
           <tbody>
             <tr><td><code>components</code></td><td>Component names, comma separated, in the order used for compositions</td></tr>
-            <tr><td><code>model</code></td><td><code>vdW</code>, <code>SRK</code> or <code>PR</code> (optional)</td></tr>
+            <tr><td><code>model</code></td><td>Equation of state: <code>vdW</code>, <code>SRK</code> or <code>PR</code> (optional)</td></tr>
+            <tr><td><code>activity</code></td><td>Liquid activity model: <code>ideal</code> (default), <code>margules</code>, <code>vanlaar</code> or <code>nrtl</code></td></tr>
             <tr><td><code>T</code>, <code>P</code></td><td>Temperature (K or C), pressure (Pa, kPa, bar, atm, mmHg, psi)</td></tr>
-            <tr><td><code>x(L)</code>, <code>x(V)</code> or <code>y</code>, <code>z</code>, <code>beta</code></td><td>Liquid, vapor and feed compositions; vapor fraction. \(n\) or \(n-1\) mole fractions.</td></tr>
+            <tr><td><code>x(L)</code>, <code>x(V)</code> or <code>y</code>, <code>z</code>, <code>beta</code></td><td>Liquid, vapor and feed compositions; vapor fraction. Give \(n\) or \(n-1\) mole fractions.</td></tr>
             <tr><td><code>sweep</code></td><td><code>x</code>, <code>T</code> or <code>P</code>: the variable swept to draw a diagram</td></tr>
-            <tr><td><code>phases</code></td><td>Restrict to one equilibrium: <code>L, V</code> or <code>L, S(water)</code></td></tr>
+            <tr><td><code>phases</code></td><td>Restrict to one equilibrium: <code>L, V</code> or <code>L, S(name)</code></td></tr>
             <tr><td><code>name.Tc</code>, <code>.Pc</code>, <code>.omega</code>, <code>.a</code>, <code>.b</code></td><td>Equation-of-state constants</td></tr>
             <tr><td><code>name.antoine</code>, <code>.Psat</code>, <code>.Tb</code>, <code>.dHvap</code></td><td>Vapor pressure: Antoine constants with units, a relation in <code>T</code>, or boiling point and latent heat</td></tr>
             <tr><td><code>name.Tm</code>, <code>.dHfus</code>, <code>.dCp_fus</code></td><td>Melting point, enthalpy of fusion, heat-capacity change on melting</td></tr>
-            <tr><td><code>name.M</code>, <code>.V_L</code>, <code>.V_S</code>, <code>.nonvolatile</code></td><td>Molar mass, liquid and solid molar volumes, never enters the vapor</td></tr>
-            <tr><td><code>kij(name1, name2)</code></td><td>Binary interaction parameter (0 if not given, with a note)</td></tr>
-            <tr><td><code>field</code>, <code>g</code>, <code>omega</code>, <code>height</code>, <code>radius</code>, <code>reference</code></td><td>Gravity or centrifugal field, its strength, extent and the position where the given state applies</td></tr>
+            <tr><td><code>name.M</code>, <code>.V_L</code>, <code>.V_S</code>, <code>.nonvolatile</code></td><td>Molar mass; liquid and solid molar volumes; the component never enters the vapor</td></tr>
+            <tr><td><code>kij(name1, name2)</code></td><td>Binary interaction parameter of the equation of state (0 if not given)</td></tr>
+            <tr><td><code>A(name1, name2)</code></td><td>Margules or van Laar parameter: \(\ln\gamma\) of name1 at infinite dilution in name2. Give both orders.</td></tr>
+            <tr><td><code>dg(name1, name2)</code>, <code>alpha(name1, name2)</code></td><td>NRTL energy \(g_{12} - g_{22}\) (both orders) and non-randomness (default 0.3)</td></tr>
+            <tr><td><code>field</code>, <code>g</code>, <code>omega</code>, <code>height</code>, <code>radius</code>, <code>reference</code></td><td>Gravity or centrifugal field, its strength, its extent and the position where the given state applies</td></tr>
           </tbody>
         </table>
       </div>
-      <p>A vapor pressure can be typed as a relation, for example <code>water.Psat = exp(16.3872 - 3885.70/(T - 273.15 + 230.170)) [kPa, K]</code>. The relation is parsed safely: only arithmetic, the variable <code>T</code> and <code>exp</code>, <code>log</code>, <code>ln</code>, <code>log10</code>, <code>sqrt</code> are allowed.</p>
+      <p>A vapor pressure can be typed as a relation, for example <code>water.Psat = exp(16.3872 - 3885.70/(T - 273.15 + 230.170)) [kPa, K]</code>. The relation is parsed safely: only arithmetic, the variable <code>T</code> and the functions <code>exp</code>, <code>log</code>, <code>ln</code>, <code>log10</code> and <code>sqrt</code> are allowed.</p>
     </section>
 
     <!-- ============================================================ -->
     <section id="examples" class="wide">
       <h2>Worked examples</h2>
       <div style="max-width:72ch">
-        <p>All numbers and charts on this page are computed by the tool itself (<code>scripts/make_docs_data.py</code>), using the files in <code>examples/</code>.</p>
+        <p>All numbers and charts in this section are computed by the tool itself (<code>scripts/make_docs_data.py</code>), from the files in <code>examples/</code>.</p>
 
         <h3>Propane / n-butane with three equations of state</h3>
-        <p>The diagram at the top of the page is the Peng–Robinson Pxy diagram at 300 K with \(k_{ij} = 0.003\). At \(x_{\text{propane}} = 0.4\), the bubble pressure is <span data-v="verification.bubble_P_x04" data-d="3"></span> bar and the first vapor contains <span data-v="verification.y_x04" data-d="3"></span> propane. The ends of the diagram are the vapor pressures of the pure components, so the three equations of state can be compared directly on pure propane:</p>
+        <p>The diagram at the top of the page is the Peng–Robinson Pxy diagram at 300 K with \(k_{ij} = 0.003\). At \(x_{\text{propane}} = 0.4\) the bubble pressure is <span data-v="verification.bubble_P_x04" data-d="3"></span> bar, and the first vapor contains <span data-v="verification.y_x04" data-d="3"></span> propane. The ends of the diagram are the vapor pressures of the pure components, so the three equations of state can be compared directly on pure propane:</p>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Model</th><th class="num">Vapor pressure of propane at 300 K (bar)</th></tr></thead>
@@ -556,20 +596,30 @@ sucrose.dHfus = 46 kJ/mol</code></pre>
             </tbody>
           </table>
         </div>
-        <p>The van der Waals equation, with no acentric factor and a temperature-independent \(a\), is far off. SRK and PR, which fit \(a(T)\) to vapor-pressure behavior through \(\omega\), are within about 1%.</p>
+        <p>The van der Waals equation, with no acentric factor and a temperature-independent \(a\), is far off. SRK and PR, which tune \(a(T)\) to vapor-pressure behavior through \(\omega\), are within about 1%.</p>
 
-        <h3>Sugar–water at 1 atm</h3>
-        <p>Three equilibria from latent heats and melting points alone: boiling (liquid + water vapor), freezing (liquid + ice) and solubility (liquid + solid sucrose). At \(x_{\text{water}} = 0.95\), about 50 wt% sucrose, the ideal-solution model gives a boiling point of <span data-v="sugar_point.Tb" data-d="2"></span> K and a freezing point of <span data-v="sugar_point.Tf" data-d="2"></span> K.</p>
+        <h3>A complete phase diagram from latent heats alone</h3>
+        <p>The benzene / naphthalene input above contains no critical constants and no vapor-pressure equation. From boiling points, melting points and latent heats, the tool calculates the boiling and dew curves, the curve along which each solid crystallizes, and the eutectic where both solids form together: <span data-v="latent.eutectic.T" data-d="1"></span> K at \(x_{\text{benzene}} = \) <span data-v="latent.eutectic.x" data-d="3"></span>, close to the measured eutectic of about 270 K. This mixture is close to ideal, so no activity model is needed.</p>
       </div>
-      <figure class="chart-figure" aria-labelledby="sugar-cap">
-        <ul class="legend" id="sugar-legend"></ul>
-        <div class="chart" id="chart-sugar"></div>
-        <figcaption id="sugar-cap"><b>Ideal-solution T–x diagram of sugar–water at 1 atm.</b> A liquid solution is stable above both solid curves and below the boiling curve. The ideal model badly underestimates sucrose solubility, so the eutectic sits at \(x_{\text{water}} \approx 0.9997\) instead of at a real concentrated syrup. Fixing this needs an activity-coefficient model for the liquid, which is on the roadmap.</figcaption>
-        <details class="data"><summary>Show data</summary><div class="table-wrap" id="sugar-table"></div></details>
+      <figure class="chart-figure" aria-labelledby="latent-cap">
+        <ul class="legend" id="latent-legend"></ul>
+        <div class="chart" id="chart-latent"></div>
+        <figcaption id="latent-cap"><b>Benzene / naphthalene at 1 atm.</b> Liquid exists between the crystallization curves and the boiling curve. Below the eutectic line, both solids coexist.</figcaption>
+        <details class="data"><summary>Show data</summary><div class="table-wrap" id="latent-table"></div></details>
       </figure>
       <div style="max-width:72ch">
-        <p>The ideal solution model treats sucrose and water as if they mixed like similar molecules. Real sugar solutions are strongly non-ideal, which is why the solubility curve here is unrealistic. The calculation is still a useful check: the boiling-point elevation and freezing-point depression near pure water follow the textbook dilute-solution results.</p>
+        <p>The same input works for any mixture. Swap in the properties of other components, mark one as <code>nonvolatile</code> if it never vaporizes, or add an activity model if the liquid is strongly non-ideal.</p>
 
+        <h3>Activity coefficients: the ethanol–water azeotrope</h3>
+        <p>With vapor-pressure relations alone, an ideal solution cannot produce an azeotrope. Adding the two van Laar parameters \(A_{12} = 1.68\) and \(A_{21} = 0.92\) changes the diagram: the curves meet again at \(x_{\text{ethanol}} = \) <span data-v="azeo.azeotrope.x" data-d="3"></span> and <span data-v="azeo.azeotrope.T" data-d="2"></span> K. The measured azeotrope is at about 0.894 and 351.3 K.</p>
+      </div>
+      <figure class="chart-figure" aria-labelledby="azeo-cap">
+        <ul class="legend" id="azeo-legend"></ul>
+        <div class="chart" id="chart-azeo"></div>
+        <figcaption id="azeo-cap"><b>Ethanol–water Txy diagram at 1 atm.</b> The van Laar model gives a minimum-boiling azeotrope; the ideal solution (gray) does not.</figcaption>
+        <details class="data"><summary>Show data</summary><div class="table-wrap" id="azeo-table"></div></details>
+      </figure>
+      <div style="max-width:72ch">
         <h3>Gravity: a 500 m column of propane / n-butane</h3>
         <p>A liquid with \(z_{\text{propane}} = 0.4\) at 320 K and 25 bar sits at the bottom of a 500 m column. Moving up, the pressure falls hydrostatically. At <span data-v="gravity.contact_z" data-d="1"></span> m the pressure reaches the local bubble pressure (<span data-v="gravity.contact_P" data-d="2"></span> bar), and a gas cap forms above that height.</p>
       </div>
@@ -584,39 +634,65 @@ sucrose.dHfus = 46 kJ/mol</code></pre>
       </figure>
       <div style="max-width:72ch">
         <h3>Centrifuge: ethanol–water at 20,000 rpm</h3>
-        <p>An ethanol–water liquid at its bubble point (\(x_{\text{ethanol}} = 0.5\), 350 K, <span data-v="centrifuge.P.0" data-d="3"></span> bar) is in contact with its vapor at \(r = 0.05\) m and fills the rotor out to \(r = 0.10\) m. The model is the ideal-solution route with user-typed vapor-pressure relations and liquid molar volumes.</p>
+        <p>An ethanol–water liquid at its bubble point (\(x_{\text{ethanol}} = 0.5\), 350 K, <span data-v="centrifuge.P.0" data-d="3"></span> bar) is in contact with its vapor at \(r = 0.05\) m and fills the rotor out to \(r = 0.10\) m. The model is the solution route with typed vapor-pressure relations and liquid molar volumes.</p>
         <div class="table-wrap">
           <table id="centrifuge-table">
-            <thead><tr><th class="num">Radius (m)</th><th class="num">Pressure (bar)</th><th class="num">\(x_{\text{ethanol}}\)</th></tr></thead>
+            <thead><tr><th>Radius (m)</th><th class="num">Pressure (bar)</th><th class="num">\(x_{\text{ethanol}}\)</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
-        <p>At the wall the liquid is at about <span data-v="centrifuge.P.-1" data-d="0"></span> bar and slightly depleted in ethanol, the lighter component. Its bubble pressure is still well below this, so the wall region is a compressed liquid. The vapor–liquid diagram at any one radius is the ordinary one: the field changes where states are found, not the equilibrium between coexisting phases.</p>
+        <p>At the wall the liquid is at about <span data-v="centrifuge.P.-1" data-d="0"></span> bar and slightly depleted in ethanol, the lighter component. Its bubble pressure is far below this, so the wall region is a compressed liquid. The vapor–liquid diagram at any one radius is the ordinary one: the field changes where states are found, not the equilibrium between coexisting phases.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="plots" class="wide">
+      <div style="max-width:72ch">
+        <h2>Plots</h2>
+        <p><code>plotter.py</code> solves an input file and draws everything its results contain, then saves the figures as PNG files:</p>
+<pre><code># save every figure as PNG in plots/
+python plotter.py examples/benzene_naphthalene.txt
+
+# also open the figures in windows
+python plotter.py examples/ethanol_water_vanlaar.txt --show
+
+# skip the 3D surfaces (faster)
+python plotter.py examples/propane_butane_pr_pxy.txt --no-3d</code></pre>
+        <p>Which figures appear depends on the input. A swept composition gives Pxy or Txy and xy diagrams, plus a 3D P–T–x surface and, on the solution route, a Gibbs-energy-of-mixing surface. Solid–liquid curves at one pressure are combined with the boiling curves into one complete T–x diagram. A single state is marked on its diagram with its tie line. Flash results for any number of components get a composition chart, and every field calculation gets its profiles.</p>
+      </div>
+      <div class="gallery">
+        <figure><a href="img/phase_diagram_latent_heats.png"><img src="img/phase_diagram_latent_heats.png" alt="Complete T-x phase diagram of benzene and naphthalene at 1 atm with boiling, dew and crystallization curves and the eutectic" loading="lazy"></a><figcaption><b>Complete T–x diagram.</b> Boiling, dew and crystallization curves with the eutectic.</figcaption></figure>
+        <figure><a href="img/txy_azeotrope.png"><img src="img/txy_azeotrope.png" alt="Txy diagram of ethanol and water at 1 atm with the azeotrope marked" loading="lazy"></a><figcaption><b>Txy diagram.</b> The azeotrope is found and marked automatically.</figcaption></figure>
+        <figure><a href="img/ptx_surface.png"><img src="img/ptx_surface.png" alt="3D bubble and dew surfaces of propane and n-butane in pressure, temperature and composition" loading="lazy"></a><figcaption><b>P–T–x surface.</b> Each pair of bold isotherms is one Pxy diagram.</figcaption></figure>
+        <figure><a href="img/gibbs_mixing_surface.png"><img src="img/gibbs_mixing_surface.png" alt="3D surface of the Gibbs energy of mixing of the liquid against composition and temperature" loading="lazy"></a><figcaption><b>Gibbs energy of mixing</b> of ethanol–water with the van Laar model. Its curvature against composition decides whether the liquid is stable as one phase.</figcaption></figure>
+        <figure class="span2"><a href="img/gravity_profile.png"><img src="img/gravity_profile.png" alt="Pressure and propane mole fraction against height in a 500 m column with a gas cap above 306 m" loading="lazy"></a><figcaption><b>Field profile.</b> Pressure and composition against height, meeting at the gas–liquid contact.</figcaption></figure>
       </div>
     </section>
 
     <!-- ============================================================ -->
     <section id="verification">
       <h2>Verification</h2>
-      <p>Each module has a test suite that runs when the file is executed directly. The tests compare against exact identities, hand calculations and independent routes rather than against the code's own earlier output.</p>
+      <p>Each module has a test suite that runs when the file is executed directly. The tests compare against exact identities, hand calculations and independent routes, not against the code's own earlier output.</p>
       <div class="table-wrap">
-        <table>
+        <table class="results">
           <thead><tr><th>Check</th><th>Result</th></tr></thead>
           <tbody>
-            <tr><td>Analytic \(P\) and \(\ln\hat\varphi_i\) against numerical derivatives of \(A^{\mathrm{res}}\), all three EOS, liquid and vapor</td><td>Agree to about \(10^{-9}\)</td></tr>
-            <tr><td>\(\sum_i x_i \ln\hat\varphi_i = A^{\mathrm{res}}/NRT + Z - 1 - \ln Z\)</td><td>Holds to machine precision</td></tr>
+            <tr><td>Analytic \(P\) and \(\ln\hat\varphi_i\) against numerical derivatives of \(A^{\mathrm{res}}\), all three equations of state, liquid and vapor</td><td>Agree to about \(10^{-9}\)</td></tr>
+            <tr><td>\(\sum_i x_i \ln\hat\varphi_i = A^{\mathrm{res}}/NRT + Z - 1 - \ln Z\)</td><td>Machine precision</td></tr>
+            <tr><td>Activity models: \(\ln\gamma_i\) against numerical derivatives of \(nG^E/RT\), and the Gibbs–Duhem equation</td><td>Agree to about \(10^{-11}\)</td></tr>
             <tr><td>Ends of the Pxy diagram equal the pure-component saturation pressures</td><td>Exact</td></tr>
-            <tr><td>Bubble pressure, then dew pressure of the resulting vapor, returns the starting state</td><td>Relative error <span data-v="verification.roundtrip_err" data-e="1"></span></td></tr>
-            <tr><td>Flash between bubble and dew pressure: material balance and equal fugacities</td><td>Errors <span data-v="verification.flash_mb" data-e="1"></span> and <span data-v="verification.flash_lnf" data-e="1"></span></td></tr>
-            <tr><td>Ideal-solution bubble pressure equals \(\sum_i x_i f_i^{L}\) (Raoult's law with Poynting factor)</td><td>Exact</td></tr>
-            <tr><td>Sugar–water boiling and freezing points against hand calculation</td><td>Exact</td></tr>
-            <tr><td>Gravity profile: pressure against \(\int \rho g\,dz\) over a <span data-v="verification.hydro_drop_bar" data-d="2"></span> bar drop</td><td>Differ by <span data-v="verification.hydro_err_bar" data-e="1"></span> bar</td></tr>
-            <tr><td>\(\ln\hat f_i + M_i\Phi/RT\) constant along a profile, including across a gas–liquid contact</td><td>Spread below \(10^{-10}\)</td></tr>
+            <tr><td>Bubble pressure, then dew pressure of the resulting vapor, returns the starting state</td><td>Error <span data-v="verification.roundtrip_err" data-e="1"></span></td></tr>
+            <tr><td>Flash between bubble and dew pressure: material balance and equal fugacities</td><td><span data-v="verification.flash_mb" data-e="1"></span>, <span data-v="verification.flash_lnf" data-e="1"></span></td></tr>
+            <tr><td>Bubble pressure equals \(\sum_i x_i \gamma_i f_i^{L}\), with and without an activity model</td><td>Exact</td></tr>
+            <tr><td>Azeotrope: \(x = y\), and bubble temperature equals dew temperature</td><td>Exact</td></tr>
+            <tr><td>Freezing point, eutectic, and boiling point with a nonvolatile component, against closed-form results</td><td>Exact</td></tr>
+            <tr><td>Gravity profile: pressure against \(\int \rho g\,dz\) over a <span data-v="verification.hydro_drop_bar" data-d="2"></span> bar drop</td><td><span data-v="verification.hydro_err_bar" data-e="1"></span> bar</td></tr>
+            <tr><td>\(\ln\hat f_i + M_i\Phi/RT\) constant along a profile, including across a gas–liquid contact</td><td>Below \(10^{-10}\)</td></tr>
             <tr><td>Centrifuge profile computed with 3, 11 and 51 grid points</td><td>Identical</td></tr>
           </tbody>
         </table>
       </div>
-      <p>Pure propane at 300 K agrees with the experimental vapor pressure (Peng–Robinson within 0.1%), which is a first contact with real data. Systematic comparison with experimental mixture data is the validation stage still to come.</p>
+      <p>Three results already meet real data: pure propane's vapor pressure (Peng–Robinson within 0.1%), the benzene–naphthalene eutectic, and the ethanol–water azeotrope. Systematic comparison with experimental mixture data is the next stage.</p>
     </section>
 
     <!-- ============================================================ -->
@@ -624,17 +700,16 @@ sucrose.dHfus = 46 kJ/mol</code></pre>
       <h2>Limitations and roadmap</h2>
       <h3>Current limitations</h3>
       <ul>
-        <li>The ideal-solution route ignores liquid non-ideality. It cannot predict azeotropes, and it is quantitatively poor for strongly non-ideal mixtures such as sugar–water.</li>
+        <li>The activity models have constant parameters. Margules and van Laar are for binaries; use NRTL for more components.</li>
+        <li>The vapor is an ideal gas on the solution route, so that route is for low to moderate pressures. Use an equation of state at high pressure.</li>
         <li>van der Waals mixing rules with a single \(k_{ij}\) work well for hydrocarbons, less well for polar mixtures.</li>
-        <li>Near a mixture critical point, bubble and dew calculations can converge only to the trivial solution. The tool reports this rather than returning a wrong answer.</li>
+        <li>Near a mixture critical point, equation-of-state bubble and dew calculations can converge only to the trivial solution. The tool reports this rather than returning a wrong answer.</li>
         <li>Only two-phase equilibria are handled: vapor–liquid, and liquid with a pure solid. Diagrams and solid–liquid compositions are for binaries; flash and saturation points work for any number of components.</li>
         <li>Field profiles are isothermal. When two phases are given at the reference position, the interface is placed there.</li>
       </ul>
       <h3>Next steps</h3>
       <ul>
-        <li>Plotting module: Pxy, Txy and solid–liquid diagrams, field profiles, and 3D P–T–x and Gibbs-energy surfaces.</li>
-        <li>Validation against experimental VLE data, with average absolute deviations and fitting of \(k_{ij}\).</li>
-        <li>An activity-coefficient model (NRTL or Wilson) in the Gibbs form, for non-ideal liquids.</li>
+        <li>Validation against experimental VLE and SLE data, with average absolute deviations and fitting of \(k_{ij}\) and activity parameters.</li>
         <li>Liquid–liquid and three-phase equilibrium, using the stability criteria from the fundamental equation.</li>
         <li>Ternary diagrams for three-component systems.</li>
         <li>An interface, and optional automatic import of property data from published tables.</li>
@@ -644,13 +719,14 @@ sucrose.dHfus = 46 kJ/mol</code></pre>
     <!-- ============================================================ -->
     <section id="getting-started">
       <h2>Getting started</h2>
-      <p>You need Python 3.9 or later with NumPy and SciPy.</p>
+      <p>You need Python 3.9 or later with NumPy, SciPy and Matplotlib.</p>
 <pre><code>git clone https://github.com/Fang099/phase-equilibrium-calculator.git
 cd phase-equilibrium-calculator
 pip install -r requirements.txt
 
-python input_checker.py examples/sugar_water.txt        # check an input
-python equilibrium_solver.py examples/sugar_water.txt   # check and solve it</code></pre>
+python input_checker.py examples/benzene_naphthalene.txt      # check an input
+python equilibrium_solver.py examples/benzene_naphthalene.txt # check and solve it
+python plotter.py examples/benzene_naphthalene.txt            # solve and plot it</code></pre>
       <p>To describe your own system, copy one of the files in <code>examples/</code> and edit it. To run the test suites:</p>
 <pre><code>python thermo_models.py
 python equilibrium_solver.py</code></pre>
@@ -659,13 +735,15 @@ python equilibrium_solver.py</code></pre>
 <pre><code>from input_checker import check_input
 from thermo_models import build_system
 from equilibrium_solver import solve, print_results
+from plotter import plot_results
 
-text = open("examples/sugar_water.txt").read()
+text = open("examples/benzene_naphthalene.txt").read()
 print(check_input(text))            # verdict and what is missing
 
 system = build_system(text)         # phase models (raises if insufficient)
 results = solve(system)             # list of Result objects
-print_results(system, results)</code></pre>
+print_results(system, results)
+figures = plot_results(system, results)   # {name: matplotlib Figure}</code></pre>
     </section>
 
     <!-- ============================================================ -->
@@ -679,19 +757,26 @@ print_results(system, results)</code></pre>
       </dl>
       <h4><code>thermo_models.py</code></h4>
       <dl class="params">
-        <dt>CubicEOS</dt><dd>vdW, SRK or PR. <code>helmholtz_res(T, V, n)</code>, <code>pressure</code>, <code>ln_phi_TV</code>, <code>z_roots(T, P, x)</code>, <code>molar_volume</code>, <code>ln_phi(T, P, x, phase)</code>.</dd>
-        <dt>EOSPhase, IdealGasPhase, IdealSolutionLiquid, PureSolidPhase</dt><dd>Phase models with a common interface: <code>ln_f(T, P, x)</code>, <code>ln_phi</code>, <code>molar_volume</code>, and <code>present</code> (which components can be in the phase).</dd>
+        <dt>CubicEOS</dt><dd>vdW, SRK or PR: <code>helmholtz_res(T, V, n)</code>, <code>pressure</code>, <code>ln_phi_TV</code>, <code>z_roots(T, P, x)</code>, <code>molar_volume</code>, <code>ln_phi(T, P, x, phase)</code>.</dd>
+        <dt>Margules, VanLaar, NRTL</dt><dd>Activity models: <code>ge_rt(T, x)</code> and <code>ln_gamma(T, x)</code>.</dd>
+        <dt>EOSPhase, SolutionLiquid, IdealGasPhase, PureSolidPhase</dt><dd>Phase models with a common interface: <code>ln_f(T, P, x)</code>, <code>ln_phi</code>, <code>molar_volume</code>, and <code>present</code> (which components can be in the phase).</dd>
         <dt>Field</dt><dd><code>potential(pos)</code> and <code>field_term(M, T, pos)</code> for gravity or centrifugal fields.</dd>
         <dt>build_system(text)</dt><dd>Run the checker and build a <code>ThermoSystem</code>: the phase pair for each calculable equilibrium, the field and the specified state.</dd>
       </dl>
       <h4><code>equilibrium_solver.py</code></h4>
       <dl class="params">
-        <dt>saturation(L, V, z, beta, T=, P=)</dt><dd>Unknown \(T\) or \(P\) at a given vapor fraction. <code>bubble_P</code>, <code>bubble_T</code>, <code>dew_P</code>, <code>dew_T</code> are shortcuts.</dd>
+        <dt>saturation(L, V, z, beta, T=, P=)</dt><dd>Unknown \(T\) or \(P\) at a given vapor fraction. <code>bubble_P</code>, <code>bubble_T</code>, <code>dew_P</code> and <code>dew_T</code> are shortcuts.</dd>
         <dt>flash_TP(L, V, T, P, z)</dt><dd>Isothermal flash; recognizes single-phase states.</dd>
-        <dt>vle_diagram(L, V, T= or P=)</dt><dd>Binary Pxy or Txy diagram.</dd>
+        <dt>vle_diagram(L, V, T= or P=)</dt><dd>Binary Pxy or Txy diagram, with any azeotrope in <code>.azeotrope</code>.</dd>
         <dt>sle_temperature, sle_composition, sle_curve, eutectic</dt><dd>Solid–liquid equilibrium with a pure solid.</dd>
         <dt>column_profile(system, L, V, point)</dt><dd>Pressure, composition and phase along height or radius, with gas–liquid contacts.</dd>
         <dt>solve(system)</dt><dd>Run whatever the input asks for. <code>print_results</code> prints it as tables.</dd>
+      </dl>
+      <h4><code>plotter.py</code></h4>
+      <dl class="params">
+        <dt>plot_results(system, results)</dt><dd>Every relevant figure, as <code>{name: Figure}</code>. <code>save_figures(figs, folder, stem)</code> writes PNG files.</dd>
+        <dt>plot_vle_diagram, plot_xy, plot_tx_complete, plot_compositions, plot_profile</dt><dd>The individual 2D figures.</dd>
+        <dt>plot_ptx_surface, plot_gmix_surface</dt><dd>The 3D surfaces.</dd>
       </dl>
     </section>
 
@@ -699,13 +784,14 @@ print_results(system, results)</code></pre>
     <section id="sources">
       <h2>References</h2>
       <ul>
-        <li>Tester, J. W., and Modell, M. <i>Thermodynamics and Its Applications</i>, 3rd ed. Prentice Hall, 1997. The course text: fundamental equation, Legendre transforms, equilibrium and stability criteria, systems in external fields.</li>
+        <li>Tester, J. W., and Modell, M. <i>Thermodynamics and Its Applications</i>, 3rd ed. Prentice Hall, 1997.</li>
         <li>Peng, D.-Y., and Robinson, D. B. A new two-constant equation of state. <i>Industrial &amp; Engineering Chemistry Fundamentals</i> 15 (1976) 59–64.</li>
         <li>Soave, G. Equilibrium constants from a modified Redlich–Kwong equation of state. <i>Chemical Engineering Science</i> 27 (1972) 1197–1203.</li>
+        <li>Renon, H., and Prausnitz, J. M. Local compositions in thermodynamic excess functions for liquid mixtures. <i>AIChE Journal</i> 14 (1968) 135–144. The NRTL model.</li>
         <li>Rachford, H. H., and Rice, J. D. Procedure for use of electronic digital computers in calculating flash vaporization hydrocarbon equilibrium. <i>Journal of Petroleum Technology</i> 4 (1952).</li>
-        <li>Michelsen, M. L., and Mollerup, J. M. <i>Thermodynamic Models: Fundamentals and Computational Aspects</i>, 2nd ed. Tie-Line Publications, 2007. The residual Helmholtz energy formulation of cubic equations of state.</li>
-        <li>Poling, B. E., Prausnitz, J. M., and O'Connell, J. P. <i>The Properties of Gases and Liquids</i>, 5th ed. McGraw-Hill, 2001. Pure-component constants and the Wilson K-value correlation.</li>
-        <li>Whitson, C. H., and Belery, P. Compositional gradients in petroleum reservoirs. SPE 28000 (1994). Equilibrium in a gravity field with an equation of state.</li>
+        <li>Michelsen, M. L., and Mollerup, J. M. <i>Thermodynamic Models: Fundamentals and Computational Aspects</i>, 2nd ed. Tie-Line Publications, 2007.</li>
+        <li>Poling, B. E., Prausnitz, J. M., and O'Connell, J. P. <i>The Properties of Gases and Liquids</i>, 5th ed. McGraw-Hill, 2001.</li>
+        <li>Whitson, C. H., and Belery, P. Compositional gradients in petroleum reservoirs. SPE 28000 (1994).</li>
       </ul>
     </section>
   </main>
@@ -714,14 +800,14 @@ print_results(system, results)</code></pre>
 <footer>
   <div class="inner">
     <!-- Add your team members' names and the course code here. -->
-    Course project for Chemical Engineering Thermodynamics. Reference text: Tester and Modell, <i>Thermodynamics and Its Applications</i>.
+    Phase Equilibrium Calculator: a course project for Chemical Engineering Thermodynamics.
   </div>
 </footer>
 
 <div class="tooltip" id="tooltip" role="presentation"></div>
 
 <!-- DOCS-DATA:START -->
-<script id="docs-data" type="application/json">{"pxy":{"T":300.0,"x":[0.0,0.02,0.04,0.06,0.08,0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24,0.26,0.28,0.3,0.32,0.34,0.36,0.38,0.4,0.42,0.44,0.46,0.48,0.5,0.52,0.54,0.56,0.58,0.6,0.62,0.64,0.66,0.68,0.7,0.72,0.74,0.76,0.78,0.8,0.82,0.84,0.86,0.88,0.9,0.92,0.94,0.96,0.98,1.0],"y":[0.0,0.06574,0.12532,0.17958,0.22921,0.27479,0.31681,0.35567,0.39174,0.42531,0.45663,0.48594,0.51343,0.53928,0.56363,0.58661,0.60835,0.62895,0.64851,0.6671,0.6848,0.70169,0.71782,0.73324,0.74801,0.76218,0.77578,0.78885,0.80144,0.81356,0.82526,0.83655,0.84747,0.85803,0.86827,0.87819,0.88782,0.89717,0.90627,0.91512,0.92374,0.93215,0.94035,0.94837,0.9562,0.96387,0.97137,0.97873,0.98595,0.99303,1.0],"P":[2.5726,2.71058,2.8488,2.98725,3.12594,3.26489,3.40409,3.54356,3.6833,3.82332,3.96362,4.10423,4.24514,4.38637,4.52792,4.66981,4.81205,4.95465,5.09762,5.24098,5.38473,5.5289,5.67349,5.81853,5.96403,6.11,6.25647,6.40345,6.55096,6.69902,6.84766,6.9969,7.14675,7.29726,7.44843,7.60031,7.75291,7.90628,8.06043,8.21541,8.37126,8.528,8.68568,8.84434,9.00402,9.16477,9.32664,9.48968,9.65394,9.81949,9.98638]},"psat_propane_300K":{"vdW":17.366,"SRK":10.099,"PR":9.986},"sugar":{"boil":{"x":[0.025,0.05,0.075,0.1,0.125,0.15,0.175,0.2,0.225,0.25,0.275,0.3,0.325,0.35,0.375,0.4,0.425,0.45,0.475,0.5,0.525,0.55,0.575,0.6,0.625,0.65,0.675,0.7,0.725,0.75,0.775,0.8,0.825,0.85,0.875,0.9,0.925,0.95,0.975,1.0],"T":[519.38,483.759,465.099,452.71,443.545,436.328,430.407,425.406,421.09,417.303,413.936,410.909,408.163,405.653,403.344,401.208,399.222,397.367,395.629,393.994,392.45,390.99,389.605,388.289,387.034,385.836,384.69,383.592,382.539,381.527,380.553,379.615,378.71,377.837,376.992,376.175,375.384,374.617,373.872,373.15]},"ice":{"x":[1.0,0.9755,0.951,0.9265,0.902,0.8775,0.853,0.8285,0.804,0.7795,0.755,0.7305,0.706,0.6815,0.657,0.6325,0.608,0.5835,0.559,0.5345,0.51,0.4855,0.461,0.4365,0.412,0.3875,0.363,0.3385,0.314,0.2895,0.265,0.2405,0.216,0.1915,0.167,0.1425,0.118,0.0935,0.069,0.0445,0.02],"T":[273.15,270.613,268.061,265.491,262.903,260.296,257.669,255.019,252.347,249.65,246.926,244.175,241.393,238.579,235.73,232.845,229.919,226.95,223.934,220.867,217.745,214.563,211.315,207.995,204.594,201.104,197.515,193.814,189.987,186.015,181.877,177.543,172.978,168.134,162.946,157.319,151.115,144.104,135.873,125.524,110.217]},"sucrose":{"x":[0.0,0.0245,0.049,0.0735,0.098,0.1225,0.147,0.1715,0.196,0.2205,0.245,0.2695,0.294,0.3185,0.343,0.3675,0.392,0.4165,0.441,0.4655,0.49,0.5145,0.539,0.5635,0.588,0.6125,0.637,0.6615,0.686,0.7105,0.735,0.7595,0.784,0.8085,0.833,0.8575,0.882,0.9065,0.931,0.9555,0.98,0.984976,0.988714,0.991522,0.993631,0.995216,0.996406,0.9973,0.997972,0.998476,0.998856,0.99914,0.999354,0.999515,0.999636,0.999726],"T":[459.0,458.057,457.095,456.111,455.106,454.077,453.024,451.946,450.84,449.706,448.542,447.345,446.115,444.848,443.542,442.195,440.803,439.363,437.872,436.324,434.715,433.04,431.292,429.464,427.547,425.531,423.404,421.152,418.757,416.197,413.447,410.471,407.225,403.648,399.657,395.128,389.875,383.584,375.67,364.805,346.531,340.431,334.542,328.853,323.355,318.037,312.892,307.91,303.084,298.408,293.873,289.474,285.205,281.06,277.034,273.122]},"eutectic":{"x_water":0.999726,"T":273.122}},"sugar_point":{"Tb":374.617,"Tf":267.956},"gravity":{"z":[0.0,5.0,10.0,15.0,20.0,25.0,30.0,35.0,40.0,45.0,50.0,55.0,60.0,65.0,70.0,75.0,80.0,85.0,90.0,95.0,100.0,105.0,110.0,115.0,120.0,125.0,130.0,135.0,140.0,145.0,150.0,155.0,160.0,165.0,170.0,175.0,180.0,185.0,190.0,195.0,200.0,205.0,210.0,215.0,220.0,225.0,230.0,235.0,240.0,245.0,250.0,255.0,260.0,265.0,270.0,275.0,280.0,285.0,290.0,295.0,300.0,305.0,310.0,315.0,320.0,325.0,330.0,335.0,340.0,345.0,350.0,355.0,360.0,365.0,370.0,375.0,380.0,385.0,390.0,395.0,400.0,405.0,410.0,415.0,420.0,425.0,430.0,435.0,440.0,445.0,450.0,455.0,460.0,465.0,470.0,475.0,480.0,485.0,490.0,495.0,500.0],"P":[25.0,24.73409,24.46823,24.20244,23.93671,23.67103,23.40542,23.13987,22.87438,22.60895,22.34357,22.07826,21.81302,21.54783,21.2827,21.01763,20.75263,20.48769,20.2228,19.95798,19.69323,19.42853,19.16389,18.89932,18.63481,18.37036,18.10598,17.84165,17.57739,17.31319,17.04906,16.78499,16.52098,16.25703,15.99315,15.72932,15.46557,15.20187,14.93825,14.67468,14.41118,14.14774,13.88437,13.62106,13.35781,13.09463,12.83151,12.56846,12.30547,12.04255,11.77969,11.5169,11.25418,10.99151,10.72892,10.46639,10.20392,9.94152,9.67919,9.41693,9.15473,8.89259,8.82503,8.81552,8.80602,8.79654,8.78707,8.77761,8.76816,8.75873,8.74931,8.7399,8.7305,8.72112,8.71175,8.70239,8.69305,8.68371,8.67439,8.66508,8.65579,8.64651,8.63724,8.62798,8.61873,8.6095,8.60028,8.59107,8.58187,8.57269,8.56352,8.55436,8.54521,8.53607,8.52695,8.51784,8.50874,8.49965,8.49058,8.48152,8.47247],"x1":[0.4,0.400043,0.400086,0.400129,0.400172,0.400215,0.400258,0.400301,0.400344,0.400388,0.400431,0.400474,0.400518,0.400561,0.400605,0.400648,0.400692,0.400736,0.40078,0.400823,0.400867,0.400911,0.400955,0.400999,0.401044,0.401088,0.401132,0.401176,0.401221,0.401265,0.401309,0.401354,0.401399,0.401443,0.401488,0.401533,0.401578,0.401622,0.401667,0.401712,0.401757,0.401803,0.401848,0.401893,0.401938,0.401984,0.402029,0.402075,0.40212,0.402166,0.402211,0.402257,0.402303,0.402349,0.402395,0.402441,0.402487,0.402533,0.402579,0.402626,0.402672,0.402718,0.650296,0.650381,0.650465,0.65055,0.650634,0.650719,0.650803,0.650887,0.650971,0.651055,0.651139,0.651223,0.651307,0.651391,0.651475,0.651559,0.651642,0.651726,0.651809,0.651893,0.651976,0.65206,0.652143,0.652227,0.65231,0.652393,0.652476,0.652559,0.652642,0.652725,0.652808,0.652891,0.652974,0.653057,0.653139,0.653222,0.653305,0.653387,0.65347],"rho":[542.37,542.25,542.13,542.01,541.88,541.76,541.64,541.51,541.39,541.27,541.14,541.02,540.9,540.77,540.65,540.52,540.4,540.27,540.15,540.02,539.89,539.77,539.64,539.51,539.39,539.26,539.13,539.01,538.88,538.75,538.62,538.49,538.37,538.24,538.11,537.98,537.85,537.72,537.59,537.46,537.33,537.2,537.07,536.94,536.81,536.67,536.54,536.41,536.28,536.15,536.01,535.88,535.75,535.61,535.48,535.35,535.21,535.08,534.94,534.81,534.67,534.54,19.41,19.38,19.36,19.33,19.3,19.28,19.25,19.23,19.2,19.17,19.15,19.12,19.1,19.07,19.05,19.02,19.0,18.97,18.94,18.92,18.89,18.87,18.84,18.82,18.79,18.77,18.74,18.72,18.69,18.67,18.64,18.62,18.59,18.57,18.54,18.52,18.5,18.47,18.45],"phase":["liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor"],"contact_z":306.1,"contact_P":8.832},"centrifuge":{"r":[0.05,0.055,0.06,0.065,0.07,0.075,0.08,0.085,0.09,0.095,0.1],"P":[0.688,10.301,20.83,32.276,44.639,57.921,72.12,87.238,103.274,120.231,138.107],"x1":[0.5,0.49942,0.498784,0.498093,0.497346,0.496542,0.495683,0.494767,0.493795,0.492766,0.491681]},"verification":{"bubble_P_x04":5.38473,"y_x04":0.6848,"roundtrip_err":7.1e-12,"flash_beta":0.4109,"flash_mb":1.1e-14,"flash_lnf":2.2e-13,"hydro_err_bar":1.7e-07,"hydro_drop_bar":5.307},"verdicts":[{"file":"ethanol_water_centrifuge.txt","status":"SUFFICIENT"},{"file":"gravity_column_gas_cap.txt","status":"SUFFICIENT"},{"file":"gravity_column_missing_M.txt","status":"INSUFFICIENT"},{"file":"input_mistakes.txt","status":"INVALID"},{"file":"missing_data_srk.txt","status":"INSUFFICIENT"},{"file":"overspecified_vdw.txt","status":"OVERSPECIFIED"},{"file":"propane_butane_pr_pxy.txt","status":"SUFFICIENT"},{"file":"sugar_water.txt","status":"SUFFICIENT"}]}</script>
+<script id="docs-data" type="application/json">{"pxy":{"T":300.0,"x":[0.0,0.02,0.04,0.06,0.08,0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24,0.26,0.28,0.3,0.32,0.34,0.36,0.38,0.4,0.42,0.44,0.46,0.48,0.5,0.52,0.54,0.56,0.58,0.6,0.62,0.64,0.66,0.68,0.7,0.72,0.74,0.76,0.78,0.8,0.82,0.84,0.86,0.88,0.9,0.92,0.94,0.96,0.98,1.0],"y":[0.0,0.06574,0.12532,0.17958,0.22921,0.27479,0.31681,0.35567,0.39174,0.42531,0.45663,0.48594,0.51343,0.53928,0.56363,0.58661,0.60835,0.62895,0.64851,0.6671,0.6848,0.70169,0.71782,0.73324,0.74801,0.76218,0.77578,0.78885,0.80144,0.81356,0.82526,0.83655,0.84747,0.85803,0.86827,0.87819,0.88782,0.89717,0.90627,0.91512,0.92374,0.93215,0.94035,0.94837,0.9562,0.96387,0.97137,0.97873,0.98595,0.99303,1.0],"P":[2.5726,2.71058,2.8488,2.98725,3.12594,3.26489,3.40409,3.54356,3.6833,3.82332,3.96362,4.10423,4.24514,4.38637,4.52792,4.66981,4.81205,4.95465,5.09762,5.24098,5.38473,5.5289,5.67349,5.81853,5.96403,6.11,6.25647,6.40345,6.55096,6.69902,6.84766,6.9969,7.14675,7.29726,7.44843,7.60031,7.75291,7.90628,8.06043,8.21541,8.37126,8.528,8.68568,8.84434,9.00402,9.16477,9.32664,9.48968,9.65394,9.81949,9.98638]},"psat_propane_300K":{"vdW":17.366,"SRK":10.099,"PR":9.986},"latent":{"bubble":{"x":[0.0,0.01667,0.03333,0.05,0.06667,0.08333,0.1,0.11667,0.13333,0.15,0.16667,0.18333,0.2,0.21667,0.23333,0.25,0.26667,0.28333,0.3,0.31667,0.33333,0.35,0.36667,0.38333,0.4,0.41667,0.43333,0.45,0.46667,0.48333,0.5,0.51667,0.53333,0.55,0.56667,0.58333,0.6,0.61667,0.63333,0.65,0.66667,0.68333,0.7,0.71667,0.73333,0.75,0.76667,0.78333,0.8,0.81667,0.83333,0.85,0.86667,0.88333,0.9,0.91667,0.93333,0.95,0.96667,0.98333,1.0],"T":[491.14,478.442,467.701,458.538,450.639,443.759,437.704,432.326,427.508,423.16,419.208,415.595,412.272,409.203,406.355,403.701,401.22,398.891,396.701,394.633,392.678,390.824,389.062,387.384,385.784,384.254,382.791,381.388,380.041,378.747,377.502,376.302,375.144,374.027,372.947,371.902,370.891,369.911,368.96,368.038,367.142,366.271,365.425,364.601,363.798,363.016,362.254,361.511,360.786,360.077,359.386,358.71,358.049,357.403,356.77,356.151,355.545,354.951,354.37,353.799,353.24]},"dew":{"x":[0.0,0.25738,0.43111,0.55223,0.63932,0.70375,0.75263,0.79054,0.82052,0.84464,0.86434,0.88063,0.89427,0.90581,0.91567,0.92415,0.93151,0.93794,0.94359,0.94859,0.95302,0.95698,0.96054,0.96373,0.96662,0.96924,0.97163,0.9738,0.9758,0.97762,0.9793,0.98085,0.98228,0.98361,0.98484,0.98598,0.98704,0.98804,0.98896,0.98983,0.99064,0.9914,0.99212,0.99279,0.99343,0.99402,0.99459,0.99512,0.99562,0.9961,0.99655,0.99698,0.99739,0.99777,0.99814,0.99849,0.99882,0.99914,0.99944,0.99973,1.0],"T":[491.14,478.442,467.701,458.538,450.639,443.759,437.704,432.326,427.508,423.16,419.208,415.595,412.272,409.203,406.355,403.701,401.22,398.891,396.701,394.633,392.678,390.824,389.062,387.384,385.784,384.254,382.791,381.388,380.041,378.747,377.502,376.302,375.144,374.027,372.947,371.902,370.891,369.911,368.96,368.038,367.142,366.271,365.425,364.601,363.798,363.016,362.254,361.511,360.786,360.077,359.386,358.71,358.049,357.403,356.77,356.151,355.545,354.951,354.37,353.799,353.24]},"benzene":{"x":[1.0,0.99657,0.99314,0.98971,0.98628,0.98285,0.97942,0.97599,0.97256,0.96913,0.9657,0.96227,0.95884,0.95542,0.95199,0.94856,0.94513,0.9417,0.93827,0.93484,0.93141,0.92798,0.92455,0.92112,0.91769,0.91426,0.91083,0.9074,0.90397,0.90054,0.89711,0.89368,0.89025,0.88682,0.88339,0.87996,0.87653,0.87311,0.86968,0.86625],"T":[278.68,278.455,278.23,278.005,277.779,277.553,277.326,277.099,276.872,276.644,276.415,276.187,275.957,275.728,275.498,275.267,275.036,274.805,274.573,274.34,274.107,273.874,273.64,273.406,273.172,272.936,272.701,272.465,272.228,271.991,271.753,271.515,271.277,271.038,270.798,270.558,270.317,270.076,269.835,269.593]},"naphthalene":{"x":[0.0,0.02221,0.04442,0.06663,0.08885,0.11106,0.13327,0.15548,0.17769,0.1999,0.22211,0.24433,0.26654,0.28875,0.31096,0.33317,0.35538,0.37759,0.39981,0.42202,0.44423,0.46644,0.48865,0.51086,0.53307,0.55529,0.5775,0.59971,0.62192,0.64413,0.66634,0.68855,0.71077,0.73298,0.75519,0.7774,0.79961,0.82182,0.84403,0.86625],"T":[353.43,352.207,350.965,349.702,348.419,347.113,345.785,344.433,343.055,341.652,340.22,338.76,337.269,335.746,334.189,332.596,330.965,329.294,327.579,325.819,324.01,322.148,320.229,318.25,316.204,314.087,311.892,309.611,307.236,304.757,302.161,299.435,296.561,293.519,290.283,286.819,283.086,279.028,274.566,269.593]},"eutectic":{"x":0.86625,"T":269.593}},"azeo":{"x":[0.0,0.0125,0.025,0.0375,0.05,0.0625,0.075,0.0875,0.1,0.1125,0.125,0.1375,0.15,0.1625,0.175,0.1875,0.2,0.2125,0.225,0.2375,0.25,0.2625,0.275,0.2875,0.3,0.3125,0.325,0.3375,0.35,0.3625,0.375,0.3875,0.4,0.4125,0.425,0.4375,0.45,0.4625,0.475,0.4875,0.5,0.5125,0.525,0.5375,0.55,0.5625,0.575,0.5875,0.6,0.6125,0.625,0.6375,0.65,0.6625,0.675,0.6875,0.7,0.7125,0.725,0.7375,0.75,0.7625,0.775,0.7875,0.8,0.8125,0.825,0.8375,0.85,0.8625,0.875,0.8875,0.9,0.9125,0.925,0.9375,0.95,0.9625,0.975,0.9875,1.0],"y":[0.0,0.12425,0.21125,0.27532,0.32428,0.36281,0.39385,0.41935,0.44065,0.45871,0.47421,0.48769,0.49952,0.51003,0.51945,0.52796,0.53574,0.5429,0.54954,0.55576,0.56163,0.5672,0.57253,0.57766,0.58264,0.58749,0.59224,0.59692,0.60155,0.60614,0.61073,0.61531,0.61991,0.62454,0.62921,0.63393,0.6387,0.64354,0.64846,0.65346,0.65855,0.66374,0.66903,0.67442,0.67993,0.68556,0.69132,0.6972,0.70322,0.70937,0.71568,0.72213,0.72873,0.7355,0.74243,0.74952,0.7568,0.76425,0.77189,0.77971,0.78774,0.79596,0.8044,0.81304,0.82191,0.831,0.84033,0.8499,0.85971,0.86978,0.88012,0.89072,0.90161,0.91279,0.92426,0.93605,0.94815,0.96059,0.97337,0.9865,1.0],"T":[373.148,369.8,367.256,365.265,363.672,362.375,361.303,360.406,359.647,359.0,358.442,357.957,357.533,357.158,356.826,356.528,356.26,356.016,355.793,355.588,355.399,355.222,355.057,354.901,354.753,354.613,354.478,354.35,354.226,354.106,353.99,353.877,353.768,353.661,353.556,353.454,353.355,353.257,353.161,353.067,352.976,352.886,352.798,352.712,352.627,352.545,352.465,352.386,352.31,352.235,352.163,352.093,352.025,351.96,351.897,351.836,351.778,351.722,351.669,351.619,351.572,351.527,351.486,351.448,351.412,351.38,351.352,351.326,351.304,351.286,351.272,351.261,351.254,351.251,351.252,351.257,351.266,351.28,351.298,351.321,351.349],"azeotrope":{"x":0.9157,"T":351.251},"ideal":{"x":[0.0,0.025,0.05,0.075,0.1,0.125,0.15,0.175,0.2,0.225,0.25,0.275,0.3,0.325,0.35,0.375,0.4,0.425,0.45,0.475,0.5,0.525,0.55,0.575,0.6,0.625,0.65,0.675,0.7,0.725,0.75,0.775,0.8,0.825,0.85,0.875,0.9,0.925,0.95,0.975,1.0],"y":[0.0,0.05448,0.10584,0.15433,0.20018,0.24359,0.28475,0.32381,0.36094,0.39626,0.42991,0.46199,0.4926,0.52185,0.54982,0.57658,0.60222,0.6268,0.65038,0.67302,0.69477,0.71568,0.7358,0.75517,0.77384,0.79183,0.80918,0.82593,0.8421,0.85772,0.87283,0.88744,0.90157,0.91526,0.92851,0.94135,0.9538,0.96588,0.97759,0.98896,1.0],"T":[373.148,372.289,371.457,370.651,369.87,369.112,368.376,367.66,366.964,366.287,365.628,364.986,364.36,363.75,363.155,362.573,362.006,361.451,360.908,360.378,359.859,359.352,358.854,358.367,357.89,357.423,356.964,356.514,356.073,355.64,355.215,354.798,354.388,353.985,353.589,353.2,352.817,352.441,352.071,351.707,351.349]}},"gravity":{"z":[0.0,5.0,10.0,15.0,20.0,25.0,30.0,35.0,40.0,45.0,50.0,55.0,60.0,65.0,70.0,75.0,80.0,85.0,90.0,95.0,100.0,105.0,110.0,115.0,120.0,125.0,130.0,135.0,140.0,145.0,150.0,155.0,160.0,165.0,170.0,175.0,180.0,185.0,190.0,195.0,200.0,205.0,210.0,215.0,220.0,225.0,230.0,235.0,240.0,245.0,250.0,255.0,260.0,265.0,270.0,275.0,280.0,285.0,290.0,295.0,300.0,305.0,310.0,315.0,320.0,325.0,330.0,335.0,340.0,345.0,350.0,355.0,360.0,365.0,370.0,375.0,380.0,385.0,390.0,395.0,400.0,405.0,410.0,415.0,420.0,425.0,430.0,435.0,440.0,445.0,450.0,455.0,460.0,465.0,470.0,475.0,480.0,485.0,490.0,495.0,500.0],"P":[25.0,24.73409,24.46823,24.20244,23.93671,23.67103,23.40542,23.13987,22.87438,22.60895,22.34357,22.07826,21.81302,21.54783,21.2827,21.01763,20.75263,20.48769,20.2228,19.95798,19.69323,19.42853,19.16389,18.89932,18.63481,18.37036,18.10598,17.84165,17.57739,17.31319,17.04906,16.78499,16.52098,16.25703,15.99315,15.72932,15.46557,15.20187,14.93825,14.67468,14.41118,14.14774,13.88437,13.62106,13.35781,13.09463,12.83151,12.56846,12.30547,12.04255,11.77969,11.5169,11.25418,10.99151,10.72892,10.46639,10.20392,9.94152,9.67919,9.41693,9.15473,8.89259,8.82503,8.81552,8.80602,8.79654,8.78707,8.77761,8.76816,8.75873,8.74931,8.7399,8.7305,8.72112,8.71175,8.70239,8.69305,8.68371,8.67439,8.66508,8.65579,8.64651,8.63724,8.62798,8.61873,8.6095,8.60028,8.59107,8.58187,8.57269,8.56352,8.55436,8.54521,8.53607,8.52695,8.51784,8.50874,8.49965,8.49058,8.48152,8.47247],"x1":[0.4,0.400043,0.400086,0.400129,0.400172,0.400215,0.400258,0.400301,0.400344,0.400388,0.400431,0.400474,0.400518,0.400561,0.400605,0.400648,0.400692,0.400736,0.40078,0.400823,0.400867,0.400911,0.400955,0.400999,0.401044,0.401088,0.401132,0.401176,0.401221,0.401265,0.401309,0.401354,0.401399,0.401443,0.401488,0.401533,0.401578,0.401622,0.401667,0.401712,0.401757,0.401803,0.401848,0.401893,0.401938,0.401984,0.402029,0.402075,0.40212,0.402166,0.402211,0.402257,0.402303,0.402349,0.402395,0.402441,0.402487,0.402533,0.402579,0.402626,0.402672,0.402718,0.650296,0.650381,0.650465,0.65055,0.650634,0.650719,0.650803,0.650887,0.650971,0.651055,0.651139,0.651223,0.651307,0.651391,0.651475,0.651559,0.651642,0.651726,0.651809,0.651893,0.651976,0.65206,0.652143,0.652227,0.65231,0.652393,0.652476,0.652559,0.652642,0.652725,0.652808,0.652891,0.652974,0.653057,0.653139,0.653222,0.653305,0.653387,0.65347],"rho":[542.37,542.25,542.13,542.01,541.88,541.76,541.64,541.51,541.39,541.27,541.14,541.02,540.9,540.77,540.65,540.52,540.4,540.27,540.15,540.02,539.89,539.77,539.64,539.51,539.39,539.26,539.13,539.01,538.88,538.75,538.62,538.49,538.37,538.24,538.11,537.98,537.85,537.72,537.59,537.46,537.33,537.2,537.07,536.94,536.81,536.67,536.54,536.41,536.28,536.15,536.01,535.88,535.75,535.61,535.48,535.35,535.21,535.08,534.94,534.81,534.67,534.54,19.41,19.38,19.36,19.33,19.3,19.28,19.25,19.23,19.2,19.17,19.15,19.12,19.1,19.07,19.05,19.02,19.0,18.97,18.94,18.92,18.89,18.87,18.84,18.82,18.79,18.77,18.74,18.72,18.69,18.67,18.64,18.62,18.59,18.57,18.54,18.52,18.5,18.47,18.45],"phase":["liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor"],"contact_z":306.1,"contact_P":8.832},"centrifuge":{"r":[0.05,0.055,0.06,0.065,0.07,0.075,0.08,0.085,0.09,0.095,0.1],"P":[0.688,10.301,20.83,32.276,44.639,57.921,72.12,87.238,103.274,120.231,138.107],"x1":[0.5,0.49942,0.498784,0.498093,0.497346,0.496542,0.495683,0.494767,0.493795,0.492766,0.491681]},"verification":{"bubble_P_x04":5.38473,"y_x04":0.6848,"roundtrip_err":7.1e-12,"flash_beta":0.4109,"flash_mb":1.1e-14,"flash_lnf":2.2e-13,"hydro_err_bar":1.7e-07,"hydro_drop_bar":5.307},"verdicts":[{"file":"benzene_naphthalene.txt","status":"SUFFICIENT"},{"file":"ethanol_water_centrifuge.txt","status":"SUFFICIENT"},{"file":"ethanol_water_vanlaar.txt","status":"SUFFICIENT"},{"file":"gravity_column_gas_cap.txt","status":"SUFFICIENT"},{"file":"gravity_column_missing_M.txt","status":"INSUFFICIENT"},{"file":"input_mistakes.txt","status":"INVALID"},{"file":"missing_activity_parameter.txt","status":"INSUFFICIENT"},{"file":"missing_data_srk.txt","status":"INSUFFICIENT"},{"file":"overspecified_vdw.txt","status":"OVERSPECIFIED"},{"file":"propane_butane_pr_pxy.txt","status":"SUFFICIENT"}]}</script>
 <!-- DOCS-DATA:END -->
 
 <script>
@@ -768,7 +854,7 @@ print_results(system, results)</code></pre>
   C.r.forEach(function (r, i) {
     if (i % 2 && i !== C.r.length - 1) return;
     var tr = document.createElement("tr");
-    tr.innerHTML = "<td class='num'>" + fmt(r, 3) + "</td><td class='num'>" + fmt(C.P[i], 2) +
+    tr.innerHTML = "<td>" + fmt(r, 3) + "</td><td class='num'>" + fmt(C.P[i], 2) +
       "</td><td class='num'>" + fmt(C.x1[i], 4) + "</td>";
     ct.appendChild(tr);
   });
@@ -855,7 +941,7 @@ print_results(system, results)</code></pre>
       }
       (cfg.hlines || []).forEach(function (h) {
         el("line", { x1: m.l, x2: m.l + iw, y1: Y(h.y), y2: Y(h.y), "class": "annot-line" }, svg);
-        var t = el("text", { x: m.l + iw - 4, y: Y(h.y) - 6, "text-anchor": "end", "class": "annot-text" }, svg); t.textContent = h.text;
+        if (h.text) { var t = el("text", { x: m.l + iw - 4, y: Y(h.y) - 6, "text-anchor": "end", "class": "annot-text" }, svg); t.textContent = h.text; }
       });
       cfg.series.forEach(function (s) {
         var segs = [[]];
@@ -952,31 +1038,66 @@ print_results(system, results)</code></pre>
     fy: function (v) { return "P = " + fmt(v, 3) + " bar"; }
   });
 
-  /* sugar-water */
-  var S = DATA.sugar;
-  legend("sugar-legend", [
+  /* complete T-x diagram from latent heats */
+  var Lt = DATA.latent;
+  var lensT = zip(Lt.bubble.x, Lt.bubble.T).concat(zip(Lt.dew.x, Lt.dew.T).reverse());
+  legend("latent-legend", [
     { name: "Boiling curve", color: "--vapor" },
-    { name: "Ice forms", color: "--liquid" },
-    { name: "Sucrose crystallizes", color: "--third" }]);
-  drawChart(document.getElementById("chart-sugar"), {
-    aria: "Temperature against water mole fraction for sugar-water at 1 atm",
-    ratio: 0.55,
+    { name: "Dew curve", color: "--vapor" },
+    { name: "Benzene crystallizes", color: "--liquid" },
+    { name: "Naphthalene crystallizes", color: "--third" }]);
+  drawChart(document.getElementById("chart-latent"), {
+    aria: "Temperature against benzene mole fraction for benzene and naphthalene at 1 atm",
+    ratio: 0.58,
     series: [
-      { name: "Boiling curve", color: "--vapor", pts: zip(S.boil.x, S.boil.T), label: { i: 12, text: "Boiling", dx: 0, dy: 18, minW: 360 } },
-      { name: "Ice forms", color: "--liquid", pts: zip(S.ice.x, S.ice.T), label: { i: 14, text: "Ice forms", dx: 0, dy: 20, minW: 360 } },
-      { name: "Sucrose crystallizes", color: "--third", pts: zip(S.sucrose.x, S.sucrose.T), label: { i: 14, text: "Sucrose crystallizes", dx: 0, dy: -10, minW: 360 } }],
-    points: [{ x: S.eutectic.x_water, y: S.eutectic.T, color: "--ink-2", text: "Eutectic", dx: -10, dy: -10, anchor: "end", minW: 300 }],
-    xDomain: [0, 1], yDomain: [140, 540], xDec: 1,
-    xTitle: "Mole fraction of water", yTitle: "Temperature (K)",
-    fx: function (v) { return "x water = " + fmt(v, 4); },
+      { name: "Boiling curve", color: "--vapor", pts: zip(Lt.bubble.x, Lt.bubble.T), label: { i: 20, text: "Boiling", dx: 4, dy: 18, minW: 360 } },
+      { name: "Dew curve", color: "--vapor", pts: zip(Lt.dew.x, Lt.dew.T), label: { i: 20, text: "Dew", dx: 4, dy: -8, minW: 360 } },
+      { name: "Benzene crystallizes", color: "--liquid", pts: zip(Lt.benzene.x, Lt.benzene.T) },
+      { name: "Naphthalene crystallizes", color: "--third", pts: zip(Lt.naphthalene.x, Lt.naphthalene.T), label: { i: 12, text: "Naphthalene crystallizes", dx: 0, dy: -10, minW: 360 } }],
+    area: { color: "--vapor", poly: lensT },
+    hlines: [{ y: Lt.eutectic.T, text: "" }],
+    regions: [
+      { x: 0.72, y: 330, text: "Liquid", minW: 300 },
+      { x: 0.42, y: 252, text: "Benzene + naphthalene, both solid", minW: 300 },
+      { x: 0.5, y: 505, text: "Vapor", minW: 300 }],
+    points: [{ x: Lt.eutectic.x, y: Lt.eutectic.T, color: "--ink-2", text: "Eutectic", dx: -10, dy: -10, anchor: "end", minW: 300 }],
+    xDomain: [0, 1], yDomain: [240, 520], xDec: 1,
+    xTitle: "Mole fraction of benzene", yTitle: "Temperature (K)",
+    fx: function (v) { return "x benzene = " + fmt(v, 4); },
     fy: function (v) { return "T = " + fmt(v, 2) + " K"; }
   });
-  var srows = [];
-  S.boil.x.forEach(function (x, i) { srows.push(["Boiling", fmt(x, 4), fmt(S.boil.T[i], 2)]); });
-  S.ice.x.forEach(function (x, i) { srows.push(["Ice forms", fmt(x, 4), fmt(S.ice.T[i], 2)]); });
-  S.sucrose.x.forEach(function (x, i) { srows.push(["Sucrose crystallizes", fmt(x, 4), fmt(S.sucrose.T[i], 2)]); });
-  srows.push(["Eutectic", fmt(S.eutectic.x_water, 6), fmt(S.eutectic.T, 3)]);
-  dataTable(document.getElementById("sugar-table"), ["Curve", "x water", "T (K)"], srows);
+  var lrows = [];
+  [["Boiling", Lt.bubble], ["Dew", Lt.dew], ["Benzene crystallizes", Lt.benzene], ["Naphthalene crystallizes", Lt.naphthalene]].forEach(function (c) {
+    c[1].x.forEach(function (x, i) { if (i % 2 === 0) lrows.push([c[0], fmt(x, 4), fmt(c[1].T[i], 2)]); });
+  });
+  lrows.push(["Eutectic", fmt(Lt.eutectic.x, 4), fmt(Lt.eutectic.T, 2)]);
+  dataTable(document.getElementById("latent-table"), ["Curve", "x benzene", "T (K)"], lrows);
+
+  /* ethanol-water with and without an activity model */
+  var Az = DATA.azeo;
+  legend("azeo-legend", [
+    { name: "Bubble curve, van Laar", color: "--liquid" },
+    { name: "Dew curve, van Laar", color: "--vapor" },
+    { name: "Ideal solution", color: "--muted" }]);
+  drawChart(document.getElementById("chart-azeo"), {
+    aria: "Temperature against ethanol mole fraction at 1 atm, van Laar and ideal solution",
+    ratio: 0.52,
+    series: [
+      { name: "Ideal bubble curve", color: "--muted", pts: zip(Az.ideal.x, Az.ideal.T) },
+      { name: "Ideal dew curve", color: "--muted", pts: zip(Az.ideal.y, Az.ideal.T) },
+      { name: "Bubble curve, van Laar", color: "--liquid", pts: zip(Az.x, Az.T) },
+      { name: "Dew curve, van Laar", color: "--vapor", pts: zip(Az.y, Az.T) }],
+    area: { color: "--liquid", poly: zip(Az.x, Az.T).concat(zip(Az.y, Az.T).reverse()) },
+    points: [{ x: Az.azeotrope.x, y: Az.azeotrope.T, color: "--ink-2", text: "Azeotrope", dx: -10, dy: -12, anchor: "end", minW: 300 }],
+    xDomain: [0, 1], yDomain: [348, 375], xDec: 1, yDec: 0,
+    xTitle: "Mole fraction of ethanol", yTitle: "Temperature (K)",
+    fx: function (v) { return "x or y = " + fmt(v, 4); },
+    fy: function (v) { return "T = " + fmt(v, 2) + " K"; }
+  });
+  var arows = Az.x.map(function (x, i) { return [fmt(x, 4), fmt(Az.y[i], 4), fmt(Az.T[i], 2)]; })
+    .filter(function (r, i) { return i % 4 === 0; });
+  arows.push(["Azeotrope " + fmt(Az.azeotrope.x, 4), fmt(Az.azeotrope.x, 4), fmt(Az.azeotrope.T, 3)]);
+  dataTable(document.getElementById("azeo-table"), ["x ethanol", "y ethanol", "T (K)"], arows);
 
   /* gravity column, two panels sharing the height axis */
   function split(vals) {

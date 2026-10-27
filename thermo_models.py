@@ -22,14 +22,23 @@ Everything else is a derivative of this one function:
 
 OTHER ROUTES (when an EOS is not used)
     Ideal gas               ln f_i = ln(y_i P)
-    Ideal liquid solution   ln f_i = ln x_i + ln f_i0,  f_i0 = Psat_i exp[V_L,i (P - Psat_i)/RT]
+    Liquid solution         ln f_i = ln x_i + ln gamma_i + ln f_i0,
+                            f_i0 = Psat_i exp[V_L,i (P - Psat_i)/RT]   (Poynting)
+    Activity coefficients come from an excess Gibbs energy G^E/RT
+    (gamma_i = 1 for an ideal solution):
+        Margules  G^E/RT = x1 x2 (A21 x1 + A12 x2)
+        van Laar  G^E/RT = A12 A21 x1 x2 / (A12 x1 + A21 x2)
+        NRTL      G^E/RT = sum_i x_i (sum_j tau_ji G_ji x_j) / (sum_k G_ki x_k),
+                  tau_ij = dg_ij / RT,  G_ij = exp(-alpha_ij tau_ij)
+    with A12 = ln gamma_1 at infinite dilution in 2 (and A21 the reverse);
+    ln gamma_i = d(n G^E/RT)/dn_i, checked numerically in the tests.
     Pure solid i            ln f_i(S) = ln f_i0(L) + ln(f_S/f_L)    (Gibbs-Helmholtz):
         ln(f_S/f_L) = -(dHfus/R)(1/T - 1/Tm) + (dCp/R)(Tm/T - 1) - (dCp/R) ln(Tm/T)
                       + (V_S - V_L)(P - P0)/RT        (Tm, dHfus taken at P0 = 1 atm)
     A nonvolatile component has no vapor pressure; its pure-liquid reference
-    fugacity is unknown, so it is set to 1 Pa at 1 atm. This is consistent as
-    long as it is only compared with its own solid (it cancels), which is the
-    only equilibrium it takes part in.
+    fugacity is unknown, so it is set to 1 Pa at 1 atm. This is consistent
+    because it is only ever compared with its own pure solid, where the
+    reference cancels.
 
 EXTERNAL FIELD
     Phi = g (z - z_ref)            gravity
@@ -261,13 +270,97 @@ class IdealGasPhase:
         return R * T / P
 
 
-class IdealSolutionLiquid:
-    """Ideal liquid solution with pure-liquid reference fugacities f_i0."""
+# --------------------------------------------------------------------------
+# Activity-coefficient models (excess Gibbs energy)
+# --------------------------------------------------------------------------
+class Margules:
+    """Two-parameter Margules model for a binary; A12, A21 dimensionless."""
+    name = "Margules"
 
-    def __init__(self, names, props):
+    def __init__(self, A12, A21):
+        self.A12, self.A21 = A12, A21
+
+    def ge_rt(self, T, x):
+        x1, x2 = x
+        return x1 * x2 * (self.A21 * x1 + self.A12 * x2)
+
+    def ln_gamma(self, T, x):
+        x1, x2 = x
+        A12, A21 = self.A12, self.A21
+        return np.array([x2 ** 2 * (A12 + 2 * (A21 - A12) * x1),
+                         x1 ** 2 * (A21 + 2 * (A12 - A21) * x2)])
+
+
+class VanLaar:
+    """van Laar model for a binary; A12, A21 dimensionless and positive
+    (or both negative)."""
+    name = "van Laar"
+
+    def __init__(self, A12, A21):
+        if A12 * A21 <= 0:
+            raise ValueError("van Laar needs A12 and A21 of the same sign")
+        self.A12, self.A21 = A12, A21
+
+    def ge_rt(self, T, x):
+        x1, x2 = x
+        d = self.A12 * x1 + self.A21 * x2
+        return self.A12 * self.A21 * x1 * x2 / d
+
+    def ln_gamma(self, T, x):
+        x1, x2 = x
+        A12, A21 = self.A12, self.A21
+        d = A12 * x1 + A21 * x2
+        return np.array([A12 * (A21 * x2 / d) ** 2, A21 * (A12 * x1 / d) ** 2])
+
+
+class NRTL:
+    """NRTL for any number of components. dg[i, j] = g_ij - g_jj (J/mol),
+    alpha symmetric; tau_ij = dg_ij / RT."""
+    name = "NRTL"
+
+    def __init__(self, dg, alpha):
+        self.dg = np.asarray(dg, float)
+        self.alpha = np.asarray(alpha, float)
+
+    def _tg(self, T):
+        tau = self.dg / (R * T)
+        return tau, np.exp(-self.alpha * tau)
+
+    def ge_rt(self, T, x):
+        x = np.asarray(x, float)
+        tau, G = self._tg(T)
+        num = (tau * G).T @ x             # sum_j tau_ji G_ji x_j
+        den = G.T @ x                     # sum_k G_ki x_k
+        return float(x @ (num / den))
+
+    def ln_gamma(self, T, x):
+        x = np.asarray(x, float)
+        tau, G = self._tg(T)
+        den = G.T @ x                     # den_j = sum_k x_k G_kj
+        num = (tau * G).T @ x             # num_j = sum_m x_m tau_mj G_mj
+        term1 = num / den
+        term2 = (G * (tau - term1[None, :])) @ (x / den)
+        return term1 + term2
+
+
+class SolutionLiquid:
+    """Liquid solution: pure-liquid reference fugacities f_i0 from vapor
+    pressures, corrected by activity coefficients (ideal if activity=None)."""
+
+    def __init__(self, names, props, activity=None):
         self.kind, self.names, self.props = "L", names, props
+        self.activity = activity
         self.present = np.ones(len(names), bool)
         self.absolute = [psat_source(p) is not None for p in props]
+
+    def ln_gamma(self, T, x):
+        if self.activity is None:
+            return np.zeros(len(self.names))
+        x = np.clip(np.asarray(x, float), 0.0, None)
+        return self.activity.ln_gamma(T, x / x.sum())
+
+    def ge_rt(self, T, x):
+        return 0.0 if self.activity is None else self.activity.ge_rt(T, x)
 
     def ln_f0(self, T, P):
         """ln of the pure-liquid fugacity of each component at T, P."""
@@ -282,17 +375,20 @@ class IdealSolutionLiquid:
         return out
 
     def ln_f(self, T, P, x):
-        return _safe_log(x) + self.ln_f0(T, P)
+        return _safe_log(x) + self.ln_gamma(T, x) + self.ln_f0(T, P)
 
     def ln_phi(self, T, P, x):
-        """Effective fugacity coefficient, f_i / (x_i P) = f_i0 / P."""
-        return self.ln_f0(T, P) - math.log(P)
+        """Effective fugacity coefficient, f_i / (x_i P) = gamma_i f_i0 / P."""
+        return self.ln_gamma(T, x) + self.ln_f0(T, P) - math.log(P)
 
     def molar_volume(self, T, P, x):
         VL = [p.get("V_L") for p in self.props]
         if any(v is None for v in VL):
             return None
         return float(np.dot(x, VL))       # ideal mixing of volumes
+
+
+IdealSolutionLiquid = SolutionLiquid      # name used by earlier code
 
 
 class PureSolidPhase:
@@ -385,6 +481,27 @@ class ThermoSystem:
         return "\n".join(out)
 
 
+def build_activity(inp):
+    """Activity model chosen in the input, or None for an ideal solution."""
+    names, n = inp.components, len(inp.components)
+    if inp.activity == "ideal":
+        return None
+    get = lambda i, j, q: inp.opairs[(names[i], names[j])][q]
+    if inp.activity in ("margules", "vanlaar"):
+        cls = Margules if inp.activity == "margules" else VanLaar
+        return cls(get(0, 1, "A"), get(1, 0, "A"))
+    dg = np.zeros((n, n))
+    alpha = np.full((n, n), 0.3)
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                dg[i, j] = get(i, j, "dg")
+                a = inp.pairs.get(frozenset((names[i], names[j])), {}).get("alpha")
+                if a is not None:
+                    alpha[i, j] = a
+    return NRTL(dg, alpha)
+
+
 def build_system(text):
     """Check the input; if sufficient, build the phase models.
     Raises ValueError with the checker's report if not."""
@@ -422,7 +539,7 @@ def build_system(text):
                            Pc=[p["Pc"] for p in props],
                            omega=[p.get("omega", 0.0) for p in props], kij=kij)
 
-    liquid_ideal = IdealSolutionLiquid(names, props)
+    liquid_ideal = SolutionLiquid(names, props, build_activity(inp))
     equilibria = []
     for e in rep.equilibria:
         if e.status != "SUFFICIENT":
@@ -534,24 +651,51 @@ if __name__ == "__main__":
         report(f"{model:3s}", abs(P / 9.98e5 - 1) < 0.02,
                f"Psat = {P / 1e5:.3f} bar (experimental about 9.98 bar)")
 
-    print("\n4. Sugar-water at 1 atm, x_water = 0.95 (ideal solution)")
-    sysw = build_system(DEMOS["3. Sugar / water at 1 atm (instructor's example)"])
+    print("\n4. Latent-heat route: pure-solid fugacity (benzene, x = 0.95, 1 atm)")
+    BN = DEMOS["3. Benzene / naphthalene at 1 atm from latent heats only"]
+    sysw = build_system(BN)
     x = np.array([0.95, 0.05])
     P = 101325.0
-    sle = next(e for e in sysw.equilibria if e.phase_names[1] == "S(water)")
+    sle = next(e for e in sysw.equilibria if e.phase_names[1] == "S(benzene)")
     L, S = sle.phases
-    Tf = _bisect(lambda T: L.ln_f(T, P, x)[0] - S.ln_f(T, P)[0], 240, 273.15)
-    Tf_hand = 1 / (1 / 273.15 - R * math.log(0.95) / 6010)
+    Tf = _bisect(lambda T: L.ln_f(T, P, x)[0] - S.ln_f(T, P)[0], 240, 278.68)
+    Tf_hand = 1 / (1 / 278.68 - R * math.log(0.95) / 9870)
     report("freezing point", abs(Tf - Tf_hand) < 1e-6,
            f"{Tf:.3f} K (hand calculation {Tf_hand:.3f} K)")
-    vle = next(e for e in sysw.equilibria if e.phase_names[1] == "V")
-    L, V = vle.phases
+    sysn = build_system(BN + "naphthalene.nonvolatile = yes\n")
+    L, V = next(e for e in sysn.equilibria if e.phase_names[1] == "V").phases
     y = np.array([1.0, 0.0])
-    Tb = _bisect(lambda T: L.ln_f(T, P, x)[0] - V.ln_f(T, P, y)[0], 360, 400)
-    Tb_hand = 1 / (1 / 373.15 + R * math.log(0.95) / 40650)
-    report("boiling point ", abs(Tb - Tb_hand) < 1e-6,
+    Tb = _bisect(lambda T: L.ln_f(T, P, x)[0] - V.ln_f(T, P, y)[0], 340, 380)
+    Tb_hand = 1 / (1 / 353.24 + R * math.log(0.95) / 30720)
+    report("boiling point with a nonvolatile solute", abs(Tb - Tb_hand) < 1e-6,
            f"{Tb:.3f} K (hand calculation {Tb_hand:.3f} K)")
-    report("sucrose absent from vapor", V.ln_f(Tb, P, y)[1] == -np.inf, "ln f = -inf")
+    report("nonvolatile component absent from vapor", V.ln_f(Tb, P, y)[1] == -np.inf,
+           "ln f = -inf")
+
+    print("\n4b. Activity models: ln gamma_i = d(n G^E/RT)/dn_i, Gibbs-Duhem, limits")
+    dgm = np.array([[0, 2000, -500], [800, 0, 1500], [300, 1200, 0]], float)
+    alm = np.array([[0, .3, .4], [.3, 0, .2], [.4, .2, 0]])
+    cases = [(Margules(1.2, 0.7), [0.3, 0.7]), (VanLaar(1.68, 0.92), [0.3, 0.7]),
+             (NRTL(dgm, alm), [0.2, 0.5, 0.3])]
+    for m, xm in cases:
+        xm = np.array(xm)
+        num = np.zeros(len(xm))
+        for i in range(len(xm)):
+            dn = np.zeros(len(xm))
+            dn[i] = 1e-6
+            F = lambda nn: nn.sum() * m.ge_rt(340.0, nn / nn.sum())
+            num[i] = (F(xm + dn) - F(xm - dn)) / 2e-6
+        err = np.max(np.abs(num - m.ln_gamma(340.0, xm)))
+        # Gibbs-Duhem: sum_i x_i d(ln gamma_i) = 0 along any composition change
+        dx = np.zeros(len(xm))
+        dx[0], dx[1] = 1e-6, -1e-6
+        gd = xm @ (m.ln_gamma(340.0, xm + dx) - m.ln_gamma(340.0, xm - dx)) / 2e-6
+        report(f"{m.name:9s}", err < 1e-8 and abs(gd) < 1e-7,
+               f"derivative error {err:.1e}, Gibbs-Duhem residual {abs(gd):.1e}")
+    vl = VanLaar(1.68, 0.92)
+    report("infinite dilution: ln gamma_1(x1 -> 0) = A12",
+           abs(vl.ln_gamma(340.0, [0.0, 1.0])[0] - 1.68) < 1e-12
+           and abs(Margules(1.2, 0.7).ln_gamma(340.0, [0.0, 1.0])[0] - 1.2) < 1e-12, "")
 
     print("\n5. Field potential (centrifuge, 20000 rpm, r from 0.05 to 0.10 m)")
     sysc = build_system(DEMOS["5. Ethanol / water, user Psat relations, centrifuge"])

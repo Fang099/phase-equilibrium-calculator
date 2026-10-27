@@ -1,0 +1,9 @@
+# Ethanol / water at 1 atm with the van Laar activity model (azeotrope)
+components = ethanol, water
+P = 1 atm
+sweep = x
+activity = vanlaar
+A(ethanol, water) = 1.6798
+A(water, ethanol) = 0.9227
+ethanol.Psat = exp(16.8958 - 3795.17/(T - 273.15 + 230.918)) [kPa, K]
+water.Psat   = exp(16.3872 - 3885.70/(T - 273.15 + 230.170)) [kPa, K]

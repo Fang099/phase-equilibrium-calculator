@@ -29,7 +29,7 @@ EXTERNAL FIELD (gravity, centrifugal)
   (via Gibbs-Duhem), which the tests check.
 
 Run `python equilibrium_solver.py` for the verification tests and demos, or
-`python equilibrium_solver.py examples/sugar_water.txt` to solve an input file.
+`python equilibrium_solver.py examples/benzene_naphthalene.txt` to solve an input file.
 """
 
 import math
@@ -115,7 +115,7 @@ def _sat_eval(L, V, T, P, z, beta, Kbox, tol=1e-12, maxit=300):
     # Trivial solution (K = 1 for every volatile component): the EOS found only
     # one root, so both 'phases' are the same fluid. Steer the root finder:
     # a liquid-like fluid means P too high / T too low, and vice versa.
-    if pres.sum() > 1 and np.max(np.abs(np.log(K[pres]))) < 1e-6:
+    if isinstance(L, EOSPhase) and pres.sum() > 1 and np.max(np.abs(np.log(K[pres]))) < 1e-6:
         Zc = P * L.molar_volume(T, P, x) / (R * T)
         return (-1.0 if Zc < 0.3 else 1.0), x, y, True
     return _rr_residual(z, K, beta), x, y, False
@@ -258,7 +258,7 @@ def flash_TP(L, V, T, P, z, tol=1e-12, maxit=500):
     if beta == 1.0:
         return VLEPoint(T, P, np.full_like(z, np.nan), z.copy(), 1.0, "vapor")
     x, y = _compositions(z, K, beta)
-    if pres.sum() > 1 and np.max(np.abs(np.log(K[pres]))) < 1e-6:
+    if isinstance(L, EOSPhase) and pres.sum() > 1 and np.max(np.abs(np.log(K[pres]))) < 1e-6:
         Zc = P * L.molar_volume(T, P, z) / (R * T)
         ph = "liquid" if Zc < 0.3 else "vapor"
         return VLEPoint(T, P, z.copy() if ph == "liquid" else np.full_like(z, np.nan),
@@ -279,9 +279,21 @@ class Diagram:
     var: np.ndarray            # P (Pa) or T (K) at each point
     names: list
     notes: list = field(default_factory=list)
+    azeotrope: Optional[tuple] = None   # (x1, P or T) if one is found
 
 
-def vle_diagram(L, V, T=None, P=None, npts=41, x_min=0.0):
+def find_azeotrope(L, V, x_lo, x_hi, T=None, P=None):
+    """Binary azeotrope between x_lo and x_hi, where y1 - x1 changes sign.
+    Returns (x1, P or T)."""
+    def g(x1):
+        pt = saturation(L, V, [x1, 1 - x1], 0.0, T=T, P=P)
+        return pt.y[0] - x1
+    xa = brentq(g, x_lo, x_hi, xtol=1e-10)
+    pt = saturation(L, V, [xa, 1 - xa], 0.0, T=T, P=P)
+    return xa, (pt.P if P is None else pt.T)
+
+
+def vle_diagram(L, V, T=None, P=None, npts=61, x_min=0.0):
     """Pxy at fixed T, or Txy at fixed P, for a binary. The bubble curve is
     (x1, var) and the dew curve is (y1, var): each bubble-point calculation
     gives one point of each, so no separate dew calculations are needed."""
@@ -312,9 +324,23 @@ def vle_diagram(L, V, T=None, P=None, npts=41, x_min=0.0):
         notes.append(f"{', '.join(nv)} is nonvolatile: the vapor is pure, so the "
                      f"dew curve is the line y1 = {1.0 if V.present[0] else 0.0}")
     order = np.argsort(out_x)
-    return Diagram("Pxy" if P is None else "Txy", T if P is None else P,
-                   np.array(out_x)[order], np.array(out_y)[order],
-                   np.array(out_v)[order], names, notes)
+    d = Diagram("Pxy" if P is None else "Txy", T if P is None else P,
+                np.array(out_x)[order], np.array(out_y)[order],
+                np.array(out_v)[order], names, notes)
+    # azeotrope: y1 - x1 changes sign away from the pure-component ends
+    if V.present.all() and len(d.x1) > 3:
+        diff = d.y1 - d.x1
+        for k in range(1, len(d.x1) - 2):
+            if diff[k] * diff[k + 1] < 0:
+                try:
+                    d.azeotrope = find_azeotrope(L, V, d.x1[k], d.x1[k + 1], T=T, P=P)
+                    xa, va = d.azeotrope
+                    unit = f"{va / 1e5:.4f} bar" if P is None else f"{va:.3f} K"
+                    d.notes.append(f"azeotrope at x_{names[0]} = {xa:.4f}, {unit}")
+                except (SolverError, ValueError):
+                    pass
+                break
+    return d
 
 
 # ==========================================================================
@@ -491,7 +517,8 @@ def _unstable(kind, P, Psat):
     return P < Psat if kind == "L" else P > Psat
 
 
-def _march_side(system, L, V, T, start, P_start, x_start, kind, positions, out, notes):
+def _march_side(system, L, V, T, start, P_start, x_start, kind, positions, out, notes,
+                contacts=None):
     """March one phase from `start` through `positions` (ordered away from
     start). If the phase reaches saturation, locate the contact by bisection
     and continue with the other phase from there."""
@@ -538,10 +565,14 @@ def _march_side(system, L, V, T, start, P_start, x_start, kind, positions, out, 
         sat = saturation(L, V, xc, 0.0 if kind == "L" else 1.0, T=T)
         other_kind = "V" if kind == "L" else "L"
         x_other = sat.y if kind == "L" else sat.x
+        if contacts is not None:
+            contacts.append({"position": pc, "P": Pc,
+                             "x_liquid": xc if kind == "L" else x_other,
+                             "x_vapor": x_other if kind == "L" else xc})
         notes.append(f"gas-liquid contact at {pc:.4g} m (P = {Pc / 1e5:.4g} bar): "
                      f"{'vapor' if other_kind == 'V' else 'liquid'} beyond this point")
         return _march_side(system, L, V, T, pc, sat.P, x_other, other_kind,
-                           positions[k:], out, notes)
+                           positions[k:], out, notes, contacts)
     return out
 
 
@@ -560,7 +591,7 @@ def column_profile(system, L, V, point, npts=21):
     ref = fld.reference
     side_hi = [p for p in positions if p >= ref]                     # ascending
     side_lo = sorted((p for p in positions if p < ref), reverse=True)
-    out, notes = {}, []
+    out, notes, contacts = {}, [], []
     T = point.T
 
     if point.phase == "two-phase":
@@ -573,13 +604,15 @@ def column_profile(system, L, V, point, npts=21):
         for side, kind in sides:
             if side:
                 comp = point.x if kind == "L" else point.y
-                _march_side(system, L, V, T, ref, point.P, comp, kind, side, out, notes)
+                _march_side(system, L, V, T, ref, point.P, comp, kind, side, out, notes,
+                            contacts)
     else:
         kind = "L" if point.phase == "liquid" else "V"
         comp = point.x if kind == "L" else point.y
         for side in (side_hi, side_lo):
             if side:
-                _march_side(system, L, V, T, ref, point.P, comp, kind, side, out, notes)
+                _march_side(system, L, V, T, ref, point.P, comp, kind, side, out, notes,
+                            contacts)
         if not any("contact" in s for s in notes):
             notes.append("single phase throughout")
 
@@ -589,7 +622,7 @@ def column_profile(system, L, V, point, npts=21):
                    np.array([out[p][1] for p in pos_sorted]),
                    [out[p][2] for p in pos_sorted],
                    np.array([out[p][3] for p in pos_sorted]),
-                   system.names, fld.kind, notes, {"T": T})
+                   system.names, fld.kind, notes, {"T": T, "contacts": contacts})
 
 
 def liquid_profile(system, L, T, P_ref, x_ref, npts=21):
@@ -620,6 +653,8 @@ class Result:
     data: object
     notes: list = field(default_factory=list)
     profiles: list = field(default_factory=list)
+    phases: Optional[tuple] = None       # the two phase models used
+    phase_names: Optional[tuple] = None  # e.g. ('L', 'V') or ('L', 'S(benzene)')
 
 
 def solve(system):
@@ -635,7 +670,8 @@ def solve(system):
 
     for eq in system.equilibria:
         A, B = eq.phases
-        res = Result(eq.label, eq.calculation or "", None)
+        res = Result(eq.label, eq.calculation or "", None, phases=eq.phases,
+                     phase_names=eq.phase_names)
         try:
             if eq.phase_names[1] == "V":
                 _solve_vle(system, A, B, T, P, xL, xV, z, st["beta"], sweep, res)
@@ -700,10 +736,9 @@ def _solve_vle(system, L, V, T, P, xL, xV, z, beta, sweep, res):
 def _solve_sle(system, L, S, T, P, xL, sweep, res):
     if sweep:
         res.data = sle_curve(L, S, P)
-        if isinstance(L, IdealSolutionLiquid):
-            res.notes.append("ideal solution: real solutions (e.g. sugar-water) "
-                             "can deviate strongly; an activity model is needed "
-                             "for quantitative results")
+        if getattr(L, "activity", None) is None:
+            res.notes.append("ideal solution assumed for the liquid; for strongly "
+                             "non-ideal mixtures choose an activity model")
         return
     if xL is not None:
         Tsle = sle_temperature(L, S, P, xL)
@@ -861,17 +896,51 @@ elif __name__ == "__main__":
     report("Raoult's law", abs(bE.P / (0.3 * ps[0] + 0.7 * ps[1]) - 1) < 1e-9,
            f"{bE.P / 1e5:.5f} bar")
 
-    print("\n5. Sugar-water at 1 atm (hand values from stage 2)")
-    sysS = build_system(DEMOS["3. Sugar / water at 1 atm (instructor's example)"])
+    print("\n5. Latent-heat route: benzene / naphthalene at 1 atm")
+    BN_TEXT = DEMOS["3. Benzene / naphthalene at 1 atm from latent heats only"]
+    sysS = build_system(BN_TEXT)
     resS = solve(sysS)
     LS, VS = sysS.equilibria[0].phases
-    bS = bubble_T(LS, VS, 101325.0, [0.95, 0.05])
-    report("boiling point", abs(bS.T - 374.617) < 1e-3, f"{bS.T:.3f} K")
-    ice = sysS.equilibria[1].phases[1]
-    Tf = sle_temperature(LS, ice, 101325.0, [0.95, 0.05])
-    report("freezing point", abs(Tf - 267.956) < 1e-3, f"{Tf:.3f} K")
+    pb = sysS.equilibria[1].phases[1].p              # benzene solid data
+    pn = sysS.equilibria[2].phases[1].p              # naphthalene solid data
+    Tf = sle_temperature(LS, sysS.equilibria[1].phases[1], 101325.0, [0.95, 0.05])
+    Tf_hand = 1 / (1 / pb["Tm"] - R * math.log(0.95) / pb["dHfus"])
+    report("freezing point of benzene, x = 0.95", abs(Tf - Tf_hand) < 1e-6,
+           f"{Tf:.3f} K (hand calculation {Tf_hand:.3f} K)")
+    liq = lambda p_, x: 1 / (1 / p_["Tm"] - R * math.log(x) / p_["dHfus"])
+    x_e = brentq(lambda x: liq(pb, x) - liq(pn, 1 - x), 0.01, 0.99, xtol=1e-14)
     eu = [r for r in resS if r.equilibrium == "Eutectic"]
-    report("eutectic found", len(eu) == 1, f"T = {eu[0].data['T']:.2f} K" if eu else "")
+    report("eutectic against the two closed-form liquidus curves",
+           bool(eu) and abs(eu[0].data["x"] - x_e) < 1e-8 and abs(eu[0].data["T"] - liq(pb, x_e)) < 1e-6,
+           f"x_benzene = {x_e:.4f}, T = {liq(pb, x_e):.2f} K")
+    sysN = build_system(BN_TEXT + "naphthalene.nonvolatile = yes\n")
+    LN, VN = sysN.equilibria[0].phases
+    bN = bubble_T(LN, VN, 101325.0, [0.95, 0.05])
+    pbv = LN.props[0]
+    Tb_hand = 1 / (1 / pbv["Tb"] + R * math.log(0.95) / pbv["dHvap"])
+    report("nonvolatile solute: boiling point elevation", abs(bN.T - Tb_hand) < 1e-6,
+           f"{bN.T:.3f} K (hand calculation {Tb_hand:.3f} K)")
+    report("nonvolatile solute absent from the vapor", bN.y[1] == 0.0, "")
+
+    print("\n5b. Activity model: ethanol / water at 1 atm, van Laar")
+    sysA = build_system(DEMOS["8. Ethanol / water at 1 atm, van Laar activity model"])
+    LA, VA = sysA.equilibria[0].phases
+    bA = bubble_P(LA, VA, 350.0, [0.3, 0.7])
+    lg = LA.ln_gamma(350.0, [0.3, 0.7])
+    f0 = np.exp(LA.ln_f0(350.0, bA.P))
+    report("modified Raoult's law: P = sum x_i gamma_i Psat_i",
+           abs(bA.P / (0.3 * math.exp(lg[0]) * f0[0] + 0.7 * math.exp(lg[1]) * f0[1]) - 1) < 1e-9,
+           f"{bA.P / 1e5:.5f} bar")
+    dA = vle_diagram(LA, VA, P=101325.0, npts=41)
+    az = dA.azeotrope
+    ok = az is not None
+    if ok:
+        xa, Ta = az
+        bub = bubble_T(LA, VA, 101325.0, [xa, 1 - xa])
+        dew = dew_T(LA, VA, 101325.0, [xa, 1 - xa])
+        ok = abs(bub.y[0] - xa) < 1e-8 and abs(bub.T - dew.T) < 1e-6
+    report("azeotrope found, with x = y and bubble T = dew T", ok,
+           f"x_ethanol = {az[0]:.4f}, T = {az[1]:.3f} K" if az else "none found")
 
     print("\n6. Gravity: hydrostatic pressure follows from mu_i + M_i g z = const")
 
@@ -926,7 +995,8 @@ elif __name__ == "__main__":
 
     print("\n" + "=" * 78 + "\nDEMO OUTPUT\n" + "=" * 78)
     for title, text in [("PR propane / n-butane", PR_TEXT),
-                        ("Sugar-water", DEMOS["3. Sugar / water at 1 atm (instructor's example)"]),
+                        ("Benzene / naphthalene", DEMOS["3. Benzene / naphthalene at 1 atm from latent heats only"]),
+                        ("Ethanol / water, van Laar", DEMOS["8. Ethanol / water at 1 atm, van Laar activity model"]),
                         ("Gravity column, propane / n-butane", grav_text),
                         ("Centrifuge, ethanol-water", DEMOS["5. Ethanol / water, user Psat relations, centrifuge"])]:
         print(f"\n### {title}")

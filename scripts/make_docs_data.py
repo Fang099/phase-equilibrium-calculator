@@ -58,34 +58,42 @@ for model in ("vdW", "SRK", "PR"):
     psat[model] = r(P / 1e5, 3)
 data["psat_propane_300K"] = psat
 
-# -------------------------------------------------------- sugar-water
-sysS = build_system(example("sugar_water.txt"))
-res = es.solve(sysS)
-boil = res[0].data
-ice = res[1].data
-suc = res[2].data
-eut = [x for x in res if x.equilibrium == "Eutectic"][0].data
-# extend the sucrose curve from x_sucrose = 0.02 down to the eutectic
-Ls_, suc_phase = sysS.equilibria[2].phases
-x_eu_suc = 1 - eut["x"]
-extra_x, extra_T = [], []
-for xs in np.geomspace(suc.x_solid[-1], x_eu_suc, 16)[1:]:
-    extra_x.append(xs)
-    extra_T.append(es.sle_temperature(Ls_, suc_phase, 101325.0, [1 - xs, xs]))
-suc_x = np.concatenate([suc.x_solid, extra_x])
-suc_T = np.concatenate([suc.T, extra_T])
-data["sugar"] = {
-    "boil": {"x": [r(v) for v in boil.x1], "T": [r(v, 3) for v in boil.var]},
-    "ice": {"x": [r(v) for v in ice.x_solid], "T": [r(v, 3) for v in ice.T]},
-    "sucrose": {"x": [r(1 - v, 6) for v in suc_x], "T": [r(v, 3) for v in suc_T]},
-    "eutectic": {"x_water": r(eut["x"], 6), "T": r(eut["T"], 3)},
+# ------------------------------- latent-heat route: benzene / naphthalene
+sysB = build_system(example("benzene_naphthalene.txt"))
+resB = es.solve(sysB)
+txy = resB[0].data
+eut = [x for x in resB if x.equilibrium == "Eutectic"][0].data
+x_e = eut["x"] if eut["component"] == "benzene" else 1 - eut["x"]
+Lb = sysB.equilibria[0].phases[0]
+liquidus = {}
+for eq in sysB.equilibria[1:]:
+    S = eq.phases[1]
+    name = S.names[S.index]
+    # from the pure solid's melting point down to the eutectic
+    xs = np.linspace(1.0, (x_e if name == "benzene" else 1 - x_e), 40)
+    T = [es.sle_temperature(Lb, S, 101325.0, [xi, 1 - xi] if S.index == 0 else [1 - xi, xi])
+         for xi in xs]
+    x1 = xs if S.index == 0 else 1 - xs
+    liquidus[name] = {"x": [r(v) for v in x1], "T": [r(v, 3) for v in T]}
+data["latent"] = {
+    "bubble": {"x": [r(v) for v in txy.x1], "T": [r(v, 3) for v in txy.var]},
+    "dew": {"x": [r(v) for v in txy.y1], "T": [r(v, 3) for v in txy.var]},
+    "benzene": liquidus["benzene"], "naphthalene": liquidus["naphthalene"],
+    "eutectic": {"x": r(x_e, 5), "T": r(eut["T"], 3)},
 }
-Ls, Vs = sysS.equilibria[0].phases
-ice_phase = sysS.equilibria[1].phases[1]
-data["sugar_point"] = {
-    "Tb": r(es.bubble_T(Ls, Vs, 101325.0, [0.95, 0.05]).T, 3),
-    "Tf": r(es.sle_temperature(Ls, ice_phase, 101325.0, [0.95, 0.05]), 3),
-}
+
+# ------------------------------------- activity model: ethanol / water
+sysA = build_system(example("ethanol_water_vanlaar.txt"))
+LA, VA = sysA.equilibria[0].phases
+dA = es.vle_diagram(LA, VA, P=101325.0, npts=81)
+data["azeo"] = {"x": [r(v) for v in dA.x1], "y": [r(v) for v in dA.y1],
+                "T": [r(v, 3) for v in dA.var],
+                "azeotrope": {"x": r(dA.azeotrope[0], 4), "T": r(dA.azeotrope[1], 3)}}
+ideal = build_system(example("ethanol_water_vanlaar.txt").replace("activity = vanlaar", "activity = ideal"))
+LI, VI = ideal.equilibria[0].phases
+dI = es.vle_diagram(LI, VI, P=101325.0, npts=41)
+data["azeo"]["ideal"] = {"x": [r(v) for v in dI.x1], "y": [r(v) for v in dI.y1],
+                         "T": [r(v, 3) for v in dI.var]}
 
 # ------------------------------------------------------- gravity column
 sysG = build_system(example("gravity_column_gas_cap.txt"))
@@ -143,6 +151,27 @@ for fn in sorted(os.listdir(os.path.join(ROOT, "examples"))):
     verdicts.append({"file": fn, "status": rep.status})
 data["verdicts"] = verdicts
 
+# ------------------------------------------------- plot gallery (plotter.py)
+import matplotlib                                                   # noqa: E402
+matplotlib.use("Agg")
+import plotter                                                      # noqa: E402
+
+img = os.path.join(ROOT, "docs", "img")
+os.makedirs(img, exist_ok=True)
+gallery = {
+    "benzene_naphthalene.txt": {"tx_complete": "phase_diagram_latent_heats.png"},
+    "ethanol_water_vanlaar.txt": {"txy": "txy_azeotrope.png",
+                                  "gmix_surface": "gibbs_mixing_surface.png"},
+    "propane_butane_pr_pxy.txt": {"ptx_surface": "ptx_surface.png"},
+    "gravity_column_gas_cap.txt": {"profile_1": "gravity_profile.png"},
+}
+for fn, wanted in gallery.items():
+    sy = build_system(example(fn))
+    figs = plotter.plot_results(sy, es.solve(sy))
+    for key, out in wanted.items():
+        figs[key].savefig(os.path.join(img, out), dpi=130, bbox_inches="tight")
+    plotter.plt.close("all")
+
 # ------------------------------------------------------ write into the page
 page = os.path.join(ROOT, "docs", "index.html")
 html = open(page, encoding="utf-8").read()
@@ -156,8 +185,9 @@ if new == html and "DOCS-DATA:START" not in html:
 open(page, "w", encoding="utf-8").write(new)
 print(f"wrote {len(blob) / 1024:.1f} kB of data into docs/index.html")
 print(json.dumps({k: v for k, v in data.items()
-                  if k in ("psat_propane_300K", "sugar_point", "verification", "verdicts")},
+                  if k in ("psat_propane_300K", "verification", "verdicts")},
                  indent=1))
-print("eutectic", data["sugar"]["eutectic"], "contact", zc, Pc)
+print("eutectic", data["latent"]["eutectic"], "azeotrope", data["azeo"]["azeotrope"],
+      "contact", zc, Pc)
 print("centrifuge", data["centrifuge"]["P"][0], data["centrifuge"]["P"][-1],
       data["centrifuge"]["x1"][-1])
