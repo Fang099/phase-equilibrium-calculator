@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase Equilibrium Calculator</title>
+<meta name="description" content="A Python tool that checks whether the data given are sufficient, then calculates and plots phase equilibria of mixtures from the fundamental equation, including gravity and centrifugal fields.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,500&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f3f6f8;
+  --surface: #fcfcfb;
+  --ink: #13233a;
+  --ink-2: #46566a;
+  --muted: #76828f;
+  --hair: #dbe2e8;
+  --axis: #b9c3cc;
+  --grid-paper: #e3e9ee;
+  --link: #1c5cab;
+  --code-bg: #e9eef2;
+  --liquid: #2a78d6;
+  --vapor: #eb6834;
+  --third: #1baf7a;
+  --built: #1f7a3d;
+  --planned: #76828f;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0e151d;
+    --surface: #141c26;
+    --ink: #e6ecf1;
+    --ink-2: #b1bdc9;
+    --muted: #8794a2;
+    --hair: #243140;
+    --axis: #3a4857;
+    --grid-paper: #18222d;
+    --link: #7db3f0;
+    --code-bg: #1b2530;
+    --liquid: #3987e5;
+    --vapor: #d95926;
+    --third: #199e70;
+    --built: #4fbf73;
+    --planned: #8794a2;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0e151d;
+  --surface: #141c26;
+  --ink: #e6ecf1;
+  --ink-2: #b1bdc9;
+  --muted: #8794a2;
+  --hair: #243140;
+  --axis: #3a4857;
+  --grid-paper: #18222d;
+  --link: #7db3f0;
+  --code-bg: #1b2530;
+  --liquid: #3987e5;
+  --vapor: #d95926;
+  --third: #199e70;
+  --built: #4fbf73;
+  --planned: #8794a2;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  line-height: 1.62;
+}
+a { color: var(--link); text-underline-offset: 0.18em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--liquid); outline-offset: 3px; border-radius: 2px; }
+
+h1, h2, h3, h4 {
+  font-family: var(--sans);
+  font-stretch: 87%;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+h2 { font-size: 1.75rem; margin: 0 0 0.9rem; }
+h3 { font-size: 1.2rem; margin: 2.2rem 0 0.6rem; }
+h4 { font-size: 1rem; margin: 1.4rem 0 0.4rem; }
+p { margin: 0 0 1rem; }
+code, pre, kbd { font-family: var(--mono); font-size: 0.86em; }
+:not(pre) > code { background: var(--code-bg); padding: 0.08em 0.32em; border-radius: 3px; }
+pre {
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  line-height: 1.5;
+  margin: 0 0 1.2rem;
+}
+.katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.2rem 0; margin: 0.9rem 0 1.1rem; }
+
+/* ---------------- hero ---------------- */
+.hero {
+  border-bottom: 1px solid var(--hair);
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(var(--grid-paper) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-paper) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+}
+.hero-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 3.2rem 24px 2.6rem;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 2.5rem;
+  align-items: center;
+}
+.hero h1 {
+  font-size: clamp(2rem, 1.3rem + 2.4vw, 3.15rem);
+  font-stretch: 87%;
+  margin: 0 0 1rem;
+  max-width: 15ch;
+}
+.hero .lede { font-size: 1.15rem; color: var(--ink-2); max-width: 40ch; margin-bottom: 1.4rem; }
+.hero .fundamental {
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  border-radius: 6px;
+  padding: 0.2rem 1rem;
+  display: inline-block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.hero .fundamental .katex-display { margin: 0.5rem 0; }
+.hero-figure {
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  padding: 1rem 1rem 0.6rem;
+}
+.hero-figure figcaption { margin-top: 0.4rem; }
+.hero-links { display: flex; flex-wrap: wrap; gap: 0.6rem 1.4rem; margin-top: 1.4rem; font-family: var(--sans); font-size: 0.98rem; }
+
+/* ---------------- layout ---------------- */
+.layout {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 3rem;
+}
+nav.toc {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  padding: 2.6rem 0 2rem;
+  max-height: 100vh;
+  overflow-y: auto;
+  font-family: var(--sans);
+  font-size: 0.93rem;
+}
+nav.toc p { color: var(--muted); margin: 0 0 0.6rem; font-size: 0.86rem; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+nav.toc li { counter-increment: toc; }
+nav.toc a {
+  display: block;
+  padding: 0.32rem 0 0.32rem 0.8rem;
+  border-left: 2px solid var(--hair);
+  color: var(--ink-2);
+  text-decoration: none;
+}
+nav.toc a:hover { color: var(--ink); border-left-color: var(--axis); }
+nav.toc a[aria-current="true"] { color: var(--ink); border-left-color: var(--liquid); }
+nav.toc ol ol a { padding-left: 1.6rem; font-size: 0.86rem; }
+
+main { min-width: 0; padding: 2.6rem 0 4rem; }
+main > section { max-width: 72ch; padding-bottom: 2.6rem; margin-bottom: 2.6rem; border-bottom: 1px solid var(--hair); }
+main > section:last-of-type { border-bottom: 0; }
+main > section > h2 { scroll-margin-top: 1.2rem; }
+main h3 { scroll-margin-top: 1.2rem; }
+.wide { max-width: none; }
+.note { color: var(--ink-2); font-size: 0.96rem; }
+
+/* ---------------- figures and charts ---------------- */
+figure { margin: 1.6rem 0; }
+.chart-figure { background: var(--surface); border: 1px solid var(--hair); border-radius: 8px; padding: 1rem 1rem 0.8rem; }
+figcaption { font-size: 0.93rem; color: var(--ink-2); line-height: 1.5; }
+figcaption b { font-family: var(--sans); font-weight: 650; color: var(--ink); }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; font-family: var(--sans); }
+.chart .tick text, .chart .axis-title { fill: var(--muted); font-size: 12px; }
+.chart .axis-title { fill: var(--ink-2); font-size: 12.5px; }
+.chart .gridline { stroke: var(--hair); stroke-width: 1; }
+.chart .baseline { stroke: var(--axis); stroke-width: 1; }
+.chart .series-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .region-label { fill: var(--ink-2); font-size: 12.5px; font-family: var(--sans); }
+.chart .direct-label { fill: var(--ink); font-size: 12px; font-weight: 500; }
+.chart .annot-line { stroke: var(--muted); stroke-width: 1; }
+.chart .annot-text { fill: var(--ink-2); font-size: 12px; }
+.chart .hover-dot { stroke: var(--surface); stroke-width: 2; }
+.chart .crosshair { stroke: var(--axis); stroke-width: 1; }
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  line-height: 1.4;
+  padding: 0.4rem 0.6rem;
+  border-radius: 5px;
+  white-space: nowrap;
+  transform: translate(-50%, calc(-100% - 12px));
+  opacity: 0;
+}
+.tooltip.on { opacity: 1; }
+.tooltip .sw { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font-family: var(--sans); font-size: 0.86rem; color: var(--ink-2); margin: 0 0 0.4rem; padding: 0; list-style: none; }
+.legend li { display: flex; align-items: center; gap: 0.45rem; }
+.legend .key { width: 16px; height: 2px; border-radius: 1px; }
+.legend .key.area { height: 10px; border-radius: 2px; opacity: 0.35; }
+.panels { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.4rem; }
+details.data { margin-top: 0.5rem; font-family: var(--sans); font-size: 0.86rem; }
+details.data summary { cursor: pointer; color: var(--link); width: max-content; }
+details.data .table-wrap { max-height: 260px; overflow: auto; margin-top: 0.5rem; }
+
+/* ---------------- tables ---------------- */
+.table-wrap { overflow-x: auto; margin: 1.2rem 0 1.4rem; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th, td { text-align: left; padding: 0.45rem 0.8rem 0.45rem 0; border-bottom: 1px solid var(--hair); vertical-align: top; }
+th { font-family: var(--sans); font-weight: 650; font-size: 0.88rem; color: var(--ink-2); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; padding-left: 0.8rem; }
+details.data table { font-size: 0.84rem; }
+details.data th, details.data td { padding: 0.25rem 0.6rem 0.25rem 0; }
+
+/* ---------------- pipeline ---------------- */
+.pipeline { list-style: none; margin: 1.6rem 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.9rem; counter-reset: step; }
+.pipeline li { counter-increment: step; background: var(--surface); border: 1px solid var(--hair); border-radius: 8px; padding: 0.9rem 1rem; position: relative; }
+.pipeline li::before { content: counter(step); font-family: var(--sans); font-weight: 650; font-size: 0.85rem; color: var(--muted); display: block; margin-bottom: 0.2rem; }
+.pipeline h4 { margin: 0 0 0.35rem; font-size: 1.02rem; }
+.pipeline p { margin: 0; font-size: 0.93rem; color: var(--ink-2); line-height: 1.5; }
+.pipeline code { font-size: 0.8em; }
+.status { font-family: var(--sans); font-size: 0.8rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.6rem; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.status.built { color: var(--built); }
+.status.planned { color: var(--planned); }
+.status.planned::before { background: transparent; border: 1.5px solid currentColor; width: 7px; height: 7px; }
+.pipeline li.planned { background: transparent; border-style: dashed; }
+
+/* ---------------- misc ---------------- */
+.verdict { font-family: var(--sans); font-size: 0.84rem; font-weight: 500; white-space: nowrap; }
+dl.params { margin: 0 0 1.2rem; }
+dl.params dt { font-family: var(--mono); font-size: 0.86rem; overflow-wrap: anywhere; margin-top: 0.7rem; }
+dl.params dd { margin: 0.1rem 0 0 1.2rem; color: var(--ink-2); font-size: 0.96rem; }
+footer { border-top: 1px solid var(--hair); background: var(--surface); }
+footer .inner { max-width: 1180px; margin: 0 auto; padding: 1.6rem 24px; font-family: var(--sans); font-size: 0.9rem; color: var(--ink-2); }
+details.toc-mobile { display: none; }
+
+@media (max-width: 960px) {
+  .hero-inner { grid-template-columns: minmax(0, 1fr); gap: 1.8rem; padding-top: 2.4rem; }
+  .hero h1 { max-width: 20ch; }
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  nav.toc { display: none; }
+  details.toc-mobile { display: block; margin: 1.6rem 0 2rem; font-family: var(--sans); background: var(--surface); border: 1px solid var(--hair); border-radius: 8px; padding: 0.7rem 1rem; }
+  details.toc-mobile summary { cursor: pointer; font-weight: 500; }
+  details.toc-mobile ol { margin: 0.6rem 0 0.2rem; padding-left: 1.3rem; line-height: 1.9; }
+  main { padding-top: 1.6rem; }
+  .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  body { font-size: 1rem; }
+  .hero-inner, .layout, footer .inner { padding-left: 16px; padding-right: 16px; }
+  .panels { grid-template-columns: minmax(0, 1fr); }
+  .pipeline { grid-template-columns: 1fr; }
+  h2 { font-size: 1.5rem; }
+  .chart-figure, .hero-figure { padding: 0.8rem 0.7rem 0.6rem; }
+  .hero .fundamental { padding: 0.2rem 0.6rem; }
+  .hero .fundamental .katex-display { font-size: 0.8em; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div>
+      <h1>Phase diagrams from the fundamental equation</h1>
+      <p class="lede">A Python tool for mixtures that first works out whether the data you have are enough, then calculates vapor–liquid and solid–liquid equilibrium, including in gravity and centrifugal fields.</p>
+      <div class="fundamental">\[ dA = -S\,dT - P\,dV + \sum_i \mu_i\,dN_i \;\big[\, + \,\Phi\,dm \,\big] \]</div>
+      <div class="hero-links">
+        <a href="#getting-started">Run it yourself</a>
+        <a href="#theory">Read the theory</a>
+        <a href="https://github.com/Fang099/phase-equilibrium-calculator">Source on GitHub</a>
+      </div>
+    </div>
+    <figure class="hero-figure" aria-labelledby="hero-cap">
+      <ul class="legend" id="hero-legend"></ul>
+      <div class="chart" id="chart-hero"></div>
+      <figcaption id="hero-cap"><b>Propane / n-butane at 300 K, Peng–Robinson.</b> Computed by this tool from four constants per component. Hover to read values.</figcaption>
+    </figure>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="toc" aria-label="Contents">
+    <p>Contents</p>
+    <ol>
+      <li><a href="#overview">What the tool does</a></li>
+      <li><a href="#theory">Theory</a>
+        <ol>
+          <li><a href="#fundamental">Fundamental equation</a></li>
+          <li><a href="#criteria">Equilibrium and the phase rule</a></li>
+          <li><a href="#eos">Cubic equations of state</a></li>
+          <li><a href="#thermal">Latent-heat route</a></li>
+          <li><a href="#fields">External fields</a></li>
+        </ol>
+      </li>
+      <li><a href="#pipeline">How it is built</a></li>
+      <li><a href="#input">Describing a system</a></li>
+      <li><a href="#examples">Worked examples</a></li>
+      <li><a href="#verification">Verification</a></li>
+      <li><a href="#limits">Limitations and roadmap</a></li>
+      <li><a href="#getting-started">Getting started</a></li>
+      <li><a href="#reference">Code reference</a></li>
+      <li><a href="#sources">References</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <details class="toc-mobile">
+      <summary>Contents</summary>
+      <ol>
+        <li><a href="#overview">What the tool does</a></li>
+        <li><a href="#theory">Theory</a></li>
+        <li><a href="#pipeline">How it is built</a></li>
+        <li><a href="#input">Describing a system</a></li>
+        <li><a href="#examples">Worked examples</a></li>
+        <li><a href="#verification">Verification</a></li>
+        <li><a href="#limits">Limitations and roadmap</a></li>
+        <li><a href="#getting-started">Getting started</a></li>
+        <li><a href="#reference">Code reference</a></li>
+        <li><a href="#sources">References</a></li>
+      </ol>
+    </details>
+
+    <!-- ============================================================ -->
+    <section id="overview">
+      <h2>What the tool does</h2>
+      <p>This is a course project for Chemical Engineering Thermodynamics. The reference text is <i>Thermodynamics and Its Applications</i> by Tester and Modell. The tool takes a description of a mixture in plain text, decides what can be calculated from it, solves the equilibrium conditions, and reports phase compositions, saturation points, phase diagrams and, in a field, profiles of pressure and composition with position.</p>
+      <p>Most phase-equilibrium software assumes the right data are available and stops with an error when they are not. This tool starts one step earlier: given whatever the user knows (critical constants, vapor pressures, latent heats, melting points), it works out which equilibria are calculable, which calculation the given variables imply, and exactly what is missing for the rest.</p>
+      <p>Every result traces back to one place: the fundamental equation, written in its Helmholtz form, and the criterion that chemical potentials are equal in coexisting phases. Cubic equations of state, latent-heat relations and external fields all enter through that same route, so there is one equilibrium solver for all of them.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Handles now</th><th>Not yet</th></tr></thead>
+          <tbody>
+            <tr><td>Vapor–liquid equilibrium: bubble and dew points, flash, Pxy and Txy diagrams</td><td>Liquid–liquid and three-phase equilibrium</td></tr>
+            <tr><td>Solid–liquid equilibrium with a pure solid, including the eutectic</td><td>Activity-coefficient models for non-ideal liquids</td></tr>
+            <tr><td>van der Waals, Soave–Redlich–Kwong and Peng–Robinson equations of state</td><td>Plots and 3D surfaces (next module)</td></tr>
+            <tr><td>Ideal-solution route from vapor pressures or latent heats</td><td>Comparison with experimental data</td></tr>
+            <tr><td>Gravity and centrifugal fields</td><td>Electric and magnetic fields</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="theory">
+      <h2>Theory</h2>
+      <p>This section follows the structure of Tester and Modell: start from the fundamental equation, derive the equilibrium criteria and the phase rule, and then choose a model that supplies the chemical potentials. Notation may differ slightly from the book.</p>
+
+      <h3 id="fundamental">The fundamental equation and why the Helmholtz form</h3>
+      <p>For a simple system of \(n\) components, the fundamental equation in energy form is</p>
+      \[ dU = T\,dS - P\,dV + \sum_{i=1}^{n} \mu_i\,dN_i . \]
+      <p>Its Legendre transforms contain exactly the same information in different natural variables. The tool uses the Helmholtz energy \(A = U - TS\):</p>
+      \[ dA = -S\,dT - P\,dV + \sum_{i} \mu_i\,dN_i , \qquad P = -\left(\frac{\partial A}{\partial V}\right)_{T,\mathbf N}, \qquad \mu_i = \left(\frac{\partial A}{\partial N_i}\right)_{T,V,N_{j\neq i}} . \]
+      <p>The reason is practical. A cubic equation of state gives pressure as a function of \(T\), \(V\) and composition, which are exactly the natural variables of \(A\). One integration over volume turns the equation of state into a complete fundamental relation, and everything else is obtained by differentiation. \(U\) is used for the derivations themselves; the Gibbs form appears where its natural variables \(T, P\) fit better, in the latent-heat route below.</p>
+
+      <h3 id="criteria">Equilibrium criteria and the phase rule</h3>
+      <p>Maximizing entropy (equivalently, minimizing \(A\) at fixed \(T\) and \(V\)) for phases that can exchange energy, volume and matter gives uniform \(T\) and \(P\), and equal chemical potentials of every component in every phase. Written with fugacities, which is the form the solver uses:</p>
+      \[ \mu_i^{\alpha} = \mu_i^{\beta} \quad\Longleftrightarrow\quad \hat f_i^{\alpha}(T,P,\mathbf x^{\alpha}) = \hat f_i^{\beta}(T,P,\mathbf x^{\beta}) . \]
+      <p>Each phase has \(n+2\) independent variables, one fewer for its intensive state by the Gibbs–Duhem equation. An external field adds one work term per field, so \(m\) more. Subtracting the equilibrium constraints from the variables gives the number of intensive variables that can be fixed independently:</p>
+      \[ F = n + 2 + m - \pi . \]
+      <p>For a closed system with a known feed composition, Duhem's theorem applies instead: \(2 + m\) variables fix the state. The input checker uses these counts, with \(m = 1\) when a gravity or centrifugal field is present.</p>
+
+      <h3 id="eos">Cubic equations of state in Helmholtz form</h3>
+      <p>The three cubic equations share one form, differing only in two constants and in how \(a\) depends on temperature:</p>
+      \[ P = \frac{RT}{v-b} - \frac{a(T)}{(v+\delta_1 b)(v+\delta_2 b)} \]
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Model</th><th>\(\delta_1,\ \delta_2\)</th><th>\(a(T)\)</th><th>Pure-component data</th></tr></thead>
+          <tbody>
+            <tr><td>van der Waals</td><td>0, 0</td><td>constant</td><td>\(T_c, P_c\) or \(a, b\)</td></tr>
+            <tr><td>Soave–Redlich–Kwong</td><td>1, 0</td><td>\(a_c\,[1+m(1-\sqrt{T/T_c})]^2\), \(m = 0.480 + 1.574\omega - 0.176\omega^2\)</td><td>\(T_c, P_c, \omega\)</td></tr>
+            <tr><td>Peng–Robinson</td><td>\(1+\sqrt2,\ 1-\sqrt2\)</td><td>same form, \(m = 0.37464 + 1.54226\omega - 0.26992\omega^2\)</td><td>\(T_c, P_c, \omega\)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>For mixtures, the van der Waals one-fluid mixing rules apply, with one binary interaction parameter per pair:</p>
+      \[ a = \sum_i\sum_j x_i x_j \sqrt{a_i a_j}\,(1-k_{ij}), \qquad b = \sum_i x_i b_i . \]
+      <p>Integrating \(P - NRT/V\) over volume from the ideal-gas limit gives the residual Helmholtz energy in closed form,</p>
+      \[ \frac{A^{\mathrm{res}}}{NRT} = -\ln\!\left(1-\frac{b}{v}\right) - \frac{a}{bRT(\delta_1-\delta_2)}\,\ln\frac{v+\delta_1 b}{v+\delta_2 b} \qquad\left(\text{van der Waals: } -\frac{a}{RTv}\right), \]
+      <p>and the fugacity coefficient of each component is one derivative of it:</p>
+      \[ \ln\hat\varphi_i = \left(\frac{\partial\,(A^{\mathrm{res}}/RT)}{\partial N_i}\right)_{T,V,N_{j\neq i}} - \ln Z , \qquad \hat f_i = x_i\,\hat\varphi_i\,P . \]
+      <p>At a given \(T\) and \(P\), the cubic in \(Z\) can have three real roots. The smallest is used for a liquid, the largest for a vapor, and the root with the lower Gibbs energy when the phase is not known.</p>
+
+      <h3 id="thermal">When there is no equation of state: the latent-heat route</h3>
+      <p>Some components cannot be described by a cubic equation of state. Sucrose decomposes before it boils, so it has no meaningful critical point. For these cases the tool uses the Gibbs-energy route with an ideal liquid solution:</p>
+      \[ \hat f_i^{L} = x_i\, f_i^{L}, \qquad f_i^{L} = P_i^{\mathrm{sat}} \exp\!\left[\frac{V_i^{L}\,(P-P_i^{\mathrm{sat}})}{RT}\right], \qquad \hat f_i^{V} = y_i P . \]
+      <p>The vapor pressure comes from whichever source the user gave: Antoine constants, a typed relation \(P^{\mathrm{sat}}(T)\), or the Clausius–Clapeyron equation from the normal boiling point and enthalpy of vaporization. For a pure solid, the Gibbs–Helmholtz equation integrated from the melting point gives its fugacity relative to the pure liquid:</p>
+      \[ \ln\frac{f_i^{S}}{f_i^{L}} = -\frac{\Delta H_{\mathrm{fus}}}{R}\left(\frac1T - \frac1{T_m}\right) + \frac{\Delta C_p}{R}\left(\frac{T_m}{T} - 1 - \ln\frac{T_m}{T}\right). \]
+      <p>A non-volatile solute never enters the vapor, so its pure-liquid reference fugacity is never needed in absolute terms: it appears on both sides of its solid–liquid equation and cancels. That is why sugar–water can be calculated from latent heats and melting points alone.</p>
+
+      <h3 id="fields">External fields</h3>
+      <p>A gravity or centrifugal field does work on the mass of the system, so the fundamental equation gains a term \(\Phi\,dm\), with \(m = \sum_i M_i N_i\). The potential per unit mass is</p>
+      \[ \Phi_{\text{gravity}} = g\,(z - z_{\mathrm{ref}}), \qquad \Phi_{\text{centrifugal}} = -\tfrac12\,\omega^2\,(r^2 - r_{\mathrm{ref}}^2) . \]
+      <p>The equilibrium criterion becomes: temperature is uniform, and \(\mu_i + M_i\Phi\) is the same everywhere. In fugacities,</p>
+      \[ \ln \hat f_i(T, P, \mathbf x) + \frac{M_i\,\Phi}{RT} = \text{constant throughout the system}. \]
+      <p>Three consequences follow, and the tool shows each one.</p>
+      <p><b>The local phase diagram does not change.</b> Two phases that coexist at one position have the same \(\Phi\), so the field term cancels between them. The Pxy diagram at the bottom of a column is the ordinary one.</p>
+      <p><b>Pressure varies hydrostatically, without being imposed.</b> Summing \(x_i\,d\mu_i = -x_i M_i\,d\Phi\) and using the Gibbs–Duhem equation at constant temperature, \(\sum_i x_i\,d\mu_i = v\,dP\), gives \(dP = -\rho\,d\Phi\). The solver never uses this equation, yet its profiles satisfy it to about \(10^{-7}\) bar.</p>
+      <p><b>Composition varies with position, and phases can appear.</b> The heavier component concentrates where \(\Phi\) is lowest. If the falling pressure brings the local fluid to saturation, a second phase forms there: a gas cap at the top of a tall liquid column, for example.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="pipeline">
+      <h2>How it is built</h2>
+      <p>The work runs as a pipeline of modules. Each one takes the output of the previous one, so they can be developed and tested separately.</p>
+      <ol class="pipeline">
+        <li>
+          <h4>Input checker</h4>
+          <p><code>input_checker.py</code> reads the free-form input, converts units, counts degrees of freedom and decides which equilibria can be calculated.</p>
+          <span class="status built">Built</span>
+        </li>
+        <li>
+          <h4>Thermodynamic models</h4>
+          <p><code>thermo_models.py</code> turns the checked input into a fugacity model for each phase: cubic EOS, ideal solution, ideal gas, pure solid, field potential.</p>
+          <span class="status built">Built</span>
+        </li>
+        <li>
+          <h4>Equilibrium solver</h4>
+          <p><code>equilibrium_solver.py</code> solves bubble and dew points, flashes, diagrams, solid–liquid curves and field profiles.</p>
+          <span class="status built">Built</span>
+        </li>
+        <li class="planned">
+          <h4>Plots</h4>
+          <p>Pxy, Txy and solid–liquid diagrams, field profiles, and 3D P–T–x surfaces.</p>
+          <span class="status planned">Next</span>
+        </li>
+        <li class="planned">
+          <h4>Validation</h4>
+          <p>Comparison with experimental data, with average absolute deviations and fitted \(k_{ij}\).</p>
+          <span class="status planned">Planned</span>
+        </li>
+        <li class="planned">
+          <h4>Interface</h4>
+          <p>A notebook or web interface where the user types what they know and gets the diagram.</p>
+          <span class="status planned">Planned</span>
+        </li>
+      </ol>
+      <h3>Numerical methods</h3>
+      <p><b>Vapor–liquid.</b> With \(K_i = y_i/x_i = \hat\varphi_i^{L}/\hat\varphi_i^{V}\), a material balance on a feed \(\mathbf z\) split into a vapor fraction \(\beta\) gives the Rachford–Rice equation,</p>
+      \[ \sum_i \frac{z_i\,(K_i-1)}{1+\beta\,(K_i-1)} = 0 . \]
+      <p>Setting \(\beta = 0\) gives a bubble point and \(\beta = 1\) a dew point, so one routine handles both, solving for the unknown \(T\) or \(P\) with Brent's method. Because \(K\) depends on the phase compositions, it is updated by successive substitution until it stops changing. Starting values come from Wilson's correlation, \(K_i \approx (P_{c,i}/P)\exp[5.373(1+\omega_i)(1-T_{c,i}/T)]\). A solution with \(\mathbf x = \mathbf y\) (the trivial solution near a critical point) is detected and reported rather than returned.</p>
+      <p><b>Solid–liquid.</b> One equation, \(\hat f_i^{L} = f_i^{S}\), solved for temperature or composition. The eutectic is the composition where the two liquidus curves meet.</p>
+      <p><b>Field profiles.</b> At each position, the field equation above is solved for \(\ln P\) and the free mole fractions. The march starts at the reference position, uses the hydrostatic estimate \(P - \rho\,\Delta\Phi\) as the first guess, and halves any step that fails. After each step, the local fluid is tested against its own bubble or dew pressure. When saturation is crossed, the contact is located by bisection and the march continues in the new phase.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="input">
+      <h2>Describing a system</h2>
+      <p>The user writes down what they know, one quantity per line, in any order, with units. Lines starting with <code>#</code> are comments. This is the instructor's sugar–water example:</p>
+<pre><code>components = water, sucrose
+P = 1 atm
+sweep = x                      # draw the full diagram in composition
+water.Tb = 373.15 K
+water.dHvap = 40.65 kJ/mol
+water.Tm = 273.15 K
+water.dHfus = 6.01 kJ/mol
+sucrose.nonvolatile = yes
+sucrose.Tm = 459 K
+sucrose.dHfus = 46 kJ/mol</code></pre>
+      <p>Property values in the examples are typical literature values for demonstration. Take your own from the appendix of Tester and Modell or another cited source.</p>
+
+      <h3>What the checker reports</h3>
+      <p>For every possible equilibrium (vapor–liquid, plus solid–liquid for any component with a melting point), the checker writes out the fundamental relation, chooses how each chemical potential will be calculated, counts the degrees of freedom, and gives a verdict:</p>
+      <dl class="params">
+        <dt>SUFFICIENT</dt><dd>The data and the state specification are complete. It names the calculation, for example "Txy diagram at fixed P".</dd>
+        <dt>INSUFFICIENT</dt><dd>Lists what is missing, with alternatives (for example, either the acentric factor for the equation of state or vapor pressures for the ideal-solution route), and suggests valid specifications.</dd>
+        <dt>OVERSPECIFIED</dt><dd>More intensive variables were fixed than the phase rule allows. It says how many to remove.</dd>
+        <dt>INVALID</dt><dd>The input itself is wrong: an unknown quantity (with a spelling suggestion), mole fractions that do not add up to 1, an unknown unit.</dd>
+      </dl>
+      <p>The example files in the repository cover each verdict:</p>
+      <div class="table-wrap">
+        <table id="verdict-table">
+          <thead><tr><th>File in <code>examples/</code></th><th>Verdict</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h3>Recognized quantities</h3>
+      <p>Run <code>python input_checker.py --vocab</code> for the full list. Units are converted to SI; if a unit is missing, a default is assumed and a warning is printed.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Written as</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>components</code></td><td>Component names, comma separated, in the order used for compositions</td></tr>
+            <tr><td><code>model</code></td><td><code>vdW</code>, <code>SRK</code> or <code>PR</code> (optional)</td></tr>
+            <tr><td><code>T</code>, <code>P</code></td><td>Temperature (K or C), pressure (Pa, kPa, bar, atm, mmHg, psi)</td></tr>
+            <tr><td><code>x(L)</code>, <code>x(V)</code> or <code>y</code>, <code>z</code>, <code>beta</code></td><td>Liquid, vapor and feed compositions; vapor fraction. \(n\) or \(n-1\) mole fractions.</td></tr>
+            <tr><td><code>sweep</code></td><td><code>x</code>, <code>T</code> or <code>P</code>: the variable swept to draw a diagram</td></tr>
+            <tr><td><code>phases</code></td><td>Restrict to one equilibrium: <code>L, V</code> or <code>L, S(water)</code></td></tr>
+            <tr><td><code>name.Tc</code>, <code>.Pc</code>, <code>.omega</code>, <code>.a</code>, <code>.b</code></td><td>Equation-of-state constants</td></tr>
+            <tr><td><code>name.antoine</code>, <code>.Psat</code>, <code>.Tb</code>, <code>.dHvap</code></td><td>Vapor pressure: Antoine constants with units, a relation in <code>T</code>, or boiling point and latent heat</td></tr>
+            <tr><td><code>name.Tm</code>, <code>.dHfus</code>, <code>.dCp_fus</code></td><td>Melting point, enthalpy of fusion, heat-capacity change on melting</td></tr>
+            <tr><td><code>name.M</code>, <code>.V_L</code>, <code>.V_S</code>, <code>.nonvolatile</code></td><td>Molar mass, liquid and solid molar volumes, never enters the vapor</td></tr>
+            <tr><td><code>kij(name1, name2)</code></td><td>Binary interaction parameter (0 if not given, with a note)</td></tr>
+            <tr><td><code>field</code>, <code>g</code>, <code>omega</code>, <code>height</code>, <code>radius</code>, <code>reference</code></td><td>Gravity or centrifugal field, its strength, extent and the position where the given state applies</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>A vapor pressure can be typed as a relation, for example <code>water.Psat = exp(16.3872 - 3885.70/(T - 273.15 + 230.170)) [kPa, K]</code>. The relation is parsed safely: only arithmetic, the variable <code>T</code> and <code>exp</code>, <code>log</code>, <code>ln</code>, <code>log10</code>, <code>sqrt</code> are allowed.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="examples" class="wide">
+      <h2>Worked examples</h2>
+      <div style="max-width:72ch">
+        <p>All numbers and charts on this page are computed by the tool itself (<code>scripts/make_docs_data.py</code>), using the files in <code>examples/</code>.</p>
+
+        <h3>Propane / n-butane with three equations of state</h3>
+        <p>The diagram at the top of the page is the Peng–Robinson Pxy diagram at 300 K with \(k_{ij} = 0.003\). At \(x_{\text{propane}} = 0.4\), the bubble pressure is <span data-v="verification.bubble_P_x04" data-d="3"></span> bar and the first vapor contains <span data-v="verification.y_x04" data-d="3"></span> propane. The ends of the diagram are the vapor pressures of the pure components, so the three equations of state can be compared directly on pure propane:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Model</th><th class="num">Vapor pressure of propane at 300 K (bar)</th></tr></thead>
+            <tbody>
+              <tr><td>van der Waals</td><td class="num" data-v="psat_propane_300K.vdW" data-d="2"></td></tr>
+              <tr><td>Soave–Redlich–Kwong</td><td class="num" data-v="psat_propane_300K.SRK" data-d="2"></td></tr>
+              <tr><td>Peng–Robinson</td><td class="num" data-v="psat_propane_300K.PR" data-d="2"></td></tr>
+              <tr><td>Experimental (NIST)</td><td class="num">≈ 9.98</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>The van der Waals equation, with no acentric factor and a temperature-independent \(a\), is far off. SRK and PR, which fit \(a(T)\) to vapor-pressure behavior through \(\omega\), are within about 1%.</p>
+
+        <h3>Sugar–water at 1 atm</h3>
+        <p>Three equilibria from latent heats and melting points alone: boiling (liquid + water vapor), freezing (liquid + ice) and solubility (liquid + solid sucrose). At \(x_{\text{water}} = 0.95\), about 50 wt% sucrose, the ideal-solution model gives a boiling point of <span data-v="sugar_point.Tb" data-d="2"></span> K and a freezing point of <span data-v="sugar_point.Tf" data-d="2"></span> K.</p>
+      </div>
+      <figure class="chart-figure" aria-labelledby="sugar-cap">
+        <ul class="legend" id="sugar-legend"></ul>
+        <div class="chart" id="chart-sugar"></div>
+        <figcaption id="sugar-cap"><b>Ideal-solution T–x diagram of sugar–water at 1 atm.</b> A liquid solution is stable above both solid curves and below the boiling curve. The ideal model badly underestimates sucrose solubility, so the eutectic sits at \(x_{\text{water}} \approx 0.9997\) instead of at a real concentrated syrup. Fixing this needs an activity-coefficient model for the liquid, which is on the roadmap.</figcaption>
+        <details class="data"><summary>Show data</summary><div class="table-wrap" id="sugar-table"></div></details>
+      </figure>
+      <div style="max-width:72ch">
+        <p>The ideal solution model treats sucrose and water as if they mixed like similar molecules. Real sugar solutions are strongly non-ideal, which is why the solubility curve here is unrealistic. The calculation is still a useful check: the boiling-point elevation and freezing-point depression near pure water follow the textbook dilute-solution results.</p>
+
+        <h3>Gravity: a 500 m column of propane / n-butane</h3>
+        <p>A liquid with \(z_{\text{propane}} = 0.4\) at 320 K and 25 bar sits at the bottom of a 500 m column. Moving up, the pressure falls hydrostatically. At <span data-v="gravity.contact_z" data-d="1"></span> m the pressure reaches the local bubble pressure (<span data-v="gravity.contact_P" data-d="2"></span> bar), and a gas cap forms above that height.</p>
+      </div>
+      <figure class="chart-figure" aria-labelledby="grav-cap">
+        <ul class="legend" id="grav-legend"></ul>
+        <div class="panels">
+          <div class="chart" id="chart-grav-P"></div>
+          <div class="chart" id="chart-grav-x"></div>
+        </div>
+        <figcaption id="grav-cap"><b>Pressure and propane mole fraction against height.</b> In the liquid, the pressure gradient is the liquid density times \(g\). In the vapor it is about 28 times smaller, the ratio of the two densities at the contact. Within the liquid, propane rises only from 0.4000 at the bottom to <span data-v="gravity.x1_liquid_top" data-d="4"></span> at the contact; the large step is the change of phase.</figcaption>
+        <details class="data"><summary>Show data</summary><div class="table-wrap" id="grav-table"></div></details>
+      </figure>
+      <div style="max-width:72ch">
+        <h3>Centrifuge: ethanol–water at 20,000 rpm</h3>
+        <p>An ethanol–water liquid at its bubble point (\(x_{\text{ethanol}} = 0.5\), 350 K, <span data-v="centrifuge.P.0" data-d="3"></span> bar) is in contact with its vapor at \(r = 0.05\) m and fills the rotor out to \(r = 0.10\) m. The model is the ideal-solution route with user-typed vapor-pressure relations and liquid molar volumes.</p>
+        <div class="table-wrap">
+          <table id="centrifuge-table">
+            <thead><tr><th class="num">Radius (m)</th><th class="num">Pressure (bar)</th><th class="num">\(x_{\text{ethanol}}\)</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p>At the wall the liquid is at about <span data-v="centrifuge.P.-1" data-d="0"></span> bar and slightly depleted in ethanol, the lighter component. Its bubble pressure is still well below this, so the wall region is a compressed liquid. The vapor–liquid diagram at any one radius is the ordinary one: the field changes where states are found, not the equilibrium between coexisting phases.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="verification">
+      <h2>Verification</h2>
+      <p>Each module has a test suite that runs when the file is executed directly. The tests compare against exact identities, hand calculations and independent routes rather than against the code's own earlier output.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Check</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td>Analytic \(P\) and \(\ln\hat\varphi_i\) against numerical derivatives of \(A^{\mathrm{res}}\), all three EOS, liquid and vapor</td><td>Agree to about \(10^{-9}\)</td></tr>
+            <tr><td>\(\sum_i x_i \ln\hat\varphi_i = A^{\mathrm{res}}/NRT + Z - 1 - \ln Z\)</td><td>Holds to machine precision</td></tr>
+            <tr><td>Ends of the Pxy diagram equal the pure-component saturation pressures</td><td>Exact</td></tr>
+            <tr><td>Bubble pressure, then dew pressure of the resulting vapor, returns the starting state</td><td>Relative error <span data-v="verification.roundtrip_err" data-e="1"></span></td></tr>
+            <tr><td>Flash between bubble and dew pressure: material balance and equal fugacities</td><td>Errors <span data-v="verification.flash_mb" data-e="1"></span> and <span data-v="verification.flash_lnf" data-e="1"></span></td></tr>
+            <tr><td>Ideal-solution bubble pressure equals \(\sum_i x_i f_i^{L}\) (Raoult's law with Poynting factor)</td><td>Exact</td></tr>
+            <tr><td>Sugar–water boiling and freezing points against hand calculation</td><td>Exact</td></tr>
+            <tr><td>Gravity profile: pressure against \(\int \rho g\,dz\) over a <span data-v="verification.hydro_drop_bar" data-d="2"></span> bar drop</td><td>Differ by <span data-v="verification.hydro_err_bar" data-e="1"></span> bar</td></tr>
+            <tr><td>\(\ln\hat f_i + M_i\Phi/RT\) constant along a profile, including across a gas–liquid contact</td><td>Spread below \(10^{-10}\)</td></tr>
+            <tr><td>Centrifuge profile computed with 3, 11 and 51 grid points</td><td>Identical</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Pure propane at 300 K agrees with the experimental vapor pressure (Peng–Robinson within 0.1%), which is a first contact with real data. Systematic comparison with experimental mixture data is the validation stage still to come.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="limits">
+      <h2>Limitations and roadmap</h2>
+      <h3>Current limitations</h3>
+      <ul>
+        <li>The ideal-solution route ignores liquid non-ideality. It cannot predict azeotropes, and it is quantitatively poor for strongly non-ideal mixtures such as sugar–water.</li>
+        <li>van der Waals mixing rules with a single \(k_{ij}\) work well for hydrocarbons, less well for polar mixtures.</li>
+        <li>Near a mixture critical point, bubble and dew calculations can converge only to the trivial solution. The tool reports this rather than returning a wrong answer.</li>
+        <li>Only two-phase equilibria are handled: vapor–liquid, and liquid with a pure solid. Diagrams and solid–liquid compositions are for binaries; flash and saturation points work for any number of components.</li>
+        <li>Field profiles are isothermal. When two phases are given at the reference position, the interface is placed there.</li>
+      </ul>
+      <h3>Next steps</h3>
+      <ul>
+        <li>Plotting module: Pxy, Txy and solid–liquid diagrams, field profiles, and 3D P–T–x and Gibbs-energy surfaces.</li>
+        <li>Validation against experimental VLE data, with average absolute deviations and fitting of \(k_{ij}\).</li>
+        <li>An activity-coefficient model (NRTL or Wilson) in the Gibbs form, for non-ideal liquids.</li>
+        <li>Liquid–liquid and three-phase equilibrium, using the stability criteria from the fundamental equation.</li>
+        <li>Ternary diagrams for three-component systems.</li>
+        <li>An interface, and optional automatic import of property data from published tables.</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="getting-started">
+      <h2>Getting started</h2>
+      <p>You need Python 3.9 or later with NumPy and SciPy.</p>
+<pre><code>git clone https://github.com/Fang099/phase-equilibrium-calculator.git
+cd phase-equilibrium-calculator
+pip install -r requirements.txt
+
+python input_checker.py examples/sugar_water.txt        # check an input
+python equilibrium_solver.py examples/sugar_water.txt   # check and solve it</code></pre>
+      <p>To describe your own system, copy one of the files in <code>examples/</code> and edit it. To run the test suites:</p>
+<pre><code>python thermo_models.py
+python equilibrium_solver.py</code></pre>
+      <h3>From Python or Colab</h3>
+      <p>In Colab, run <code>!git clone https://github.com/Fang099/phase-equilibrium-calculator.git</code> and <code>%cd phase-equilibrium-calculator</code> in the first cell. Then:</p>
+<pre><code>from input_checker import check_input
+from thermo_models import build_system
+from equilibrium_solver import solve, print_results
+
+text = open("examples/sugar_water.txt").read()
+print(check_input(text))            # verdict and what is missing
+
+system = build_system(text)         # phase models (raises if insufficient)
+results = solve(system)             # list of Result objects
+print_results(system, results)</code></pre>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="reference">
+      <h2>Code reference</h2>
+      <h4><code>input_checker.py</code></h4>
+      <dl class="params">
+        <dt>check_input(text)</dt><dd>Parse and check free-form input. Returns a <code>Report</code> with the overall verdict, one entry per equilibrium, and the parsed input in SI units.</dd>
+        <dt>parse_input(text)</dt><dd>Parsing and unit conversion only.</dd>
+        <dt>psat(props, T)</dt><dd>Vapor pressure in Pa from whichever source the user gave.</dd>
+      </dl>
+      <h4><code>thermo_models.py</code></h4>
+      <dl class="params">
+        <dt>CubicEOS</dt><dd>vdW, SRK or PR. <code>helmholtz_res(T, V, n)</code>, <code>pressure</code>, <code>ln_phi_TV</code>, <code>z_roots(T, P, x)</code>, <code>molar_volume</code>, <code>ln_phi(T, P, x, phase)</code>.</dd>
+        <dt>EOSPhase, IdealGasPhase, IdealSolutionLiquid, PureSolidPhase</dt><dd>Phase models with a common interface: <code>ln_f(T, P, x)</code>, <code>ln_phi</code>, <code>molar_volume</code>, and <code>present</code> (which components can be in the phase).</dd>
+        <dt>Field</dt><dd><code>potential(pos)</code> and <code>field_term(M, T, pos)</code> for gravity or centrifugal fields.</dd>
+        <dt>build_system(text)</dt><dd>Run the checker and build a <code>ThermoSystem</code>: the phase pair for each calculable equilibrium, the field and the specified state.</dd>
+      </dl>
+      <h4><code>equilibrium_solver.py</code></h4>
+      <dl class="params">
+        <dt>saturation(L, V, z, beta, T=, P=)</dt><dd>Unknown \(T\) or \(P\) at a given vapor fraction. <code>bubble_P</code>, <code>bubble_T</code>, <code>dew_P</code>, <code>dew_T</code> are shortcuts.</dd>
+        <dt>flash_TP(L, V, T, P, z)</dt><dd>Isothermal flash; recognizes single-phase states.</dd>
+        <dt>vle_diagram(L, V, T= or P=)</dt><dd>Binary Pxy or Txy diagram.</dd>
+        <dt>sle_temperature, sle_composition, sle_curve, eutectic</dt><dd>Solid–liquid equilibrium with a pure solid.</dd>
+        <dt>column_profile(system, L, V, point)</dt><dd>Pressure, composition and phase along height or radius, with gas–liquid contacts.</dd>
+        <dt>solve(system)</dt><dd>Run whatever the input asks for. <code>print_results</code> prints it as tables.</dd>
+      </dl>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="sources">
+      <h2>References</h2>
+      <ul>
+        <li>Tester, J. W., and Modell, M. <i>Thermodynamics and Its Applications</i>, 3rd ed. Prentice Hall, 1997. The course text: fundamental equation, Legendre transforms, equilibrium and stability criteria, systems in external fields.</li>
+        <li>Peng, D.-Y., and Robinson, D. B. A new two-constant equation of state. <i>Industrial &amp; Engineering Chemistry Fundamentals</i> 15 (1976) 59–64.</li>
+        <li>Soave, G. Equilibrium constants from a modified Redlich–Kwong equation of state. <i>Chemical Engineering Science</i> 27 (1972) 1197–1203.</li>
+        <li>Rachford, H. H., and Rice, J. D. Procedure for use of electronic digital computers in calculating flash vaporization hydrocarbon equilibrium. <i>Journal of Petroleum Technology</i> 4 (1952).</li>
+        <li>Michelsen, M. L., and Mollerup, J. M. <i>Thermodynamic Models: Fundamentals and Computational Aspects</i>, 2nd ed. Tie-Line Publications, 2007. The residual Helmholtz energy formulation of cubic equations of state.</li>
+        <li>Poling, B. E., Prausnitz, J. M., and O'Connell, J. P. <i>The Properties of Gases and Liquids</i>, 5th ed. McGraw-Hill, 2001. Pure-component constants and the Wilson K-value correlation.</li>
+        <li>Whitson, C. H., and Belery, P. Compositional gradients in petroleum reservoirs. SPE 28000 (1994). Equilibrium in a gravity field with an equation of state.</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <div class="inner">
+    <!-- Add your team members' names and the course code here. -->
+    Course project for Chemical Engineering Thermodynamics. Reference text: Tester and Modell, <i>Thermodynamics and Its Applications</i>.
+  </div>
+</footer>
+
+<div class="tooltip" id="tooltip" role="presentation"></div>
+
+<!-- DOCS-DATA:START -->
+<script id="docs-data" type="application/json">{"pxy":{"T":300.0,"x":[0.0,0.02,0.04,0.06,0.08,0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24,0.26,0.28,0.3,0.32,0.34,0.36,0.38,0.4,0.42,0.44,0.46,0.48,0.5,0.52,0.54,0.56,0.58,0.6,0.62,0.64,0.66,0.68,0.7,0.72,0.74,0.76,0.78,0.8,0.82,0.84,0.86,0.88,0.9,0.92,0.94,0.96,0.98,1.0],"y":[0.0,0.06574,0.12532,0.17958,0.22921,0.27479,0.31681,0.35567,0.39174,0.42531,0.45663,0.48594,0.51343,0.53928,0.56363,0.58661,0.60835,0.62895,0.64851,0.6671,0.6848,0.70169,0.71782,0.73324,0.74801,0.76218,0.77578,0.78885,0.80144,0.81356,0.82526,0.83655,0.84747,0.85803,0.86827,0.87819,0.88782,0.89717,0.90627,0.91512,0.92374,0.93215,0.94035,0.94837,0.9562,0.96387,0.97137,0.97873,0.98595,0.99303,1.0],"P":[2.5726,2.71058,2.8488,2.98725,3.12594,3.26489,3.40409,3.54356,3.6833,3.82332,3.96362,4.10423,4.24514,4.38637,4.52792,4.66981,4.81205,4.95465,5.09762,5.24098,5.38473,5.5289,5.67349,5.81853,5.96403,6.11,6.25647,6.40345,6.55096,6.69902,6.84766,6.9969,7.14675,7.29726,7.44843,7.60031,7.75291,7.90628,8.06043,8.21541,8.37126,8.528,8.68568,8.84434,9.00402,9.16477,9.32664,9.48968,9.65394,9.81949,9.98638]},"psat_propane_300K":{"vdW":17.366,"SRK":10.099,"PR":9.986},"sugar":{"boil":{"x":[0.025,0.05,0.075,0.1,0.125,0.15,0.175,0.2,0.225,0.25,0.275,0.3,0.325,0.35,0.375,0.4,0.425,0.45,0.475,0.5,0.525,0.55,0.575,0.6,0.625,0.65,0.675,0.7,0.725,0.75,0.775,0.8,0.825,0.85,0.875,0.9,0.925,0.95,0.975,1.0],"T":[519.38,483.759,465.099,452.71,443.545,436.328,430.407,425.406,421.09,417.303,413.936,410.909,408.163,405.653,403.344,401.208,399.222,397.367,395.629,393.994,392.45,390.99,389.605,388.289,387.034,385.836,384.69,383.592,382.539,381.527,380.553,379.615,378.71,377.837,376.992,376.175,375.384,374.617,373.872,373.15]},"ice":{"x":[1.0,0.9755,0.951,0.9265,0.902,0.8775,0.853,0.8285,0.804,0.7795,0.755,0.7305,0.706,0.6815,0.657,0.6325,0.608,0.5835,0.559,0.5345,0.51,0.4855,0.461,0.4365,0.412,0.3875,0.363,0.3385,0.314,0.2895,0.265,0.2405,0.216,0.1915,0.167,0.1425,0.118,0.0935,0.069,0.0445,0.02],"T":[273.15,270.613,268.061,265.491,262.903,260.296,257.669,255.019,252.347,249.65,246.926,244.175,241.393,238.579,235.73,232.845,229.919,226.95,223.934,220.867,217.745,214.563,211.315,207.995,204.594,201.104,197.515,193.814,189.987,186.015,181.877,177.543,172.978,168.134,162.946,157.319,151.115,144.104,135.873,125.524,110.217]},"sucrose":{"x":[0.0,0.0245,0.049,0.0735,0.098,0.1225,0.147,0.1715,0.196,0.2205,0.245,0.2695,0.294,0.3185,0.343,0.3675,0.392,0.4165,0.441,0.4655,0.49,0.5145,0.539,0.5635,0.588,0.6125,0.637,0.6615,0.686,0.7105,0.735,0.7595,0.784,0.8085,0.833,0.8575,0.882,0.9065,0.931,0.9555,0.98,0.984976,0.988714,0.991522,0.993631,0.995216,0.996406,0.9973,0.997972,0.998476,0.998856,0.99914,0.999354,0.999515,0.999636,0.999726],"T":[459.0,458.057,457.095,456.111,455.106,454.077,453.024,451.946,450.84,449.706,448.542,447.345,446.115,444.848,443.542,442.195,440.803,439.363,437.872,436.324,434.715,433.04,431.292,429.464,427.547,425.531,423.404,421.152,418.757,416.197,413.447,410.471,407.225,403.648,399.657,395.128,389.875,383.584,375.67,364.805,346.531,340.431,334.542,328.853,323.355,318.037,312.892,307.91,303.084,298.408,293.873,289.474,285.205,281.06,277.034,273.122]},"eutectic":{"x_water":0.999726,"T":273.122}},"sugar_point":{"Tb":374.617,"Tf":267.956},"gravity":{"z":[0.0,5.0,10.0,15.0,20.0,25.0,30.0,35.0,40.0,45.0,50.0,55.0,60.0,65.0,70.0,75.0,80.0,85.0,90.0,95.0,100.0,105.0,110.0,115.0,120.0,125.0,130.0,135.0,140.0,145.0,150.0,155.0,160.0,165.0,170.0,175.0,180.0,185.0,190.0,195.0,200.0,205.0,210.0,215.0,220.0,225.0,230.0,235.0,240.0,245.0,250.0,255.0,260.0,265.0,270.0,275.0,280.0,285.0,290.0,295.0,300.0,305.0,310.0,315.0,320.0,325.0,330.0,335.0,340.0,345.0,350.0,355.0,360.0,365.0,370.0,375.0,380.0,385.0,390.0,395.0,400.0,405.0,410.0,415.0,420.0,425.0,430.0,435.0,440.0,445.0,450.0,455.0,460.0,465.0,470.0,475.0,480.0,485.0,490.0,495.0,500.0],"P":[25.0,24.73409,24.46823,24.20244,23.93671,23.67103,23.40542,23.13987,22.87438,22.60895,22.34357,22.07826,21.81302,21.54783,21.2827,21.01763,20.75263,20.48769,20.2228,19.95798,19.69323,19.42853,19.16389,18.89932,18.63481,18.37036,18.10598,17.84165,17.57739,17.31319,17.04906,16.78499,16.52098,16.25703,15.99315,15.72932,15.46557,15.20187,14.93825,14.67468,14.41118,14.14774,13.88437,13.62106,13.35781,13.09463,12.83151,12.56846,12.30547,12.04255,11.77969,11.5169,11.25418,10.99151,10.72892,10.46639,10.20392,9.94152,9.67919,9.41693,9.15473,8.89259,8.82503,8.81552,8.80602,8.79654,8.78707,8.77761,8.76816,8.75873,8.74931,8.7399,8.7305,8.72112,8.71175,8.70239,8.69305,8.68371,8.67439,8.66508,8.65579,8.64651,8.63724,8.62798,8.61873,8.6095,8.60028,8.59107,8.58187,8.57269,8.56352,8.55436,8.54521,8.53607,8.52695,8.51784,8.50874,8.49965,8.49058,8.48152,8.47247],"x1":[0.4,0.400043,0.400086,0.400129,0.400172,0.400215,0.400258,0.400301,0.400344,0.400388,0.400431,0.400474,0.400518,0.400561,0.400605,0.400648,0.400692,0.400736,0.40078,0.400823,0.400867,0.400911,0.400955,0.400999,0.401044,0.401088,0.401132,0.401176,0.401221,0.401265,0.401309,0.401354,0.401399,0.401443,0.401488,0.401533,0.401578,0.401622,0.401667,0.401712,0.401757,0.401803,0.401848,0.401893,0.401938,0.401984,0.402029,0.402075,0.40212,0.402166,0.402211,0.402257,0.402303,0.402349,0.402395,0.402441,0.402487,0.402533,0.402579,0.402626,0.402672,0.402718,0.650296,0.650381,0.650465,0.65055,0.650634,0.650719,0.650803,0.650887,0.650971,0.651055,0.651139,0.651223,0.651307,0.651391,0.651475,0.651559,0.651642,0.651726,0.651809,0.651893,0.651976,0.65206,0.652143,0.652227,0.65231,0.652393,0.652476,0.652559,0.652642,0.652725,0.652808,0.652891,0.652974,0.653057,0.653139,0.653222,0.653305,0.653387,0.65347],"rho":[542.37,542.25,542.13,542.01,541.88,541.76,541.64,541.51,541.39,541.27,541.14,541.02,540.9,540.77,540.65,540.52,540.4,540.27,540.15,540.02,539.89,539.77,539.64,539.51,539.39,539.26,539.13,539.01,538.88,538.75,538.62,538.49,538.37,538.24,538.11,537.98,537.85,537.72,537.59,537.46,537.33,537.2,537.07,536.94,536.81,536.67,536.54,536.41,536.28,536.15,536.01,535.88,535.75,535.61,535.48,535.35,535.21,535.08,534.94,534.81,534.67,534.54,19.41,19.38,19.36,19.33,19.3,19.28,19.25,19.23,19.2,19.17,19.15,19.12,19.1,19.07,19.05,19.02,19.0,18.97,18.94,18.92,18.89,18.87,18.84,18.82,18.79,18.77,18.74,18.72,18.69,18.67,18.64,18.62,18.59,18.57,18.54,18.52,18.5,18.47,18.45],"phase":["liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","liquid","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor","vapor"],"contact_z":306.1,"contact_P":8.832},"centrifuge":{"r":[0.05,0.055,0.06,0.065,0.07,0.075,0.08,0.085,0.09,0.095,0.1],"P":[0.688,10.301,20.83,32.276,44.639,57.921,72.12,87.238,103.274,120.231,138.107],"x1":[0.5,0.49942,0.498784,0.498093,0.497346,0.496542,0.495683,0.494767,0.493795,0.492766,0.491681]},"verification":{"bubble_P_x04":5.38473,"y_x04":0.6848,"roundtrip_err":7.1e-12,"flash_beta":0.4109,"flash_mb":1.1e-14,"flash_lnf":2.2e-13,"hydro_err_bar":1.7e-07,"hydro_drop_bar":5.307},"verdicts":[{"file":"ethanol_water_centrifuge.txt","status":"SUFFICIENT"},{"file":"gravity_column_gas_cap.txt","status":"SUFFICIENT"},{"file":"gravity_column_missing_M.txt","status":"INSUFFICIENT"},{"file":"input_mistakes.txt","status":"INVALID"},{"file":"missing_data_srk.txt","status":"INSUFFICIENT"},{"file":"overspecified_vdw.txt","status":"OVERSPECIFIED"},{"file":"propane_butane_pr_pxy.txt","status":"SUFFICIENT"},{"file":"sugar_water.txt","status":"SUFFICIENT"}]}</script>
+<!-- DOCS-DATA:END -->
+
+<script>
+(function () {
+  "use strict";
+  var DATA = JSON.parse(document.getElementById("docs-data").textContent);
+
+  /* derived values used in the text */
+  var g = DATA.gravity, lastLiquid = 0;
+  for (var k = 0; k < g.phase.length; k++) if (g.phase[k] === "liquid") lastLiquid = k;
+  g.x1_liquid_top = g.x1[lastLiquid];
+
+  function get(path) {
+    return path.split(".").reduce(function (o, key) {
+      if (o == null) return undefined;
+      if (Array.isArray(o) && /^-?\d+$/.test(key)) { var i = +key; return o[i < 0 ? o.length + i : i]; }
+      return o[key];
+    }, DATA);
+  }
+  function fmt(v, d) {
+    if (Math.abs(v) < 0.5 * Math.pow(10, -d)) v = 0;
+    return Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+  function sci(v, d) {
+    if (v === 0) return "0";
+    var e = Math.floor(Math.log10(Math.abs(v))), m = v / Math.pow(10, e);
+    return fmt(m, d) + " × 10<sup>" + String(e).replace("-", "−") + "</sup>";
+  }
+  document.querySelectorAll("[data-v]").forEach(function (el) {
+    var v = get(el.getAttribute("data-v"));
+    if (v == null) return;
+    if (el.hasAttribute("data-e")) el.innerHTML = sci(v, +el.getAttribute("data-e"));
+    else el.textContent = fmt(v, +(el.getAttribute("data-d") || 3));
+  });
+
+  /* tables */
+  var vt = document.querySelector("#verdict-table tbody");
+  DATA.verdicts.forEach(function (r) {
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td><code>" + r.file + "</code></td><td><span class='verdict'>" + r.status + "</span></td>";
+    vt.appendChild(tr);
+  });
+  var ct = document.querySelector("#centrifuge-table tbody"), C = DATA.centrifuge;
+  C.r.forEach(function (r, i) {
+    if (i % 2 && i !== C.r.length - 1) return;
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td class='num'>" + fmt(r, 3) + "</td><td class='num'>" + fmt(C.P[i], 2) +
+      "</td><td class='num'>" + fmt(C.x1[i], 4) + "</td>";
+    ct.appendChild(tr);
+  });
+
+  function dataTable(el, head, rows) {
+    var h = "<table><thead><tr>" + head.map(function (c, i) {
+      return "<th" + (i ? " class='num'" : "") + ">" + c + "</th>"; }).join("") + "</tr></thead><tbody>";
+    rows.forEach(function (r) {
+      h += "<tr>" + r.map(function (c, i) { return "<td" + (i ? " class='num'" : "") + ">" + c + "</td>"; }).join("") + "</tr>";
+    });
+    el.innerHTML = h + "</tbody></table>";
+  }
+
+  /* ------------------------------------------------------------ charts */
+  var NS = "http://www.w3.org/2000/svg";
+  var tip = document.getElementById("tooltip");
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var a in attrs) e.setAttribute(a, attrs[a]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function niceTicks(lo, hi, n) {
+    var span = hi - lo, step = Math.pow(10, Math.floor(Math.log10(span / n)));
+    var err = span / n / step;
+    if (err >= 7.5) step *= 10; else if (err >= 3.5) step *= 5; else if (err >= 1.5) step *= 2;
+    var t = [], v = Math.ceil(lo / step - 1e-9) * step;
+    for (; v <= hi + step * 1e-9; v += step) t.push(Math.round(v / step) * step);
+    return { ticks: t, step: step };
+  }
+  function decimals(step) { return Math.max(0, -Math.floor(Math.log10(step) + 1e-9)); }
+
+  function legend(id, items) {
+    var ul = document.getElementById(id);
+    ul.innerHTML = items.map(function (it) {
+      return "<li><span class='key" + (it.area ? " area" : "") + "' style='background:var(" + it.color + ")'></span>" + it.name + "</li>";
+    }).join("");
+  }
+
+  /* cfg: { series:[{name,color,pts:[[x,y]],label:{i,text,dx,dy,anchor}}], xDomain, yDomain,
+            xTitle, yTitle, height, area:{color, poly:[[x,y]]}, regions:[{x,y,text}],
+            hlines:[{y,text}], points:[{x,y,color,text,dx,dy,anchor}], fx, fy, ratio } */
+  function drawChart(container, cfg) {
+    function render() {
+      var W = Math.max(280, container.clientWidth);
+      var H = cfg.height || Math.round(Math.min(380, Math.max(240, W * (cfg.ratio || 0.62))));
+      var m = { t: 12, r: 18, b: 44, l: 54 };
+      var iw = W - m.l - m.r, ih = H - m.t - m.b;
+      container.innerHTML = "";
+      var svg = el("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": cfg.aria || "" }, container);
+      var x0 = cfg.xDomain[0], x1 = cfg.xDomain[1], y0 = cfg.yDomain[0], y1 = cfg.yDomain[1];
+      function X(v) { return m.l + (v - x0) / (x1 - x0) * iw; }
+      function Y(v) { return m.t + ih - (v - y0) / (y1 - y0) * ih; }
+      var g = el("g", {}, svg);
+
+      var xt = niceTicks(x0, x1, Math.max(3, Math.floor(iw / 80))), yt = niceTicks(y0, y1, Math.max(3, Math.floor(ih / 48)));
+      var xd = cfg.xDec != null ? cfg.xDec : decimals(xt.step), yd = cfg.yDec != null ? cfg.yDec : decimals(yt.step);
+      yt.ticks.forEach(function (v) {
+        el("line", { x1: m.l, x2: m.l + iw, y1: Y(v), y2: Y(v), "class": v === y0 ? "baseline" : "gridline" }, g);
+        var t = el("text", { x: m.l - 8, y: Y(v) + 4, "text-anchor": "end", "class": "tick" }, g);
+        t.textContent = fmt(v, yd);
+      });
+      xt.ticks.forEach(function (v) {
+        el("line", { x1: X(v), x2: X(v), y1: m.t + ih, y2: m.t + ih + 4, "class": "baseline" }, g);
+        var t = el("text", { x: X(v), y: m.t + ih + 18, "text-anchor": "middle" }, g);
+        t.textContent = fmt(v, xd);
+      });
+      g.setAttribute("class", "tick");
+      el("line", { x1: m.l, x2: m.l + iw, y1: m.t + ih, y2: m.t + ih, "class": "baseline" }, svg);
+      el("line", { x1: m.l, x2: m.l, y1: m.t, y2: m.t + ih, "class": "baseline" }, svg);
+      var xtT = el("text", { x: m.l + iw / 2, y: H - 6, "text-anchor": "middle", "class": "axis-title" }, svg); xtT.textContent = cfg.xTitle;
+      var ytT = el("text", { x: 14, y: m.t + ih / 2, "text-anchor": "middle", "class": "axis-title",
+        transform: "rotate(-90 14 " + (m.t + ih / 2) + ")" }, svg); ytT.textContent = cfg.yTitle;
+
+      var plot = el("g", {}, svg);
+      var clipId = "c" + Math.random().toString(36).slice(2);
+      var cp = el("clipPath", { id: clipId }, svg); el("rect", { x: m.l, y: m.t - 4, width: iw, height: ih + 4 }, cp);
+      plot.setAttribute("clip-path", "url(#" + clipId + ")");
+
+      if (cfg.area) {
+        el("path", { d: "M" + cfg.area.poly.map(function (p) { return X(p[0]) + "," + Y(p[1]); }).join("L") + "Z",
+          fill: "var(" + cfg.area.color + ")", "fill-opacity": 0.1, stroke: "none" }, plot);
+      }
+      (cfg.hlines || []).forEach(function (h) {
+        el("line", { x1: m.l, x2: m.l + iw, y1: Y(h.y), y2: Y(h.y), "class": "annot-line" }, svg);
+        var t = el("text", { x: m.l + iw - 4, y: Y(h.y) - 6, "text-anchor": "end", "class": "annot-text" }, svg); t.textContent = h.text;
+      });
+      cfg.series.forEach(function (s) {
+        var segs = [[]];
+        s.pts.forEach(function (p) { if (p == null) segs.push([]); else segs[segs.length - 1].push(p); });
+        segs.forEach(function (sg) {
+          if (sg.length < 2) return;
+          el("path", { d: "M" + sg.map(function (p) { return X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1); }).join("L"),
+            "class": "series-line", stroke: "var(" + s.color + ")" }, plot);
+        });
+      });
+      (cfg.regions || []).forEach(function (r) {
+        if (r.minW && iw < r.minW) return;
+        var t = el("text", { x: X(r.x), y: Y(r.y), "text-anchor": r.anchor || "middle", "class": "region-label" }, svg); t.textContent = r.text;
+      });
+      cfg.series.forEach(function (s) {
+        if (!s.label || (s.label.minW && iw < s.label.minW)) return;
+        var p = s.pts[s.label.i < 0 ? s.pts.length + s.label.i : s.label.i];
+        var t = el("text", { x: X(p[0]) + (s.label.dx || 0), y: Y(p[1]) + (s.label.dy || 0),
+          "text-anchor": s.label.anchor || "start", "class": "direct-label" }, svg); t.textContent = s.label.text;
+      });
+      (cfg.points || []).forEach(function (p) {
+        el("circle", { cx: X(p.x), cy: Y(p.y), r: 4.5, fill: "var(" + p.color + ")", "class": "hover-dot" }, svg);
+        if (p.text && !(p.minW && iw < p.minW)) {
+          var t = el("text", { x: X(p.x) + (p.dx || 0), y: Y(p.y) + (p.dy || 0), "text-anchor": p.anchor || "start", "class": "annot-text" }, svg);
+          t.textContent = p.text;
+        }
+      });
+
+      /* hover layer */
+      var cross = el("line", { "class": "crosshair", y1: m.t, y2: m.t + ih, opacity: 0 }, svg);
+      var dot = el("circle", { r: 5, "class": "hover-dot", opacity: 0 }, svg);
+      var hit = el("rect", { x: m.l, y: m.t, width: iw, height: ih, fill: "transparent" }, svg);
+      function move(ev) {
+        var b = svg.getBoundingClientRect(), sx = W / b.width;
+        var px = (ev.clientX - b.left) * sx, py = (ev.clientY - b.top) * sx;
+        var best = null, bd = Infinity;
+        cfg.series.forEach(function (s) {
+          s.pts.forEach(function (p) {
+            if (!p) return;
+            var dx = X(p[0]) - px, dy = Y(p[1]) - py, d = dx * dx + dy * dy;
+            if (d < bd) { bd = d; best = { s: s, p: p }; }
+          });
+        });
+        if (!best || bd > 60 * 60) { hide(); return; }
+        var cx = X(best.p[0]), cy = Y(best.p[1]);
+        dot.setAttribute("cx", cx); dot.setAttribute("cy", cy); dot.setAttribute("fill", "var(" + best.s.color + ")"); dot.setAttribute("opacity", 1);
+        cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.setAttribute("opacity", 1);
+        tip.innerHTML = "<span class='sw' style='background:var(" + best.s.color + ")'></span>" + best.s.name + "<br>" +
+          cfg.fx(best.p[0]) + "<br>" + cfg.fy(best.p[1]);
+        var host = container.getBoundingClientRect();
+        tip.style.left = (window.scrollX + host.left + cx / sx) + "px";
+        tip.style.top = (window.scrollY + host.top + cy / sx) + "px";
+        tip.classList.add("on");
+      }
+      function hide() { tip.classList.remove("on"); dot.setAttribute("opacity", 0); cross.setAttribute("opacity", 0); }
+      hit.addEventListener("pointermove", move);
+      hit.addEventListener("pointerdown", move);
+      hit.addEventListener("pointerleave", hide);
+    }
+    render();
+    var last = container.clientWidth;
+    new ResizeObserver(function () { if (Math.abs(container.clientWidth - last) > 4) { last = container.clientWidth; render(); } }).observe(container);
+  }
+  function zip(a, b) { return a.map(function (v, i) { return v == null || b[i] == null ? null : [v, b[i]]; }); }
+  function interp(xs, ys, x) {
+    for (var i = 0; i < xs.length - 1; i++) {
+      if ((xs[i] - x) * (xs[i + 1] - x) <= 0) return ys[i] + (ys[i + 1] - ys[i]) * (x - xs[i]) / (xs[i + 1] - xs[i]);
+    }
+    return null;
+  }
+
+  /* hero: Pxy lens */
+  var D = DATA.pxy;
+  var bubble = zip(D.x, D.P), dew = zip(D.y, D.P);
+  var lens = bubble.concat(dew.slice().reverse());
+  var c = 0.56, Pb = interp(D.x, D.P, c), Pd = interp(D.y, D.P, c);
+  legend("hero-legend", [
+    { name: "Bubble curve (liquid begins to boil)", color: "--liquid" },
+    { name: "Dew curve (vapor begins to condense)", color: "--vapor" },
+    { name: "Two-phase region", color: "--liquid", area: true }]);
+  drawChart(document.getElementById("chart-hero"), {
+    aria: "Pressure against propane mole fraction at 300 K, showing bubble and dew curves",
+    series: [
+      { name: "Bubble curve", color: "--liquid", pts: bubble },
+      { name: "Dew curve", color: "--vapor", pts: dew }],
+    area: { color: "--liquid", poly: lens },
+    regions: [
+      { x: 0.2, y: 8.6, text: "Liquid" },
+      { x: 0.8, y: 3.2, text: "Vapor" },
+      { x: c, y: (Pb + Pd) / 2 - 0.1, text: "Liquid + vapor", minW: 300 }],
+    xDomain: [0, 1], yDomain: [2, 10.5], xDec: 1,
+    xTitle: "Mole fraction of propane", yTitle: "Pressure (bar)",
+    fx: function (v) { return "x or y = " + fmt(v, 3); },
+    fy: function (v) { return "P = " + fmt(v, 3) + " bar"; }
+  });
+
+  /* sugar-water */
+  var S = DATA.sugar;
+  legend("sugar-legend", [
+    { name: "Boiling curve", color: "--vapor" },
+    { name: "Ice forms", color: "--liquid" },
+    { name: "Sucrose crystallizes", color: "--third" }]);
+  drawChart(document.getElementById("chart-sugar"), {
+    aria: "Temperature against water mole fraction for sugar-water at 1 atm",
+    ratio: 0.55,
+    series: [
+      { name: "Boiling curve", color: "--vapor", pts: zip(S.boil.x, S.boil.T), label: { i: 12, text: "Boiling", dx: 0, dy: 18, minW: 360 } },
+      { name: "Ice forms", color: "--liquid", pts: zip(S.ice.x, S.ice.T), label: { i: 14, text: "Ice forms", dx: 0, dy: 20, minW: 360 } },
+      { name: "Sucrose crystallizes", color: "--third", pts: zip(S.sucrose.x, S.sucrose.T), label: { i: 14, text: "Sucrose crystallizes", dx: 0, dy: -10, minW: 360 } }],
+    points: [{ x: S.eutectic.x_water, y: S.eutectic.T, color: "--ink-2", text: "Eutectic", dx: -10, dy: -10, anchor: "end", minW: 300 }],
+    xDomain: [0, 1], yDomain: [140, 540], xDec: 1,
+    xTitle: "Mole fraction of water", yTitle: "Temperature (K)",
+    fx: function (v) { return "x water = " + fmt(v, 4); },
+    fy: function (v) { return "T = " + fmt(v, 2) + " K"; }
+  });
+  var srows = [];
+  S.boil.x.forEach(function (x, i) { srows.push(["Boiling", fmt(x, 4), fmt(S.boil.T[i], 2)]); });
+  S.ice.x.forEach(function (x, i) { srows.push(["Ice forms", fmt(x, 4), fmt(S.ice.T[i], 2)]); });
+  S.sucrose.x.forEach(function (x, i) { srows.push(["Sucrose crystallizes", fmt(x, 4), fmt(S.sucrose.T[i], 2)]); });
+  srows.push(["Eutectic", fmt(S.eutectic.x_water, 6), fmt(S.eutectic.T, 3)]);
+  dataTable(document.getElementById("sugar-table"), ["Curve", "x water", "T (K)"], srows);
+
+  /* gravity column, two panels sharing the height axis */
+  function split(vals) {
+    var liq = [], vap = [];
+    g.z.forEach(function (z, i) {
+      (g.phase[i] === "liquid" ? liq : vap).push([vals[i], z]);
+    });
+    return { liq: liq, vap: vap };
+  }
+  var gp = split(g.P), gx = split(g.x1);
+  legend("grav-legend", [{ name: "Liquid", color: "--liquid" }, { name: "Vapor (gas cap)", color: "--vapor" }]);
+  var contactText = "Gas–liquid contact, " + fmt(g.contact_z, 0) + " m";
+  drawChart(document.getElementById("chart-grav-P"), {
+    aria: "Height against pressure in the column",
+    ratio: 0.9,
+    series: [{ name: "Liquid", color: "--liquid", pts: gp.liq }, { name: "Vapor", color: "--vapor", pts: gp.vap }],
+    hlines: [{ y: g.contact_z, text: contactText }],
+    xDomain: [6, 26], yDomain: [0, 500],
+    xTitle: "Pressure (bar)", yTitle: "Height (m)",
+    fx: function (v) { return "P = " + fmt(v, 3) + " bar"; },
+    fy: function (v) { return "height " + fmt(v, 0) + " m"; }
+  });
+  drawChart(document.getElementById("chart-grav-x"), {
+    aria: "Height against propane mole fraction in the column",
+    ratio: 0.9,
+    series: [{ name: "Liquid", color: "--liquid", pts: gx.liq }, { name: "Vapor", color: "--vapor", pts: gx.vap }],
+    hlines: [{ y: g.contact_z, text: contactText }],
+    xDomain: [0.35, 0.7], yDomain: [0, 500], xDec: 2,
+    xTitle: "Mole fraction of propane", yTitle: "Height (m)",
+    fx: function (v) { return "propane " + fmt(v, 4); },
+    fy: function (v) { return "height " + fmt(v, 0) + " m"; }
+  });
+  var grows = g.z.map(function (z, i) {
+    return [fmt(z, 0), g.phase[i], fmt(g.P[i], 3), fmt(g.x1[i], 5), fmt(g.rho[i], 1)];
+  }).filter(function (r, i) { return i % 5 === 0 || i === g.z.length - 1; });
+  dataTable(document.getElementById("grav-table"), ["Height (m)", "Phase", "P (bar)", "x propane", "Density (kg/m³)"], grows);
+
+  /* contents highlighting */
+  var links = Array.prototype.slice.call(document.querySelectorAll("nav.toc a"));
+  var targets = links.map(function (a) { return document.querySelector(a.getAttribute("href")); });
+  function onScroll() {
+    var cur = 0;
+    targets.forEach(function (t, i) { if (t && t.getBoundingClientRect().top < 120) cur = i; });
+    links.forEach(function (a, i) { a.setAttribute("aria-current", i === cur ? "true" : "false"); });
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  /* math */
+  function typeset() {
+    if (!window.renderMathInElement) return setTimeout(typeset, 50);
+    renderMathInElement(document.body, {
+      delimiters: [{ left: "\\[", right: "\\]", display: true }, { left: "\\(", right: "\\)", display: false }],
+      throwOnError: false
+    });
+  }
+  typeset();
+})();
+</script>
+</body>
+</html>

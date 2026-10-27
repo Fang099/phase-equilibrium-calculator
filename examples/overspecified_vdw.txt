@@ -1,0 +1,11 @@
+# Overspecified: T, P, x and y all given (vdW with a, b for ethane)
+components = methane, ethane
+model = vdW
+T = 200 K
+P = 20 bar
+x(L) = 0.3
+x(V) = 0.8
+methane.Tc = 190.6 K
+methane.Pc = 45.99 bar
+ethane.a = 5.562 bar L2/mol2
+ethane.b = 0.0638 L/mol

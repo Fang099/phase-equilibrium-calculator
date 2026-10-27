@@ -1,0 +1,12 @@
+# Propane / n-butane, PR, Pxy diagram at 300 K
+components = propane, n-butane
+model = PR
+T = 300 K
+sweep = x
+propane.Tc = 369.8 K
+propane.Pc = 42.48 bar
+propane.omega = 0.152
+n-butane.Tc = 425.1 K
+n-butane.Pc = 37.96 bar
+n-butane.omega = 0.200
+kij(propane, n-butane) = 0.003

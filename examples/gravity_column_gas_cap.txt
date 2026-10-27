@@ -1,0 +1,18 @@
+# Propane / n-butane liquid in a 500 m column: a gas cap forms
+components = propane, n-butane
+model = PR
+T = 320 K
+P = 25 bar
+z = 0.4
+field = gravity
+height = 0, 500 m
+reference = 0 m
+propane.Tc = 369.8 K
+propane.Pc = 42.48 bar
+propane.omega = 0.152
+n-butane.Tc = 425.1 K
+n-butane.Pc = 37.96 bar
+n-butane.omega = 0.200
+kij(propane, n-butane) = 0.003
+propane.M = 44.10 g/mol
+n-butane.M = 58.12 g/mol
