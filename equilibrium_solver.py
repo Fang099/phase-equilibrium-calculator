@@ -117,6 +117,9 @@ def _sat_eval(L, V, T, P, z, beta, Kbox, tol=1e-12, maxit=300):
         K = Knew
         if diff < tol:
             break
+    else:
+        if diff > 1e-7:          # still moving after maxit: do not trust it
+            raise SolverError("K-values did not converge at this state")
     Kbox[0] = K
     x, y = _compositions(z, K, beta)
     # Trivial solution (K = 1 for every volatile component): the EOS found only
@@ -183,6 +186,13 @@ def _bracket(f, u0, step, umin, umax, maxit=60):
     raise SolverError("could not bracket a solution")
 
 
+def _root(f, a, b, xtol):
+    try:
+        return brentq(f, a, b, xtol=xtol, rtol=1e-12)
+    except (ValueError, RuntimeError) as e:
+        raise SolverError(f"root search failed: {e}")
+
+
 def saturation(L, V, z, beta=0.0, T=None, P=None, guess=None):
     """Find P (if T given) or T (if P given) at which feed z has vapor
     fraction beta. beta = 0: bubble point; beta = 1: dew point."""
@@ -192,6 +202,7 @@ def saturation(L, V, z, beta=0.0, T=None, P=None, guess=None):
     if beta >= 1 and np.any((z > 0) & ~V.present):
         raise SolverError("a dew point is impossible: the feed contains a "
                           "nonvolatile component")
+    had_guess = guess is not None
     if guess is None:
         guess = _ideal_guess(L, V, z, beta, T=T, P=P)
     Kbox = [initial_K(L, V, T if T is not None else guess,
@@ -199,13 +210,14 @@ def saturation(L, V, z, beta=0.0, T=None, P=None, guess=None):
 
     if P is None:                                  # unknown: ln P
         f = lambda u: _sat_eval(L, V, T, math.exp(u), z, beta, Kbox)[0]
-        a, b = _bracket(f, math.log(guess), 0.05, math.log(1.0), math.log(1e9))
-        u = brentq(f, a, b, xtol=1e-12, rtol=1e-12)
+        a, b = _bracket(f, math.log(guess), 0.02 if had_guess else 0.05,
+                        math.log(1.0), math.log(1e9))
+        u = _root(f, a, b, 1e-12)
         Tsol, Psol = T, math.exp(u)
     else:                                          # unknown: T
         f = lambda u: _sat_eval(L, V, u, P, z, beta, Kbox)[0]
         a, b = _bracket(f, guess, 1.0, 20.0, 3000.0)
-        u = brentq(f, a, b, xtol=1e-10, rtol=1e-12)
+        u = _root(f, a, b, 1e-10)
         Tsol, Psol = u, P
     res, x, y, trivial = _sat_eval(L, V, Tsol, Psol, z, beta, Kbox)
     if trivial:
@@ -300,14 +312,18 @@ def find_azeotrope(L, V, x_lo, x_hi, T=None, P=None):
     return xa, (pt.P if P is None else pt.T)
 
 
-def vle_diagram(L, V, T=None, P=None, npts=61, x_min=0.0):
+def vle_diagram(L, V, T=None, P=None, npts=61, x_min=0.0, spacing="even"):
     """Pxy at fixed T, or Txy at fixed P, for a binary. The bubble curve is
     (x1, var) and the dew curve is (y1, var): each bubble-point calculation
     gives one point of each, so no separate dew calculations are needed."""
     names = L.names
     if len(names) != 2:
         raise SolverError("diagrams are for binary mixtures")
-    xs = np.linspace(1.0, x_min, npts)          # start from component 1 pure
+    if spacing == "ends":                       # denser near the pure components,
+        t = np.linspace(0.0, 1.0, npts)         # where the curves are steepest
+        xs = x_min + (1.0 - x_min) * 0.5 * (1.0 + np.cos(np.pi * t))
+    else:
+        xs = np.linspace(1.0, x_min, npts)      # start from component 1 pure
     out_x, out_y, out_v, notes, fails = [], [], [], [], 0
     guess = None
     for x1 in xs:
@@ -316,8 +332,9 @@ def vle_diagram(L, V, T=None, P=None, npts=61, x_min=0.0):
             continue                             # nothing volatile in the liquid
         try:
             pt = saturation(L, V, x, 0.0, T=T, P=P, guess=guess)
-        except SolverError:
+        except (SolverError, ValueError):
             fails += 1
+            guess = None
             continue
         guess = pt.P if P is None else pt.T
         out_x.append(x1)
@@ -376,6 +393,23 @@ def activity_coefficients(L, T, P, x):
     return out
 
 
+def liquid_stability(L, T, P, x1, h=1e-4):
+    """Stability function of a binary liquid at constant T and P,
+
+        x1 x2 d2(G/RT)/dx1^2,     with  G/RT = sum_i x_i ln f_i + (terms linear in x).
+
+    It equals 1 for an ideal solution. The liquid is intrinsically unstable
+    (it must split into two liquid phases) where the value is negative; zero
+    marks the spinodal. This is the stability criterion from the fundamental
+    equation: the Gibbs energy must be convex in composition."""
+    x1 = min(max(x1, 10 * h), 1 - 10 * h)
+
+    def g(x):
+        xv = np.array([x, 1 - x])
+        return float(xv @ L.ln_f(T, P, xv))
+    return x1 * (1 - x1) * (g(x1 + h) - 2 * g(x1) + g(x1 - h)) / h ** 2
+
+
 def point_properties(L, V, T, P, x, y):
     """Everything derived from one vapor-liquid equilibrium state. Fugacities
     are in Pa; f_i is the same in both phases, which is the equilibrium
@@ -411,7 +445,7 @@ def _table(L, V, T, P, X, Y):
     n = len(T)
     cols = {k: np.full(n, np.nan) for k in
             ("K1", "K2", "alpha", "gamma1", "gamma2", "f1", "f2", "phiL1", "phiL2",
-             "phiV1", "phiV2", "GE_RT", "Gmix_RT")}
+             "phiV1", "phiV2", "GE_RT", "Gmix_RT", "stability")}
     for k in range(n):
         if not (np.isfinite(T[k]) and np.isfinite(P[k]) and np.all(np.isfinite(Y[k]))):
             continue
@@ -427,6 +461,11 @@ def _table(L, V, T, P, X, Y):
         cols["phiL1"][k], cols["phiL2"][k] = pr["phi_liquid"]
         cols["phiV1"][k], cols["phiV2"][k] = pr["phi_vapor"]
         cols["GE_RT"][k], cols["Gmix_RT"][k] = pr["GE_RT"], pr["Gmix_RT"]
+        if X.shape[1] == 2:
+            try:
+                cols["stability"][k] = liquid_stability(L, T[k], P[k], X[k, 0])
+            except (ValueError, FloatingPointError):
+                pass
     out = {"x1": X[:, 0].copy(), "y1": Y[:, 0].copy(), "T": np.asarray(T, float),
            "P": np.asarray(P, float)}
     out.update(cols)
@@ -456,36 +495,51 @@ def pt_envelope(L, V, z, T_min=None, T_max=None, npts=41, P_low=2e4, P_high=2e6)
     if T_min is None:
         T_min = saturation(L, V, z, 0.0, P=P_low).T
     if T_max is None:
-        Ph = P_high
-        for _ in range(12):
-            try:
-                T_max = saturation(L, V, z, 0.0, P=Ph, guess=T_min + 40).T
-                break
-            except (SolverError, ValueError):
-                Ph *= 0.75
-        if T_max is None:
-            raise SolverError("could not find a temperature range for the P-T diagram")
+        # ln P is close to linear in 1/T: two bubble points give the temperature
+        # at which the bubble pressure reaches P_high
+        b1 = saturation(L, V, z, 0.0, T=T_min)
+        b2 = saturation(L, V, z, 0.0, T=T_min + 8.0, guess=b1.P * 1.3)
+        slope = math.log(b2.P / b1.P) / (1 / b2.T - 1 / b1.T)
+        if not slope < 0:
+            raise SolverError("bubble pressure does not rise with temperature here")
+        T_max = 1.0 / (1 / b1.T + math.log(P_high / b1.P) / slope)
     Ts = np.linspace(T_min, T_max, npts)
     n = len(z)
     Pb, Pd = np.full(npts, np.nan), np.full(npts, np.nan)
     yb, xd = np.full((npts, n), np.nan), np.full((npts, n), np.nan)
-    gb = gd = None
     dew_possible = not np.any((z > 0) & ~V.present)
     fails = 0
+
+    def guess(P_arr, k):
+        """Next pressure from the last two points: ln P is close to linear in 1/T."""
+        if k >= 2 and np.isfinite(P_arr[k - 1]) and np.isfinite(P_arr[k - 2]):
+            slope = (math.log(P_arr[k - 1] / P_arr[k - 2])
+                     / (1 / Ts[k - 1] - 1 / Ts[k - 2]))
+            return P_arr[k - 1] * math.exp(slope * (1 / Ts[k] - 1 / Ts[k - 1]))
+        if k >= 1 and np.isfinite(P_arr[k - 1]):
+            return P_arr[k - 1]
+        return None
+
+    bub_fail = dew_fail = 0          # stop a curve after two failures in a row
     for k, T in enumerate(Ts):
-        try:
-            b = saturation(L, V, z, 0.0, T=T, guess=gb)
-            Pb[k], yb[k], gb = b.P, b.y, b.P
-        except (SolverError, ValueError):
-            fails += 1
-            gb = None
-        if dew_possible:
+        if bub_fail < 2:
             try:
-                dw = saturation(L, V, z, 1.0, T=T, guess=gd)
-                Pd[k], xd[k], gd = dw.P, dw.x, dw.P
+                bp = saturation(L, V, z, 0.0, T=T, guess=guess(Pb, k))
+                Pb[k], yb[k], bub_fail = bp.P, bp.y, 0
             except (SolverError, ValueError):
                 fails += 1
-                gd = None
+                bub_fail += 1
+        if dew_possible and dew_fail < 2:
+            try:
+                dw = saturation(L, V, z, 1.0, T=T, guess=guess(Pd, k))
+                Pd[k], xd[k], dew_fail = dw.P, dw.x, 0
+            except (SolverError, ValueError):
+                fails += 1
+                dew_fail += 1
+    if bub_fail >= 2 or dew_fail >= 2:
+        notes.append("the curves stop where the model could no longer be solved "
+                     "(approaching the mixture critical point)")
+        fails = 0
     if fails:
         notes.append(f"{fails} point(s) could not be solved (near a mixture critical "
                      f"point, or outside the model's range)")

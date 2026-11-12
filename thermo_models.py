@@ -78,6 +78,36 @@ EOS_CONSTANTS = {
 }
 
 
+def cubic_real_roots(c2, c1, c0):
+    """Real roots of z^3 + c2 z^2 + c1 z + c0 = 0 in closed form (Cardano's
+    formula, or the trigonometric form when there are three real roots),
+    each polished with two Newton steps."""
+    p = c1 - c2 * c2 / 3.0
+    q = 2.0 * c2 ** 3 / 27.0 - c2 * c1 / 3.0 + c0
+    disc = 0.25 * q * q + p ** 3 / 27.0
+    if disc > 0:
+        sq = math.sqrt(disc)
+        u, w = -0.5 * q + sq, -0.5 * q - sq
+        t = [math.copysign(abs(u) ** (1 / 3), u) + math.copysign(abs(w) ** (1 / 3), w)]
+    elif p == 0:
+        t = [0.0]
+    else:
+        m = 2.0 * math.sqrt(-p / 3.0)
+        arg = max(-1.0, min(1.0, 3.0 * q / (p * m)))
+        th = math.acos(arg) / 3.0
+        t = [m * math.cos(th - 2.0 * math.pi * k / 3.0) for k in range(3)]
+    roots = []
+    for tk in t:
+        z = tk - c2 / 3.0
+        for _ in range(2):
+            fz = ((z + c2) * z + c1) * z + c0
+            dfz = (3.0 * z + 2.0 * c2) * z + c1
+            if dfz != 0:
+                z -= fz / dfz
+        roots.append(z)
+    return roots
+
+
 class CubicEOS:
     """vdW, SRK or PR for a mixture, built on A_res(T, V, n)."""
 
@@ -120,8 +150,13 @@ class CubicEOS:
         return self.ac * alpha
 
     def a_matrix(self, T):
+        cached = getattr(self, "_a_cache", None)
+        if cached is not None and cached[0] == T:      # it depends on T only
+            return cached[1]
         a = self.a_pure(T)
-        return np.sqrt(np.outer(a, a)) * (1 - self.kij)
+        aij = np.sqrt(np.outer(a, a)) * (1 - self.kij)
+        self._a_cache = (T, aij)
+        return aij
 
     def mix(self, T, n):
         """Return D = n^2 a_mix, its gradient dD/dn_i, and B = n b_mix."""
@@ -146,20 +181,22 @@ class CubicEOS:
         F = -ntot * math.log(1 - B / V) - D / (R * T * B) * self._log_term(V, B)
         return R * T * F
 
-    def pressure(self, T, V, n):
+    def pressure(self, T, V, n, _mix=None):
         """P = nRT/V - dA_res/dV, written out in closed form."""
         n = np.asarray(n, float)
-        D, _, B = self.mix(T, n)
+        D, _, B = _mix if _mix is not None else self.mix(T, n)
         return (n.sum() * R * T / (V - B)
                 - D / ((V + self.d1 * B) * (V + self.d2 * B)))
 
-    def ln_phi_TV(self, T, V, n):
+    def ln_phi_TV(self, T, V, n, _mix=None):
         """ln phi_i = d(A_res/RT)/dn_i - ln Z, analytic derivatives."""
         n = np.asarray(n, float)
-        D, Di, B = self.mix(T, n)
+        if _mix is None:
+            _mix = self.mix(T, n)
+        D, Di, B = _mix
         ntot = n.sum()
         b = self.b
-        P = self.pressure(T, V, n)
+        P = self.pressure(T, V, n, _mix)
         Z = P * V / (ntot * R * T)
         dF1 = -math.log(1 - B / V) + ntot * b / (V - B)
         if self.model == "vdW":
@@ -174,27 +211,27 @@ class CubicEOS:
         return dF1 + dF2 - math.log(Z)
 
     # ---- (T, P, x) interface: solve the cubic for Z ----
-    def z_roots(self, T, P, x):
+    def z_roots(self, T, P, x, _mix=None):
         """Real compressibility-factor roots with v > b, ascending."""
         x = np.asarray(x, float)
-        D, _, B = self.mix(T, x)            # per mole of mixture
+        D, _, B = _mix if _mix is not None else self.mix(T, x)   # per mole of mixture
         A_ = D * P / (R * T) ** 2
         B_ = B * P / (R * T)
         d1, d2 = self.d1, self.d2
         s, p = d1 + d2, d1 * d2
-        coeffs = [1.0,
-                  (s - 1) * B_ - 1,
-                  A_ + p * B_ ** 2 - s * B_ * (B_ + 1),
-                  -(A_ * B_ + p * B_ ** 2 * (B_ + 1))]
-        roots = np.roots(coeffs)
-        real = sorted(r.real for r in roots
-                      if abs(r.imag) < 1e-9 * max(1, abs(r.real)) and r.real > B_)
-        return real
+        roots = cubic_real_roots((s - 1) * B_ - 1,
+                                 A_ + p * B_ ** 2 - s * B_ * (B_ + 1),
+                                 -(A_ * B_ + p * B_ ** 2 * (B_ + 1)))
+        return sorted(r for r in roots if r > B_)
 
     def molar_volume(self, T, P, x, phase="stable"):
         """Molar volume (m3/mol). phase: 'liquid' (smallest root),
         'vapor' (largest root) or 'stable' (root with the lowest G_res)."""
-        Z = self.z_roots(T, P, x)
+        x = np.asarray(x, float)
+        return self._volume(T, P, x, phase, self.mix(T, x))
+
+    def _volume(self, T, P, x, phase, mixed):
+        Z = self.z_roots(T, P, x, mixed)
         if not Z:
             raise ValueError("no physical root of the cubic")
         if phase == "liquid":
@@ -202,14 +239,14 @@ class CubicEOS:
         elif phase == "vapor":
             z = Z[-1]
         else:
-            x = np.asarray(x, float)
-            z = min(Z, key=lambda zz: x @ self.ln_phi_TV(T, zz * R * T / P, x))
+            z = min(Z, key=lambda zz: x @ self.ln_phi_TV(T, zz * R * T / P, x, mixed))
         return z * R * T / P
 
     def ln_phi(self, T, P, x, phase="stable"):
         x = np.asarray(x, float) / np.sum(x)
-        v = self.molar_volume(T, P, x, phase)
-        return self.ln_phi_TV(T, v, x)
+        mixed = self.mix(T, x)              # mixing rules evaluated once
+        v = self._volume(T, P, x, phase, mixed)
+        return self.ln_phi_TV(T, v, x, mixed)
 
 
 # ==========================================================================

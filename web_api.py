@@ -184,8 +184,8 @@ def _solve(req):
     out.update(route=eq.route, calculation=eq.calculation, names=list(system.names),
                hold=hold, azeotrope=None)
     if hold in ("T", "P"):
-        d = (es.vle_diagram(L, V, T=float(req["T"]), npts=npts) if hold == "T"
-             else es.vle_diagram(L, V, P=float(req["P"]) * 1e5, npts=npts))
+        d = (es.vle_diagram(L, V, T=float(req["T"]), npts=npts, spacing="ends") if hold == "T"
+             else es.vle_diagram(L, V, P=float(req["P"]) * 1e5, npts=npts, spacing="ends"))
         notes += d.notes
         if len(d.x1) < 2:
             out["ok"] = False
@@ -205,6 +205,30 @@ def _solve(req):
         notes += env.notes
         out["columns"] = _columns(es.envelope_properties(L, V, env))
         out["fixed"] = {"x1": x1}
+    stab = out["columns"].get("stability") or []
+    bad = [x for x, v in zip(out["columns"]["x1"], stab) if v is not None and v < 0]
+    out["unstable"] = None
+    if bad and hold in ("T", "P"):
+        lo_x, hi_x = min(bad), max(bad)
+        out["unstable"] = [lo_x, hi_x]
+        cols = out["columns"]
+        for k, x in enumerate(cols["x1"]):          # leave that part of the curves out
+            if lo_x <= x <= hi_x:
+                for name in cols:
+                    if name not in ("x1", "stability"):
+                        cols[name][k] = None
+        out["azeotrope"] = (None if out["azeotrope"] and lo_x <= out["azeotrope"]["x1"] <= hi_x
+                            else out["azeotrope"])
+        notes = [n for n in notes if not n.startswith("azeotrope at")]
+        notes.append(f"With this model the liquid is unstable between x = {lo_x:.2f} and "
+                     f"{hi_x:.2f}: it would split into two liquid phases, which this tool "
+                     f"does not calculate yet. That part of the curves is left out.")
+    if req.get("model") in ACTIVITY_MODELS:
+        lo, hi = pair_defaults(*req["components"])["ranges"]["antoine_T"]
+        Ts = [t for t in out["columns"]["T"] if t is not None]
+        if Ts and (min(Ts) < lo - 10 or max(Ts) > hi + 10):
+            notes.append(f"Vapor pressures are extrapolated: the Antoine constants of this "
+                         f"pair are fitted from {lo:.0f} to {hi:.0f} K.")
     out["notes"] = notes
     out["ok"] = True
     return out

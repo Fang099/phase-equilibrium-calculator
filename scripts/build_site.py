@@ -1,13 +1,17 @@
 """
-make_docs_data.py -- compute the numbers shown on the documentation site.
+build_site.py -- regenerate everything on the website that comes from the code.
 
-Every chart and results table in docs/index.html is drawn from data that this
-script computes with the project's own modules. Run it after changing the
-code so the site stays truthful:
+Run it after changing any Python module or the compound database:
 
-    python scripts/make_docs_data.py
+    python scripts/build_site.py
 
-It rewrites the block between the DOCS-DATA markers in docs/index.html.
+It does three things:
+  1. copies the Python modules and data/compounds.json into docs/py/, where
+     the calculator page loads them to run in the browser (Pyodide);
+  2. recomputes the numbers and chart data shown on the static pages and
+     writes them to docs/assets/data.js;
+  3. redraws the gallery images in docs/img/ with plotter.py.
+Nothing on the site is typed in by hand, so it cannot drift from the code.
 """
 
 import json
@@ -21,9 +25,27 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
+import hashlib                                                    # noqa: E402
+import shutil                                                     # noqa: E402
+
 from input_checker import DEMOS, check_input                      # noqa: E402
 from thermo_models import CubicEOS, build_system, R               # noqa: E402
 import equilibrium_solver as es                                   # noqa: E402
+import web_api                                                    # noqa: E402
+
+# ------------------------------------------------- 1. modules for the browser
+WEB_FILES = ["input_checker.py", "thermo_models.py", "equilibrium_solver.py", "numerics.py",
+             "compound_db.py", "web_api.py", "data/compounds.json"]
+py_dir = os.path.join(ROOT, "docs", "py")
+os.makedirs(os.path.join(py_dir, "data"), exist_ok=True)
+digest = hashlib.sha1()
+for f in WEB_FILES:
+    shutil.copyfile(os.path.join(ROOT, f), os.path.join(py_dir, f))
+    with open(os.path.join(ROOT, f), "rb") as fh:
+        digest.update(fh.read())
+with open(os.path.join(py_dir, "manifest.json"), "w") as fh:
+    json.dump({"version": digest.hexdigest()[:12], "files": WEB_FILES}, fh)
+print(f"copied {len(WEB_FILES)} files to docs/py/ (version {digest.hexdigest()[:12]})")
 
 
 def r(v, d=5):
@@ -164,6 +186,8 @@ gallery = {
                                   "gmix_surface": "gibbs_mixing_surface.png"},
     "propane_butane_pr_pxy.txt": {"ptx_surface": "ptx_surface.png"},
     "gravity_column_gas_cap.txt": {"profile_1": "gravity_profile.png"},
+    "database_ethanol_water_nrtl.txt": {"fugacity_activity": "fugacity_activity.png"},
+    "database_pt_diagram.txt": {"pt_diagram": "pt_diagram.png"},
 }
 for fn, wanted in gallery.items():
     sy = build_system(example(fn))
@@ -172,22 +196,62 @@ for fn, wanted in gallery.items():
         figs[key].savefig(os.path.join(img, out), dpi=130, bbox_inches="tight")
     plotter.plt.close("all")
 
-# ------------------------------------------------------ write into the page
-page = os.path.join(ROOT, "docs", "index.html")
-html = open(page, encoding="utf-8").read()
+# ----------------------------------------- figures for the Concepts page
+def run(**req):
+    out = web_api.compute(req)
+    assert out["ok"], out.get("error")
+    return out
+
+
+# fugacity coefficient of pure propane vapor at 300 K (Peng-Robinson)
+eosP = CubicEOS("PR", [369.8], [42.48e5], [0.152])
+Ps = np.linspace(0.05e5, psat["PR"] * 1e5, 40)
+data["phi_propane"] = {"P": [r(v / 1e5, 4) for v in Ps],
+                       "phi": [r(math.exp(eosP.ln_phi(300.0, v, [1.0], "vapor")[0]), 5) for v in Ps],
+                       "Psat": psat["PR"]}
+
+# ethanol / water at 350 K: ideal solution against NRTL, and the fugacities
+ew = ["ethanol", "water"]
+nr = run(components=ew, model="nrtl", hold="T", T=350.0)
+idl = run(components=ew, model="ideal", hold="T", T=350.0)
+keep = ("x1", "y1", "P", "gamma1", "gamma2", "f1", "f2", "GE_RT")
+data["ew350"] = {"nrtl": {k: nr["columns"][k] for k in keep},
+                 "ideal": {k: idl["columns"][k] for k in ("x1", "y1", "P")},
+                 "azeotrope": nr["azeotrope"]}
+
+# the three activity models with the same infinite-dilution values
+pd_ew = web_api.pair_defaults("ethanol", "water")
+models = {}
+for m in ("margules", "vanlaar", "nrtl"):
+    o = run(components=ew, model=m, hold="T", T=pd_ew["T_ref"])
+    models[m] = {"x1": o["columns"]["x1"], "gamma1": o["columns"]["gamma1"],
+                 "gamma2": o["columns"]["gamma2"], "azeotrope": o["azeotrope"]}
+data["three_models"] = {"T": pd_ew["T_ref"], "A12": pd_ew["A"]["A12"], "A21": pd_ew["A"]["A21"],
+                        "models": models}
+
+# negative deviation: acetone / chloroform at 1.01325 bar
+ac = run(components=["acetone", "chloroform"], model="nrtl", hold="P", P=1.01325)
+data["acetone_chloroform"] = {"azeotrope": ac["azeotrope"],
+                              "gamma_inf": [ac["columns"]["gamma1"][0], ac["columns"]["gamma2"][-1]]}
+ewP = run(components=ew, model="nrtl", hold="P", P=1.01325)
+data["ew_azeotrope_1atm"] = ewP["azeotrope"]
+
+cat = web_api.catalog()
+data["database"] = {"n_compounds": len(cat["compounds"]),
+                    "n_nrtl": sum(1 for p_ in cat["pairs"] if p_["nrtl"]),
+                    "n_kij": sum(1 for p_ in cat["pairs"] if p_["kij_pr"]),
+                    "compounds": [{"name": c["name"], "formula": c["formula"], "cas": c["cas"],
+                                   "Tc": c["Tc"], "Pc": r(c["Pc_bar"], 2), "omega": c["omega"],
+                                   "Tb": c["Tb"]} for c in cat["compounds"]],
+                    "sources": cat["sources"], "generated": cat["generated"]}
+
+# ------------------------------------------------------ write the data file
+out_path = os.path.join(ROOT, "docs", "assets", "data.js")
 blob = json.dumps(data, separators=(",", ":"))
-new = re.sub(r"(<!-- DOCS-DATA:START -->).*?(<!-- DOCS-DATA:END -->)",
-             lambda m: (m.group(1) + '\n<script id="docs-data" type="application/json">'
-                        + blob + "</script>\n" + m.group(2)),
-             html, flags=re.S)
-if new == html and "DOCS-DATA:START" not in html:
-    sys.exit("docs/index.html has no DOCS-DATA markers")
-open(page, "w", encoding="utf-8").write(new)
-print(f"wrote {len(blob) / 1024:.1f} kB of data into docs/index.html")
+with open(out_path, "w", encoding="utf-8") as fh:
+    fh.write("/* generated by scripts/build_site.py -- do not edit */\nwindow.PEC_DATA=" + blob + ";\n")
+print(f"wrote {len(blob) / 1024:.1f} kB to docs/assets/data.js")
 print(json.dumps({k: v for k, v in data.items()
-                  if k in ("psat_propane_300K", "verification", "verdicts")},
-                 indent=1))
-print("eutectic", data["latent"]["eutectic"], "azeotrope", data["azeo"]["azeotrope"],
+                  if k in ("psat_propane_300K", "verification", "ew_azeotrope_1atm")}, indent=1))
+print("eutectic", data["latent"]["eutectic"], "azeotrope (van Laar)", data["azeo"]["azeotrope"],
       "contact", zc, Pc)
-print("centrifuge", data["centrifuge"]["P"][0], data["centrifuge"]["P"][-1],
-      data["centrifuge"]["x1"][-1])

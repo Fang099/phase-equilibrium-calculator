@@ -1,0 +1,7 @@
+# Propane / n-butane with Peng-Robinson from the built-in database:
+# bubble and dew pressure against temperature at a fixed composition
+components = propane, n-butane
+database = builtin
+model = PR
+x(L) = 0.5
+sweep = T
