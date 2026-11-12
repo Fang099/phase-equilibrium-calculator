@@ -529,7 +529,7 @@
   }
 
   /* ------------------------------------------------------------ start */
-  engine = new Engine(function (text) { overlay(text, "The first visit takes about ten seconds."); },
+  engine = new Engine(function (text) { overlay(text, "The first visit downloads Python (about 12 MB) and can take up to half a minute. Later visits start in a few seconds."); },
     function (err) { overlay("Python could not start in this browser", "Check your connection and reload the page. (" + err + ")", true); });
   engine.call({ op: "catalog" }).then(function (cat) {
     catalog = cat;
