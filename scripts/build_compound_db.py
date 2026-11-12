@@ -12,7 +12,7 @@ traced to its source. To add compounds, add rows to data/compound_list.csv
 Sources (all read from the data files shipped with the open-source
 `chemicals` and `thermo` libraries by Caleb Bell and contributors):
 
-  psrk4     Tc, Pc, acentric factor.  Horstmann, Jablonec, Krafczyk, Fischer,
+  psrk4     Tc, Pc, acentric factor.  Horstmann, Jabłoniec, Krafczyk, Fischer,
             Gmehling, "PSRK group contribution equation of state: comprehensive
             revision and extension IV, including critical constants and
             alpha-function parameters for 1000 components", Fluid Phase
@@ -51,7 +51,7 @@ ATOMIC_WEIGHT = {"H": 1.008, "C": 12.011, "N": 14.007, "O": 15.999, "F": 18.998,
                  "S": 32.06, "Cl": 35.45, "Br": 79.904}
 
 SOURCES = {
-    "psrk4": "Horstmann, S., Jablonec, A., Krafczyk, J., Fischer, K., Gmehling, J. "
+    "psrk4": "Horstmann, S., Jabłoniec, A., Krafczyk, J., Fischer, K., Gmehling, J. "
              "PSRK group contribution equation of state: comprehensive revision and "
              "extension IV, including critical constants and alpha-function parameters "
              "for 1000 components. Fluid Phase Equilibria 227 (2005) 157-164. "
@@ -59,12 +59,13 @@ SOURCES = {
     "poling": "Poling, B. E., Prausnitz, J. M., O'Connell, J. P. The Properties of Gases "
               "and Liquids, 5th ed., McGraw-Hill, 2001, Appendix A. Read from the "
               "chemicals library data files, which store log10(P/Pa) = A - B/(T/K + C).",
-    "chemsep_nrtl": "ChemSep binary interaction parameter library (Kooijman, H., Taylor, R.), "
-                    "'DECHEMA NRTL at P = 1 atm', Artistic License 2.0. Read from the "
-                    "thermo library data files (b_ij in K, tau_ij = b_ij / T).",
-    "chemsep_pr": "ChemSep binary interaction parameter library (Kooijman, H., Taylor, R.), "
-                  "'DECHEMA Peng-Robinson parameters', Artistic License 2.0. Read from "
-                  "the thermo library data files.",
+    "chemsep_nrtl": "ChemSep interaction parameter data, file 'DECHEMA NRTL at P = 1 atm' "
+                    "(copyright 2008 H. Kooijman and R. Taylor, Artistic License 2.0). "
+                    "The file gives A12 and A21 in cal/mol with tau_ij = A_ij / RT; read "
+                    "from the thermo library data files and converted to J/mol.",
+    "chemsep_pr": "ChemSep interaction parameter data, file 'DECHEMA Peng-Robinson "
+                  "Parameters' (copyright 2009 H. Kooijman and R. Taylor, Artistic "
+                  "License 2.0). Read from the thermo library data files.",
     "iupac_aw": "Molar mass from the molecular formula and IUPAC abridged standard "
                 "atomic weights (2021).",
     "derived": "Calculated here: temperature at which the Antoine equation gives 101 325 Pa.",

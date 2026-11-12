@@ -1,0 +1,308 @@
+<!-- {"title": "Reference", "math": true, "data": true, "description": "Running the Python program, the input format, the code reference, and the compound database with the source of every value."} -->
+<div class="wrap">
+  <div class="page-head">
+    <h1>Reference</h1>
+    <p>How to run the Python program, the input format, the functions in each module, and the compound data with the source of every value.</p>
+  </div>
+  <div class="layout">
+    <nav class="toc" aria-label="On this page">
+      <p>On this page</p>
+      <ol>
+        <li><a href="#start">Getting started</a></li>
+        <li><a href="#input">Input format</a></li>
+        <li><a href="#quantities">Recognized quantities</a></li>
+        <li><a href="#python">Using it from Python</a></li>
+        <li><a href="#code">Code reference</a></li>
+        <li><a href="#data">Compound data and sources</a></li>
+        <li><a href="#extend">Adding compounds</a></li>
+        <li><a href="#site">Rebuilding this website</a></li>
+        <li><a href="#references">References</a></li>
+      </ol>
+    </nav>
+
+    <main class="doc" id="main">
+      <details class="toc-mobile">
+        <summary>On this page</summary>
+        <ol>
+          <li><a href="#start">Getting started</a></li>
+          <li><a href="#input">Input format</a></li>
+          <li><a href="#quantities">Recognized quantities</a></li>
+          <li><a href="#python">Using it from Python</a></li>
+          <li><a href="#code">Code reference</a></li>
+          <li><a href="#data">Compound data and sources</a></li>
+          <li><a href="#extend">Adding compounds</a></li>
+          <li><a href="#site">Rebuilding this website</a></li>
+          <li><a href="#references">References</a></li>
+        </ol>
+      </details>
+
+      <!-- ============================================================ -->
+      <section id="start">
+        <h2>Getting started</h2>
+        <p>You need Python 3.9 or later with NumPy and Matplotlib. SciPy is used if installed and is not required.</p>
+<pre><code>git clone https://github.com/Fang099/phase-equilibrium-calculator.git
+cd phase-equilibrium-calculator
+pip install -r requirements.txt</code></pre>
+        <p>Each stage can be run on an input file:</p>
+<pre><code># is the information sufficient, and what would be calculated?
+python input_checker.py examples/database_ethanol_water_nrtl.txt
+
+# check, solve and print tables
+python equilibrium_solver.py examples/database_ethanol_water_nrtl.txt
+
+# check, solve and save every figure as PNG in plots/
+python plotter.py examples/database_ethanol_water_nrtl.txt</code></pre>
+        <p>To run the test suites:</p>
+<pre><code>python thermo_models.py
+python equilibrium_solver.py
+python web_api.py</code></pre>
+        <p>To open this website and the calculator on your own computer, with no internet needed:</p>
+<pre><code>python scripts/dev_server.py
+# then open http://localhost:8000/</code></pre>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="input">
+        <h2>Input format</h2>
+        <p>An input file lists what is known, one quantity per line, in any order, with units. Lines starting with <code>#</code> are comments. Properties of a compound are written <code>name.property</code>, and properties of a pair <code>property(name1, name2)</code>.</p>
+<pre><code>components = ethanol, water
+database = builtin              # look up whatever is not given below
+activity = vanlaar
+A(ethanol, water) = 1.68        # ln(gamma) of ethanol at infinite dilution in water
+A(water, ethanol) = 0.92
+T = 350 K
+sweep = x                       # draw the diagram over all compositions</code></pre>
+        <p>Without the <code>database</code> line, every property must be in the file. That is how the program is used for compounds that are not in the database: the examples for benzene–naphthalene and for the centrifuge work this way.</p>
+        <h3>What to specify</h3>
+        <div class="table-wrap">
+          <table class="keep-first">
+            <thead><tr><th>You give</th><th>The program calculates</th></tr></thead>
+            <tbody>
+              <tr><td><code>T</code> and <code>sweep = x</code></td><td>Pxy diagram</td></tr>
+              <tr><td><code>P</code> and <code>sweep = x</code></td><td>Txy diagram, with solid–liquid curves if melting data are given</td></tr>
+              <tr><td><code>x(L)</code> and <code>sweep = T</code></td><td>P–T diagram at that composition</td></tr>
+              <tr><td><code>T</code> and <code>x(L)</code></td><td>Bubble-point pressure and vapor composition</td></tr>
+              <tr><td><code>P</code> and <code>x(L)</code></td><td>Bubble-point temperature</td></tr>
+              <tr><td><code>T</code> or <code>P</code>, and <code>x(V)</code></td><td>Dew point</td></tr>
+              <tr><td><code>T</code>, <code>P</code> and <code>z</code></td><td>Flash: both compositions and the vapor fraction</td></tr>
+              <tr><td>Any of these plus <code>field</code></td><td>The same, with pressure and composition profiles along height or radius</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Verdicts</h3>
+        <p>The files in <code>examples/</code> cover each verdict of the checker:</p>
+        <div class="table-wrap">
+          <table id="verdict-table">
+            <thead><tr><th>File</th><th>Verdict</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="quantities">
+        <h2>Recognized quantities</h2>
+        <p><code>python input_checker.py --vocab</code> prints the full list. If a unit is left out, a default is assumed and a warning is printed.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Written as</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>components</code></td><td>Compound names, comma separated, in the order used for compositions</td></tr>
+              <tr><td><code>database</code></td><td><code>builtin</code>: fill in properties not given in the file from the compound database</td></tr>
+              <tr><td><code>model</code></td><td>Equation of state: <code>vdW</code>, <code>SRK</code> or <code>PR</code></td></tr>
+              <tr><td><code>activity</code></td><td>Liquid model: <code>ideal</code> (default), <code>margules</code>, <code>vanlaar</code> or <code>nrtl</code></td></tr>
+              <tr><td><code>T</code>, <code>P</code></td><td>Temperature (K or C) and pressure (Pa, kPa, bar, atm, mmHg, psi)</td></tr>
+              <tr><td><code>x(L)</code>, <code>x(V)</code> or <code>y</code>, <code>z</code>, <code>beta</code></td><td>Liquid, vapor and feed compositions (give \(n\) or \(n-1\) mole fractions); vapor fraction</td></tr>
+              <tr><td><code>sweep</code></td><td><code>x</code>, <code>T</code> or <code>P</code>: the variable swept to draw a diagram</td></tr>
+              <tr><td><code>phases</code></td><td>Restrict to one equilibrium: <code>L, V</code> or <code>L, S(name)</code></td></tr>
+              <tr><td><code>name.Tc</code>, <code>.Pc</code>, <code>.omega</code>, <code>.a</code>, <code>.b</code></td><td>Equation-of-state constants</td></tr>
+              <tr><td><code>name.antoine</code>, <code>.Psat</code>, <code>.Tb</code>, <code>.dHvap</code></td><td>Vapor pressure: Antoine constants with units, a formula in <code>T</code>, or boiling point with enthalpy of vaporization</td></tr>
+              <tr><td><code>name.Tm</code>, <code>.dHfus</code>, <code>.dCp_fus</code></td><td>Melting point, enthalpy of fusion, heat-capacity change on melting</td></tr>
+              <tr><td><code>name.M</code>, <code>.V_L</code>, <code>.V_S</code>, <code>.nonvolatile</code></td><td>Molar mass; liquid and solid molar volumes; the compound never enters the vapor</td></tr>
+              <tr><td><code>kij(name1, name2)</code></td><td>Binary interaction parameter of the equation of state</td></tr>
+              <tr><td><code>A(name1, name2)</code></td><td>Margules or van Laar parameter: \(\ln\gamma\) of name1 at infinite dilution in name2. Give both orders.</td></tr>
+              <tr><td><code>dg(name1, name2)</code>, <code>alpha(name1, name2)</code></td><td>NRTL energy \(g_{12} - g_{22}\) (both orders), and non-randomness (default 0.3)</td></tr>
+              <tr><td><code>field</code>, <code>g</code>, <code>omega</code>, <code>height</code>, <code>radius</code>, <code>reference</code></td><td>Gravity or centrifugal field: strength, extent, and the position where the given state applies</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>A vapor pressure can be typed as a formula, for example <code>water.Psat = exp(16.3872 - 3885.70/(T - 273.15 + 230.170)) [kPa, K]</code>. Only arithmetic, the variable <code>T</code> and the functions <code>exp</code>, <code>log</code>, <code>ln</code>, <code>log10</code> and <code>sqrt</code> are accepted.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="python">
+        <h2>Using it from Python</h2>
+        <p>The full pipeline, from text to figures:</p>
+<pre><code>from input_checker import check_input
+from thermo_models import build_system
+from equilibrium_solver import solve, print_results
+from plotter import plot_results
+
+text = open("examples/database_ethanol_water_nrtl.txt").read()
+print(check_input(text))            # verdict and what is missing
+
+system = build_system(text)         # phase models (raises if insufficient)
+results = solve(system)             # list of Result objects
+print_results(system, results)
+figures = plot_results(system, results)   # {name: matplotlib Figure}</code></pre>
+        <p>The interface the calculator page uses is also plain Python. It takes a small dictionary and returns one list per variable, in kelvin and bar:</p>
+<pre><code>import web_api
+
+out = web_api.compute({"components": ["acetone", "chloroform"],
+                       "model": "nrtl", "hold": "T", "T": 323.15})
+out["columns"]["x1"], out["columns"]["P"], out["columns"]["gamma1"]
+out["azeotrope"]        # {'x1': ..., 'P': ...} or None
+out["input_text"]       # the input file this request stands for</code></pre>
+        <p>In Colab, run <code>!git clone https://github.com/Fang099/phase-equilibrium-calculator.git</code> and <code>%cd phase-equilibrium-calculator</code> in the first cell.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="code">
+        <h2>Code reference</h2>
+        <h4><code>input_checker.py</code></h4>
+        <dl class="params">
+          <dt>check_input(text)</dt><dd>Parse and check an input. Returns a <code>Report</code>: the verdict, one entry per equilibrium, and the parsed input in SI units.</dd>
+          <dt>parse_input(text)</dt><dd>Parsing, unit conversion and database lookup only.</dd>
+          <dt>psat(props, T)</dt><dd>Vapor pressure in Pa from whichever source was given.</dd>
+        </dl>
+        <h4><code>compound_db.py</code></h4>
+        <dl class="params">
+          <dt>find(name)</dt><dd>A compound record by name, id or CAS number.</dd>
+          <dt>pair(a, b)</dt><dd>NRTL parameters and Peng–Robinson \(k_{12}\) for a pair, if the database has them.</dd>
+          <dt>sources()</dt><dd>The citation behind each source tag.</dd>
+        </dl>
+        <h4><code>thermo_models.py</code></h4>
+        <dl class="params">
+          <dt>CubicEOS</dt><dd>vdW, SRK or PR: <code>helmholtz_res(T, V, n)</code>, <code>pressure</code>, <code>ln_phi_TV</code>, <code>z_roots(T, P, x)</code>, <code>molar_volume</code>, <code>ln_phi(T, P, x, phase)</code>.</dd>
+          <dt>Margules, VanLaar, NRTL</dt><dd>Activity models: <code>ge_rt(T, x)</code> and <code>ln_gamma(T, x)</code>.</dd>
+          <dt>EOSPhase, SolutionLiquid, IdealGasPhase, PureSolidPhase</dt><dd>Phase models with one interface: <code>ln_f(T, P, x)</code>, <code>ln_phi</code>, <code>molar_volume</code>.</dd>
+          <dt>Field</dt><dd><code>potential(pos)</code> for gravity or centrifugal fields.</dd>
+          <dt>build_system(text)</dt><dd>Run the checker and build the phase models for each equilibrium that can be calculated.</dd>
+        </dl>
+        <h4><code>equilibrium_solver.py</code></h4>
+        <dl class="params">
+          <dt>saturation(L, V, z, beta, T=, P=)</dt><dd>Unknown \(T\) or \(P\) at a given vapor fraction. <code>bubble_P</code>, <code>bubble_T</code>, <code>dew_P</code> and <code>dew_T</code> are shortcuts.</dd>
+          <dt>flash_TP(L, V, T, P, z)</dt><dd>Isothermal flash for any number of compounds.</dd>
+          <dt>vle_diagram(L, V, T= or P=)</dt><dd>Binary Pxy or Txy diagram, with <code>.azeotrope</code> and <code>.three_phase</code> when found.</dd>
+          <dt>diagram_properties(L, V, diagram)</dt><dd>K-values, activity coefficients, fugacities, fugacity coefficients and Gibbs energies at every point.</dd>
+          <dt>pt_envelope(L, V, z)</dt><dd>Bubble and dew pressure against temperature at fixed composition.</dd>
+          <dt>activity_coefficients, liquid_stability, point_properties</dt><dd>The same quantities at a single state.</dd>
+          <dt>sle_temperature, sle_composition, sle_curve, eutectic</dt><dd>Solid–liquid equilibrium with a pure solid.</dd>
+          <dt>column_profile(system, L, V, point)</dt><dd>Pressure, composition and phase along height or radius.</dd>
+          <dt>solve(system)</dt><dd>Run whatever the input asks for. <code>print_results</code> prints it as tables.</dd>
+        </dl>
+        <h4><code>plotter.py</code></h4>
+        <dl class="params">
+          <dt>plot_results(system, results)</dt><dd>Every relevant figure, as <code>{name: Figure}</code>. <code>save_figures</code> writes PNG files.</dd>
+        </dl>
+        <h4><code>web_api.py</code></h4>
+        <dl class="params">
+          <dt>catalog()</dt><dd>Compounds, models and sources offered by the calculator.</dd>
+          <dt>pair_defaults(a, b)</dt><dd>Starting parameter values and sensible ranges for a pair.</dd>
+          <dt>build_input(request)</dt><dd>The input file a calculator request stands for.</dd>
+          <dt>compute(request)</dt><dd>Run a request through the whole pipeline and return columns of results.</dd>
+        </dl>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="data" class="wide">
+        <div class="measure">
+          <h2>Compound data and sources</h2>
+          <p>The database holds <span data-v="database.n_compounds" data-d="0"></span> compounds, NRTL parameters for <span data-v="database.n_nrtl" data-d="0"></span> pairs and a Peng–Robinson \(k_{12}\) for <span data-v="database.n_kij" data-d="0"></span> pairs. It was generated on <span id="db-date"></span> from the tables cited below. Every value in <code>data/compounds.json</code> carries a tag naming its source, and the calculator shows the values and sources for the selected pair under "Compound data and sources".</p>
+          <p class="note">The values are reproduced from the cited sources for teaching use. Check them against the original publication before relying on them.</p>
+        </div>
+        <div class="table-wrap" id="compound-table"></div>
+        <div class="measure">
+          <p>Antoine equation: \(\log_{10}(P^{\mathrm{sat}}/\text{Pa}) = A - B/(T/\text{K} + C)\), valid between the two temperatures listed.</p>
+          <h3>Where each quantity comes from</h3>
+          <div class="table-wrap">
+            <table class="keep-first">
+              <thead><tr><th>Quantity</th><th>Source</th></tr></thead>
+              <tbody id="source-rows"></tbody>
+            </table>
+          </div>
+          <p>The tables were read from the data files of two open-source libraries, which compile them from the original publications:</p>
+          <p id="source-libraries" class="note"></p>
+          <p>Parameters for Margules and van Laar are not in any of these tables. The calculator's starting values for those two models are computed from the NRTL parameters (the infinite-dilution activity coefficients at the mean boiling point of the pair), and are labeled as such.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="extend">
+        <h2>Adding compounds</h2>
+        <p>The database is built to grow. <code>data/compound_list.csv</code> has one row per compound:</p>
+<pre><code>id,name,formula,cas,family
+acetonitrile,Acetonitrile,C2H3N,75-05-8,nitrile</code></pre>
+        <p>After adding rows, fetch the two libraries' data files and run the build script. It looks up each CAS number, collects the pair parameters that exist for the new set, and rewrites <code>data/compounds.json</code>:</p>
+<pre><code>git clone --depth 1 https://github.com/CalebBell/chemicals
+git clone --depth 1 https://github.com/CalebBell/thermo
+python scripts/build_compound_db.py --chemicals chemicals --thermo thermo
+python scripts/build_site.py</code></pre>
+        <p>The source tables cover about a thousand compounds for critical constants and several hundred for Antoine constants, so most common liquids can be added this way. A compound that is in neither can still be used by writing its properties directly in an input file.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="site">
+        <h2>Rebuilding this website</h2>
+        <p>The pages are written in <code>site/pages/</code> and share one layout, <code>site/layout.html</code>. One script regenerates everything in <code>docs/</code>, which GitHub Pages serves:</p>
+<pre><code>python scripts/build_site.py           # everything
+python scripts/build_site.py --pages   # only the pages, after editing text</code></pre>
+        <p>The full run copies the Python modules to <code>docs/py/</code> for the calculator, recomputes every number and chart on the pages, redraws the gallery images, and renders the pages. Run it after any change to the code so the site stays in step.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="references">
+        <h2>References</h2>
+        <ul>
+          <li>Tester, J. W., and Modell, M. <i>Thermodynamics and Its Applications</i>, 3rd ed. Prentice Hall, 1997.</li>
+          <li>Poling, B. E., Prausnitz, J. M., and O'Connell, J. P. <i>The Properties of Gases and Liquids</i>, 5th ed. McGraw-Hill, 2001.</li>
+          <li>Horstmann, S., Jabłoniec, A., Krafczyk, J., Fischer, K., and Gmehling, J. PSRK group contribution equation of state: comprehensive revision and extension IV, including critical constants and α-function parameters for 1000 components. <i>Fluid Phase Equilibria</i> 227 (2005) 157–164.</li>
+          <li>Kooijman, H. A., and Taylor, R. <i>ChemSep</i> binary interaction parameter library. <a href="http://www.chemsep.org/">chemsep.org</a>.</li>
+          <li>Bell, C., and contributors. <i>chemicals</i> and <i>thermo</i>: Chemical properties components of the Chemical Engineering Design Library (ChEDL). <a href="https://github.com/CalebBell/chemicals">github.com/CalebBell/chemicals</a>, <a href="https://github.com/CalebBell/thermo">github.com/CalebBell/thermo</a>.</li>
+          <li>Peng, D.-Y., and Robinson, D. B. A new two-constant equation of state. <i>Industrial &amp; Engineering Chemistry Fundamentals</i> 15 (1976) 59–64.</li>
+          <li>Soave, G. Equilibrium constants from a modified Redlich–Kwong equation of state. <i>Chemical Engineering Science</i> 27 (1972) 1197–1203.</li>
+          <li>Renon, H., and Prausnitz, J. M. Local compositions in thermodynamic excess functions for liquid mixtures. <i>AIChE Journal</i> 14 (1968) 135–144.</li>
+          <li>Rachford, H. H., and Rice, J. D. Procedure for use of electronic digital computers in calculating flash vaporization hydrocarbon equilibrium. <i>Journal of Petroleum Technology</i> 4 (1952).</li>
+          <li>Michelsen, M. L., and Mollerup, J. M. <i>Thermodynamic Models: Fundamentals and Computational Aspects</i>, 2nd ed. Tie-Line Publications, 2007.</li>
+          <li>Whitson, C. H., and Belery, P. Compositional gradients in petroleum reservoirs. SPE 28000 (1994).</li>
+          <li>The calculator page runs Python in the browser with <a href="https://pyodide.org/">Pyodide</a>, and the pages render mathematics with <a href="https://katex.org/">KaTeX</a>.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</div>
+<!-- scripts -->
+<script>
+(function () {
+  var D = window.PEC_DATA, db = D.database, fmt = PEC.fmt, $ = function (id) { return document.getElementById(id); };
+  PEC.bindNumbers(D);
+  $("db-date").textContent = db.generated;
+
+  var vt = document.querySelector("#verdict-table tbody");
+  D.verdicts.forEach(function (r) {
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td><code>" + r.file + "</code></td><td><span class='verdict'>" + r.status + "</span></td>";
+    vt.appendChild(tr);
+  });
+
+  PEC.dataTable("compound-table",
+    ["Compound", "Formula", "CAS", "M (g/mol)", "T<sub>c</sub> (K)", "P<sub>c</sub> (bar)", "ω", "T<sub>b</sub> (K)", "Antoine A", "B", "C", "Range (K)"],
+    db.compounds.map(function (c) {
+      var a = c.antoine;
+      return [c.name, c.formula, c.cas, fmt(c.M, 2), fmt(c.Tc, 2), fmt(c.Pc, 2), fmt(c.omega, 3), fmt(c.Tb, 2),
+        a.A, a.B, a.C, Math.round(a.Tmin) + " to " + Math.round(a.Tmax)];
+    }));
+
+  var rows = [
+    ["Critical temperature, critical pressure, acentric factor", "psrk4"],
+    ["Antoine constants and their temperature range", "poling"],
+    ["NRTL parameters for pairs", "chemsep_nrtl"],
+    ["Peng–Robinson k<sub>12</sub> for pairs", "chemsep_pr"],
+    ["Molar mass", "iupac_aw"],
+    ["Normal boiling point", "derived"]];
+  $("source-rows").innerHTML = rows.map(function (r) {
+    return "<tr><td>" + r[0] + "</td><td>" + db.sources[r[1]] + "</td></tr>";
+  }).join("");
+  $("source-libraries").textContent = db.sources.libraries;
+})();
+</script>

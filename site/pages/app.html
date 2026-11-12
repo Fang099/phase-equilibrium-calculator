@@ -1,0 +1,100 @@
+<!-- {"title": "Calculator", "body_class": "app", "scripts": ["assets/app.js"], "description": "Pick two compounds and a model, and plot their vapor-liquid equilibrium between any two variables. The project's Python code runs in your browser."} -->
+<h1 class="sr-only">Vapor–liquid equilibrium calculator</h1>
+
+<div class="app-shell" id="main">
+  <aside aria-label="System">
+    <section class="panel">
+      <h2>Mixture</h2>
+      <div class="field">
+        <label for="comp-a"><span class="dot" style="background:var(--liquid)"></span>Component 1</label>
+        <select id="comp-a"></select>
+      </div>
+      <div class="field pairrow">
+        <div>
+          <label for="comp-b"><span class="dot" style="background:var(--vapor)"></span>Component 2</label>
+          <select id="comp-b"></select>
+        </div>
+        <button class="iconbtn" id="swap" type="button" title="Swap the two components" aria-label="Swap the two components">⇅</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Model</h2>
+      <div class="field">
+        <span class="label">Equation of state for both phases</span>
+        <div class="seg" id="models-eos" role="group" aria-label="Equation of state"></div>
+      </div>
+      <div class="field">
+        <span class="label">Activity model for the liquid, ideal-gas vapor</span>
+        <div class="seg" id="models-act" role="group" aria-label="Activity model"></div>
+      </div>
+      <div id="params" style="margin-top:1rem"></div>
+      <div class="field" style="margin-top:1rem">
+        <label for="compare">Compare with</label>
+        <select id="compare"></select>
+      </div>
+    </section>
+  </aside>
+
+  <div class="workspace">
+    <section class="panel">
+      <div class="presets seg" id="presets" role="group" aria-label="Diagram"></div>
+      <div class="axes">
+        <div class="field">
+          <label for="axis-y">Plot</label>
+          <select id="axis-y"></select>
+        </div>
+        <div class="field">
+          <label for="axis-x">against</label>
+          <select id="axis-x"></select>
+        </div>
+        <div class="field hold">
+          <span class="label">Held constant</span>
+          <div class="holdrow">
+            <div class="seg" id="hold" role="group" aria-label="Held constant"></div>
+            <input type="range" id="hold-range" aria-label="Value held constant">
+            <input type="number" id="hold-value" aria-label="Value held constant">
+            <span class="unit" id="hold-unit"></span>
+          </div>
+        </div>
+      </div>
+      <ul class="legend" id="legend" style="margin-top:0.8rem"></ul>
+      <div class="chart-card">
+        <div class="chart" id="chart"></div>
+        <div class="overlay" id="overlay" role="status" aria-live="polite">
+          <div>
+            <div class="spinner" id="spinner"></div>
+            <p class="big" id="overlay-title">Starting Python in your browser</p>
+            <p class="small" id="overlay-text">The first visit takes about ten seconds.</p>
+          </div>
+        </div>
+      </div>
+      <div class="statusline"><span id="route"></span><span id="timing"></span></div>
+      <p class="aboutline"><a id="about-plot" href="concepts.html#diagrams">What this plot shows</a></p>
+      <ul class="facts" id="facts"></ul>
+      <p class="notice" id="notice" hidden></p>
+    </section>
+
+    <section class="panel">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-data" aria-controls="panel-data" aria-selected="true">Data</button>
+        <button role="tab" id="tab-input" aria-controls="panel-input" aria-selected="false">Input file and checker report</button>
+        <button role="tab" id="tab-sources" aria-controls="panel-sources" aria-selected="false">Compound data and sources</button>
+      </div>
+      <div class="tabpanel" id="panel-data" role="tabpanel" aria-labelledby="tab-data">
+        <div class="toolbar"><span id="data-caption"></span><button class="linkbtn" id="download" type="button">Download CSV</button></div>
+        <div class="table-wrap" id="data-table"></div>
+      </div>
+      <div class="tabpanel" id="panel-input" role="tabpanel" aria-labelledby="tab-input" hidden>
+        <h3>Input file</h3>
+        <pre id="input-text"></pre>
+        <h3>Checker report</h3>
+        <pre id="report-text"></pre>
+      </div>
+      <div class="tabpanel" id="panel-sources" role="tabpanel" aria-labelledby="tab-sources" hidden>
+        <div class="table-wrap" id="source-table"></div>
+        <div id="source-notes"></div>
+      </div>
+    </section>
+  </div>
+</div>

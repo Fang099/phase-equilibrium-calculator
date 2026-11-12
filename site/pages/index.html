@@ -1,0 +1,95 @@
+<!-- {"title": "Phase Equilibrium Calculator", "data": true, "description": "Pick two liquids and see how they boil together. A Python tool that calculates vapor-liquid equilibrium from thermodynamic models and plots it between any two variables, running in your browser."} -->
+<header class="hero">
+  <div class="hero-inner" id="main">
+    <div>
+      <h1>Pick two liquids. See how they boil together.</h1>
+      <p class="lede">A Python program that calculates the equilibrium between a liquid mixture and its vapor, and plots it between any two variables you choose. The same code runs here in your browser.</p>
+      <div class="actions">
+        <a class="btn primary" href="app.html">Open the calculator</a>
+        <a class="btn" href="concepts.html">Learn the concepts</a>
+      </div>
+    </div>
+    <figure class="hero-figure" aria-labelledby="hero-cap">
+      <ul class="legend" id="hero-legend"></ul>
+      <div class="chart" id="chart-hero"></div>
+      <figcaption id="hero-cap"><b>Ethanol and water at 1 atm.</b> The curves meet at the azeotrope, where liquid and vapor have the same composition. An ideal mixture (gray) would have none.</figcaption>
+    </figure>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="home-section">
+    <h2>Start with one of these</h2>
+    <ul class="tryit">
+      <li><a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325">Ethanol + water: an azeotrope</a></li>
+      <li><a href="app.html#a=acetone&amp;b=chloroform&amp;model=nrtl&amp;y=gamma&amp;x=x1&amp;hold=T&amp;T=323">Acetone + chloroform: molecules that attract</a></li>
+      <li><a href="app.html#a=1-butanol&amp;b=water&amp;model=nrtl&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325">1-Butanol + water: two liquid layers</a></li>
+      <li><a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=f&amp;x=x1&amp;hold=T&amp;T=350">Fugacity in ethanol + water</a></li>
+      <li><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;y=P&amp;x=T&amp;hold=x&amp;x1=0.5">Propane + n-butane under pressure</a></li>
+      <li><a href="app.html#a=benzene&amp;b=toluene&amp;model=ideal&amp;y=P&amp;x=xy&amp;hold=T&amp;T=360&amp;compare=PR">Benzene + toluene: nearly ideal</a></li>
+    </ul>
+  </section>
+
+  <section class="home-section">
+    <h2>What happens when you choose a mixture</h2>
+    <ol class="flow">
+      <li><h3>Describe</h3><p>Two compounds, a model and one condition become a short input file. Properties come from a database of published values.</p></li>
+      <li><h3>Check</h3><p>The program decides whether that information is enough, which calculation it implies, and what is missing if not.</p></li>
+      <li><h3>Model</h3><p>An equation of state or an activity model gives the fugacity of each compound in the liquid and in the vapor.</p></li>
+      <li><h3>Solve and plot</h3><p>Equilibrium is where each compound's fugacity is the same in both phases. Sweeping that condition draws the diagram.</p></li>
+    </ol>
+  </section>
+
+  <section class="home-section">
+    <h2>Find your way around</h2>
+    <ul class="cards">
+      <li><a href="concepts.html"><h3>Concepts</h3><p>Chemical potential, fugacity and activity coefficients in plain language, and how to read each diagram.</p></a></li>
+      <li><a href="how-it-works.html"><h3>How it works</h3><p>One calculation followed through the code, step by step, with the numerical methods and the tests.</p></a></li>
+      <li><a href="examples.html"><h3>Examples</h3><p>Worked cases beyond the calculator: solids and eutectics, a 500 m column in gravity, a centrifuge.</p></a></li>
+      <li><a href="reference.html"><h3>Reference</h3><p>Running the Python program, the input format, the compound data and where every value comes from.</p></a></li>
+    </ul>
+  </section>
+
+  <section class="home-section">
+    <h2>What is inside</h2>
+    <div class="table-wrap">
+      <table class="keep-first">
+        <tbody>
+          <tr><td>Compounds</td><td><span data-v="database.n_compounds" data-d="0"></span> common liquids, any two at a time, with critical constants and vapor-pressure equations from published tables</td></tr>
+          <tr><td>Models</td><td>Three equations of state (van der Waals, Soave–Redlich–Kwong, Peng–Robinson) and four liquid models (ideal, Margules, van Laar, NRTL), with parameters you can change</td></tr>
+          <tr><td>Plots</td><td>Pxy, Txy, xy and P–T diagrams, K-values, relative volatility, activity coefficients, fugacities and Gibbs energies, or any of these against another</td></tr>
+          <tr><td>Found automatically</td><td>Azeotropes, and the three-phase line when a model predicts two liquid layers</td></tr>
+          <tr><td>Beyond the calculator</td><td>The Python program also handles solids and eutectics, any number of components in a flash, and gravity and centrifugal fields</td></tr>
+          <tr><td>Checked</td><td>Every module tests itself against exact identities and hand calculations; see <a href="how-it-works.html#verification">verification</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+<!-- scripts -->
+<script>
+(function () {
+  var D = window.PEC_DATA, Az = D.azeo, zip = PEC.zip;
+  PEC.bindNumbers(D);
+  PEC.legend("hero-legend", [
+    { name: "Bubble curve (liquid starts to boil)", color: "--liquid" },
+    { name: "Dew curve (vapor starts to condense)", color: "--vapor" },
+    { name: "Ideal mixture", color: "--muted" },
+    { name: "Azeotrope", color: "--ink-2", dot: true }]);
+  PEC.drawChart(document.getElementById("chart-hero"), {
+    aria: "Temperature against ethanol mole fraction at 1 atm, with the azeotrope",
+    series: [
+      { name: "Ideal mixture, bubble curve", color: "--muted", width: 1.5, pts: zip(Az.ideal.x, Az.ideal.T) },
+      { name: "Ideal mixture, dew curve", color: "--muted", width: 1.5, pts: zip(Az.ideal.y, Az.ideal.T) },
+      { name: "Bubble curve", color: "--liquid", pts: zip(Az.x, Az.T) },
+      { name: "Dew curve", color: "--vapor", pts: zip(Az.y, Az.T) }],
+    areas: [{ color: "--liquid", poly: zip(Az.x, Az.T).concat(zip(Az.y, Az.T).reverse()) }],
+    points: [{ x: Az.azeotrope.x, y: Az.azeotrope.T, color: "--ink-2" }],
+    regions: [{ x: 0.62, y: 371, text: "Vapor", minW: 300 }, { x: 0.3, y: 351.5, text: "Liquid", minW: 300 }],
+    xDomain: [0, 1], yDomain: [348, 375], xDec: 1, yDec: 0,
+    xTitle: "Mole fraction of ethanol", yTitle: "Temperature (K)",
+    fx: function (v) { return "x or y = " + PEC.fmt(v, 3); },
+    fy: function (v) { return "T = " + PEC.fmt(v, 2) + " K"; }
+  });
+})();
+</script>

@@ -299,6 +299,8 @@ class Diagram:
     names: list
     notes: list = field(default_factory=list)
     azeotrope: Optional[tuple] = None   # (x1, P or T) if one is found
+    three_phase: Optional[dict] = None  # vapor-liquid-liquid line, if the liquid splits
+    unstable: Optional[tuple] = None    # (x_lo, x_hi) unstable liquid, if no line was found
 
 
 def find_azeotrope(L, V, x_lo, x_hi, T=None, P=None):
@@ -348,13 +350,18 @@ def vle_diagram(L, V, T=None, P=None, npts=61, x_min=0.0, spacing="even"):
         notes.append(f"{', '.join(nv)} is nonvolatile: the vapor is pure, so the "
                      f"dew curve is the line y1 = {1.0 if V.present[0] else 0.0}")
     order = np.argsort(out_x)
+    xs_, ys_, vs_ = (np.array(a)[order] for a in (out_x, out_y, out_v))
     d = Diagram("Pxy" if P is None else "Txy", T if P is None else P,
-                np.array(out_x)[order], np.array(out_y)[order],
-                np.array(out_v)[order], names, notes)
-    # azeotrope: y1 - x1 changes sign away from the pure-component ends
+                xs_, ys_, vs_, names, notes)
     if V.present.all() and len(d.x1) > 3:
+        _split_liquid(L, V, d, T, P)
+    # azeotrope: y1 - x1 changes sign away from the pure-component ends
+    if V.present.all() and len(d.x1) > 3 and not (d.three_phase or {}).get("heteroazeotrope"):
         diff = d.y1 - d.x1
+        gap = (d.three_phase["x_alpha"], d.three_phase["x_beta"]) if d.three_phase else None
         for k in range(1, len(d.x1) - 2):
+            if gap and d.x1[k] >= gap[0] - 1e-12 and d.x1[k + 1] <= gap[1] + 1e-12:
+                continue                         # the three-phase line, not an azeotrope
             if diff[k] * diff[k + 1] < 0:
                 try:
                     d.azeotrope = find_azeotrope(L, V, d.x1[k], d.x1[k + 1], T=T, P=P)
@@ -365,6 +372,139 @@ def vle_diagram(L, V, T=None, P=None, npts=61, x_min=0.0, spacing="even"):
                     pass
                 break
     return d
+
+
+def _seg_intersection(p1, p2, q1, q2):
+    """Intersection of segments p1-p2 and q1-q2 as (s, t) in [0, 1], or None."""
+    r = (p2[0] - p1[0], p2[1] - p1[1])
+    q = (q2[0] - q1[0], q2[1] - q1[1])
+    den = r[0] * q[1] - r[1] * q[0]
+    if den == 0:
+        return None
+    w = (q1[0] - p1[0], q1[1] - p1[1])
+    s_ = (w[0] * q[1] - w[1] * q[0]) / den
+    t_ = (w[0] * r[1] - w[1] * r[0]) / den
+    if -1e-9 <= s_ <= 1 + 1e-9 and -1e-9 <= t_ <= 1 + 1e-9:
+        return s_, t_
+    return None
+
+
+def _split_liquid(L, V, d, T, P):
+    """If the liquid model is unstable over part of the composition range, the
+    mixture forms two liquid phases there. Replace that part of the diagram by
+    the three-phase line: the two liquid compositions x_alpha < x_beta that
+    are both in equilibrium with one vapor at the same T and P.
+
+    Each liquid alone satisfies the ordinary bubble-point equations, so the
+    line is where the two branches of the dew curve cross. Points between
+    x_alpha and x_beta (unstable or metastable) are removed; the bubble curve
+    then runs straight across at the three-phase pressure or temperature."""
+    fixed_T = P is None
+
+    def state(k_or_x):
+        """(x, y, value, stability) from a fresh bubble-point calculation."""
+        x1 = float(k_or_x)
+        pt = saturation(L, V, [x1, 1 - x1], 0.0, T=T, P=P)
+        return x1, pt.y[0], (pt.P if fixed_T else pt.T), \
+            liquid_stability(L, pt.T, pt.P, x1)
+
+    n = len(d.x1)
+    stab = np.empty(n)
+    for k in range(n):
+        Tk, Pk = (T, d.var[k]) if fixed_T else (d.var[k], P)
+        try:
+            stab[k] = liquid_stability(L, Tk, Pk, d.x1[k])
+        except (ValueError, FloatingPointError):
+            stab[k] = np.nan
+    bad = np.where(stab < 0)[0]
+    if len(bad) == 0:
+        return
+    lo, hi = bad[0], bad[-1]
+    d.unstable = (float(d.x1[lo]), float(d.x1[hi]))
+    if lo == 0 or hi == n - 1:
+        return
+
+    def branch(idx, x_from, x_to):
+        """Stable points of one side, extended toward its spinodal."""
+        pts = [(d.x1[k], d.y1[k], d.var[k]) for k in idx if stab[k] > 0]
+        extra = []
+        for x1 in np.linspace(x_from, x_to, 10)[1:-1]:
+            try:
+                xx, yy, vv, st = state(x1)
+            except (SolverError, ValueError):
+                break
+            if not st > 0:
+                break
+            extra.append((xx, yy, vv))
+        return pts, extra
+
+    left, extraL = branch(range(0, lo), d.x1[lo - 1], d.x1[lo])
+    right, extraR = branch(range(hi + 1, n), d.x1[hi + 1], d.x1[hi])
+    A = left + extraL                              # ordered away from pure 2
+    B = sorted(right + extraR, key=lambda t: -t[0])  # ordered away from pure 1
+    scale = max(abs(v) for _, _, v in A + B) or 1.0
+    guess = None
+    for i in range(len(A) - 1):
+        for j in range(len(B) - 1):
+            hit = _seg_intersection((A[i][1], A[i][2] / scale), (A[i + 1][1], A[i + 1][2] / scale),
+                                    (B[j][1], B[j][2] / scale), (B[j + 1][1], B[j + 1][2] / scale))
+            if hit:
+                s_, t_ = hit
+                guess = (A[i][0] + s_ * (A[i + 1][0] - A[i][0]),
+                         B[j][0] + t_ * (B[j + 1][0] - B[j][0]))
+                break
+        if guess:
+            break
+    if guess is None:
+        d.notes.append("the liquid is unstable over part of the range, but the "
+                       "three-phase line could not be located")
+        return
+    xa_max, xb_min = A[-1][0], B[-1][0]
+
+    def resid(u):
+        xa, xb = u
+        if not (0 < xa <= xa_max * 1.0000001 and xb_min * 0.9999999 <= xb < 1):
+            return np.array([1e3, 1e3])
+        try:
+            a, b = state(xa), state(xb)
+        except (SolverError, ValueError):
+            return np.array([1e3, 1e3])
+        dv = math.log(a[2] / b[2]) if fixed_T else (a[2] - b[2]) / b[2]
+        return np.array([dv, a[1] - b[1]])
+
+    sol, info, ier, _msg = fsolve(resid, np.array(guess), full_output=True, xtol=1e-12)
+    exact = ier == 1 and np.max(np.abs(info["fvec"])) < 1e-8
+    xa, xb = (float(sol[0]), float(sol[1])) if exact else guess
+    try:
+        a, b = state(xa), state(xb)
+    except (SolverError, ValueError):
+        return
+    y_star, v_star = 0.5 * (a[1] + b[1]), 0.5 * (a[2] + b[2])
+    # the two remaining branches can be narrow in x but wide in y: add points
+    # so that the dew curve stays smooth
+    rows = {float(x): (float(y), float(v)) for x, y, v in zip(d.x1, d.y1, d.var)
+            if x < xa or x > xb}
+    for lo_x, hi_x in ((0.0, xa), (xb, 1.0)):
+        for x1 in np.linspace(lo_x, hi_x, 14)[1:-1]:
+            try:
+                xx, yy, vv, _st = state(x1)
+                rows[xx] = (yy, vv)
+            except (SolverError, ValueError):
+                pass
+    left_x = sorted(x for x in rows if x < xa)
+    right_x = sorted(x for x in rows if x > xb)
+    d.x1 = np.array(left_x + [xa, xb] + right_x)
+    d.y1 = np.array([rows[x][0] for x in left_x] + [y_star, y_star] + [rows[x][0] for x in right_x])
+    d.var = np.array([rows[x][1] for x in left_x] + [v_star, v_star] + [rows[x][1] for x in right_x])
+    hetero = xa < y_star < xb
+    d.three_phase = {"x_alpha": xa, "x_beta": xb, "y": float(y_star), "value": float(v_star),
+                     "heteroazeotrope": bool(hetero), "exact": bool(exact)}
+    d.unstable = None
+    unit = f"{v_star / 1e5:.4f} bar" if fixed_T else f"{v_star:.3f} K"
+    d.notes.append(f"the liquid splits into two liquid phases between x_{d.names[0]} = "
+                   f"{xa:.4f} and {xb:.4f}; both are in equilibrium with a vapor of "
+                   f"y = {y_star:.4f} at {unit}"
+                   + (" (a heterogeneous azeotrope)" if hetero else ""))
 
 
 # ==========================================================================
@@ -1174,6 +1314,30 @@ elif __name__ == "__main__":
         ok = abs(bub.y[0] - xa) < 1e-8 and abs(bub.T - dew.T) < 1e-6
     report("azeotrope found, with x = y and bubble T = dew T", ok,
            f"x_ethanol = {az[0]:.4f}, T = {az[1]:.3f} K" if az else "none found")
+
+    print("\n5c. A liquid model that predicts two liquid phases")
+    split_text = (DEMOS["8. Ethanol / water at 1 atm, van Laar activity model"]
+                  .replace("activity = vanlaar", "activity = margules")
+                  .replace("A(ethanol, water) = 1.6798", "A(ethanol, water) = 2.6")
+                  .replace("A(water, ethanol) = 0.9227", "A(water, ethanol) = 2.6"))
+    sysX = build_system(split_text)
+    LX, VX = sysX.equilibria[0].phases
+    dX = vle_diagram(LX, VX, P=101325.0, npts=41)
+    tp = dX.three_phase
+    ok = tp is not None
+    if ok:
+        xa_, xb_, T3 = tp["x_alpha"], tp["x_beta"], tp["value"]
+        fa = LX.ln_f(T3, 101325.0, [xa_, 1 - xa_])
+        fb = LX.ln_f(T3, 101325.0, [xb_, 1 - xb_])
+        fv = VX.ln_f(T3, 101325.0, [tp["y"], 1 - tp["y"]])
+        mism = max(np.max(np.abs(fa - fb)), np.max(np.abs(fa - fv)))
+        exact = abs(math.log(xa_ / (1 - xa_)) - 2.6 * (2 * xa_ - 1))   # symmetric Margules
+        ok = mism < 1e-8 and exact < 1e-8 and abs(xa_ + xb_ - 1) < 1e-8
+    report("three-phase line: equal fugacities in both liquids and the vapor", ok,
+           f"x = {xa_:.4f} and {xb_:.4f}, y = {tp['y']:.4f}, T = {T3:.2f} K, "
+           f"mismatch {mism:.1e}" if tp else "not found")
+    report("no points left inside the two-liquid range, and no false azeotrope",
+           ok and not np.any((dX.x1 > xa_ + 1e-9) & (dX.x1 < xb_ - 1e-9)) and dX.azeotrope is None, "")
 
     print("\n6. Gravity: hydrostatic pressure follows from mu_i + M_i g z = const")
 

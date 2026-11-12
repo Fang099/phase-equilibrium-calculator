@@ -403,3 +403,16 @@ input[type="range"] { width: 100%; accent-color: var(--liquid); margin: 0; }
   .axes { grid-template-columns: minmax(0, 1fr); }
   .holdrow .seg { flex-wrap: wrap; }
 }
+
+/* ---------------- accessibility helpers ---------------- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.skip { position: absolute; left: -9999px; top: 0; z-index: 50; background: var(--ink); color: var(--surface); padding: 0.5rem 0.8rem; font-family: var(--sans); }
+.skip:focus { left: 8px; top: 8px; }
+.aboutline { font-size: 0.85rem; margin: 0.7rem 0 0; }
+
+/* ---------------- home ---------------- */
+.home-section { padding: 2.2rem 0 0.4rem; }
+.home-section h2 { font-size: 1.45rem; }
+.home-section:last-of-type { padding-bottom: 2rem; }
+.param { grid-template-columns: minmax(0, 1fr) 7rem; }
+@media (max-width: 640px) { .chart-card .chart { min-height: 240px; } }

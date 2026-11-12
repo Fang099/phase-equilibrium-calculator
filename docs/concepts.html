@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concepts · Phase Equilibrium Calculator</title>
+<meta name="description" content="Chemical potential, fugacity, activity coefficients and equations of state in plain language, and how to read every diagram the calculator draws.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="assets/site.css?v=4ff9f1d86c">
+</head>
+<body class="" data-math>
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html" aria-label="Phase Equilibrium Calculator, home">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M2 19 C8 17, 14 11, 20 3" fill="none" stroke="var(--liquid)" stroke-width="2" stroke-linecap="round"/><path d="M2 19 C10 18, 17 14, 20 3" fill="none" stroke="var(--vapor)" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Phase Equilibrium Calculator</span>
+    </a>
+    <nav aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="app.html">Calculator</a>
+      <a href="concepts.html" aria-current="page">Concepts</a>
+      <a href="how-it-works.html">How it works</a>
+      <a href="examples.html">Examples</a>
+      <a href="reference.html">Reference</a>
+      <a href="https://github.com/Fang099/phase-equilibrium-calculator">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="page-head">
+    <h1>Concepts</h1>
+    <p>The ideas behind the calculator, in the order they build on each other. Each section ends with a link that shows the idea live.</p>
+  </div>
+  <div class="layout">
+    <nav class="toc" aria-label="On this page">
+      <p>On this page</p>
+      <ol>
+        <li><a href="#question">The question</a></li>
+        <li><a href="#chemical-potential">Chemical potential</a></li>
+        <li><a href="#fugacity">Fugacity</a></li>
+        <li><a href="#activity">Liquids and activity coefficients</a></li>
+        <li><a href="#models">Activity models</a></li>
+        <li><a href="#eos">Equations of state</a></li>
+        <li><a href="#routes">Choosing a model</a></li>
+        <li><a href="#diagrams">Reading the diagrams</a></li>
+        <li><a href="#kvalues">K-values and volatility</a></li>
+        <li><a href="#two-liquids">Two liquid layers</a></li>
+        <li><a href="#pt">The P–T diagram</a></li>
+        <li><a href="#phase-rule">What you may choose</a></li>
+        <li><a href="#beyond">Solids and fields</a></li>
+      </ol>
+    </nav>
+
+    <main class="doc" id="main">
+      <details class="toc-mobile">
+        <summary>On this page</summary>
+        <ol>
+          <li><a href="#question">The question</a></li>
+          <li><a href="#chemical-potential">Chemical potential</a></li>
+          <li><a href="#fugacity">Fugacity</a></li>
+          <li><a href="#activity">Liquids and activity coefficients</a></li>
+          <li><a href="#models">Activity models</a></li>
+          <li><a href="#eos">Equations of state</a></li>
+          <li><a href="#routes">Choosing a model</a></li>
+          <li><a href="#diagrams">Reading the diagrams</a></li>
+          <li><a href="#kvalues">K-values and volatility</a></li>
+          <li><a href="#two-liquids">Two liquid layers</a></li>
+          <li><a href="#pt">The P–T diagram</a></li>
+          <li><a href="#phase-rule">What you may choose</a></li>
+          <li><a href="#beyond">Solids and fields</a></li>
+        </ol>
+      </details>
+
+      <!-- ============================================================ -->
+      <section id="question">
+        <h2>The question</h2>
+        <p>Seal a mixture of two liquids in a container and wait. Some of it evaporates, and the liquid and the vapor settle into a steady state. The two phases do not have the same composition: the vapor is richer in whichever compound escapes more easily. That difference is what distillation uses to separate mixtures.</p>
+        <p>A phase-equilibrium calculation answers this: <b>given part of the state, what is the rest?</b> For example, given the temperature and the composition of the liquid, what is the pressure, and what is the composition of the vapor above it?</p>
+        <p>The answer depends on how the molecules of the two compounds get along. The rest of this page builds up the quantities that express this, one at a time.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="chemical-potential">
+        <h2>Chemical potential: what has to balance</h2>
+        <p>Heat flows from high temperature to low temperature until the temperatures are equal. Matter behaves the same way with a different quantity: each compound moves from the phase where its <b>chemical potential</b> \(\mu_i\) is higher to the phase where it is lower, until the two are equal.</p>
+        <p>This comes straight from the fundamental equation of thermodynamics. In its Helmholtz form, for a system with temperature \(T\), volume \(V\) and \(N_i\) moles of each compound,</p>
+        \[ dA = -S\,dT - P\,dV + \sum_i \mu_i\,dN_i . \]
+        <p>The chemical potential is the coefficient of \(dN_i\): the change in energy when a little of compound \(i\) is added. Minimizing the energy of two phases that can exchange heat, volume and molecules gives three conditions:</p>
+        \[ T^{L} = T^{V}, \qquad P^{L} = P^{V}, \qquad \mu_i^{L} = \mu_i^{V} \ \text{ for every compound } i . \]
+        <div class="keypoint"><p>Everything the calculator does is a way of working out \(\mu_i\) in each phase and finding the state where they match. The models differ only in how they supply \(\mu_i\).</p></div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="fugacity">
+        <h2>Fugacity: chemical potential in units of pressure</h2>
+        <p>Chemical potential is awkward to work with. It has no absolute value, only differences, and it falls to minus infinity as a compound becomes very dilute. Fugacity is the same information, rewritten so that it behaves like a pressure.</p>
+        <p>For an ideal gas, the chemical potential depends on pressure in a simple way:</p>
+        \[ \mu = \mu^{\circ} + RT \ln\frac{P}{P^{\circ}} . \]
+        <p>For a real gas, a liquid or a solid, this is no longer true. <b>Fugacity</b> \(f\) is defined as the quantity that makes the same formula exact for any substance:</p>
+        \[ \mu = \mu^{\circ} + RT \ln\frac{f}{P^{\circ}}, \qquad f \to P \ \text{ as } \ P \to 0 . \]
+        <p>You can read fugacity as an <b>escaping tendency</b>: how hard the molecules of a compound push to leave the phase they are in, measured in bar. The ratio of fugacity to pressure is the <b>fugacity coefficient</b>,</p>
+        \[ \varphi = \frac{f}{P}, \]
+        <p>which is 1 for an ideal gas and moves away from 1 as the molecules interact more.</p>
+        <figure class="chart-figure" aria-labelledby="phi-cap">
+          <div class="chart" id="chart-phi"></div>
+          <figcaption id="phi-cap"><b>Fugacity coefficient of propane vapor at 300 K</b> (Peng–Robinson). At low pressure the vapor is nearly ideal. At its vapor pressure, <span data-v="phi_propane.Psat" data-d="2"></span> bar, it escapes as if the pressure were only <span data-v="phi_propane.f_sat" data-d="2"></span> bar.</figcaption>
+        </figure>
+        <p>Because \(\mu\) and \(\ln f\) differ only by a constant at a given temperature, equal chemical potentials mean equal fugacities:</p>
+        \[ \mu_i^{L} = \mu_i^{V} \quad\Longleftrightarrow\quad \hat f_i^{L} = \hat f_i^{V} . \]
+        <div class="keypoint"><p><b>At equilibrium, each compound has the same fugacity in every phase.</b> This is the one equation the solver solves. The hat on \(\hat f_i\) means "compound \(i\) in a mixture".</p></div>
+        <h3>Fugacity in a vapor mixture</h3>
+        <p>In an ideal-gas mixture the fugacity of a compound is its partial pressure, \(y_i P\), where \(y_i\) is its mole fraction in the vapor. A real vapor needs the fugacity coefficient of that compound in the mixture:</p>
+        \[ \hat f_i^{V} = y_i\,\hat\varphi_i^{V}\,P . \]
+        <p class="note"><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;y=phiV&amp;x=x1&amp;hold=T&amp;T=300">See vapor fugacity coefficients in the calculator</a></p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="activity">
+        <h2>Liquids and activity coefficients</h2>
+        <p>A pure liquid in equilibrium with its own vapor has the same fugacity as that vapor. At low pressure the vapor is close to an ideal gas, so the fugacity of a pure liquid is close to its <b>vapor pressure</b>, \(f_i^{L} \approx P_i^{\mathrm{sat}}(T)\).</p>
+        <p>In a mixture, a compound makes up only a fraction \(x_i\) of the liquid. If the molecules did not care who their neighbors were, its fugacity would simply scale with that fraction. Real mixtures deviate from this, and the <b>activity coefficient</b> \(\gamma_i\) measures by how much:</p>
+        \[ \hat f_i^{L} = x_i\,\gamma_i\,f_i^{L} . \]
+        <dl class="terms">
+          <dt>\(\gamma_i = 1\)</dt><dd>An ideal solution. The compound behaves in the mixture as it does when pure.</dd>
+          <dt>\(\gamma_i > 1\)</dt><dd>Positive deviation. The molecules are less comfortable among the other compound than among their own kind, so they escape more readily.</dd>
+          <dt>\(\gamma_i < 1\)</dt><dd>Negative deviation. Unlike molecules attract each other, which holds them in the liquid.</dd>
+        </dl>
+        <figure class="chart-figure" aria-labelledby="fug-cap">
+          <ul class="legend" id="fug-legend"></ul>
+          <div class="chart" id="chart-fug"></div>
+          <figcaption id="fug-cap"><b>Fugacities in liquid ethanol–water at 350 K</b> (NRTL). The straight lines are an ideal solution. Both real curves lie above them, so both compounds escape more easily than in an ideal mixture.</figcaption>
+        </figure>
+        <h3>From equal fugacities to Raoult's law</h3>
+        <p>Set the liquid fugacity equal to the vapor fugacity, with an ideal-gas vapor:</p>
+        \[ y_i\,P = x_i\,\gamma_i\,P_i^{\mathrm{sat}} . \]
+        <p>With \(\gamma_i = 1\) this is <b>Raoult's law</b>. So Raoult's law is not a separate rule. It is the equal-fugacity condition with the two simplest models: an ideal solution and an ideal gas. With real activity coefficients it is called the modified Raoult's law. Adding the equation for both compounds gives the total pressure, \(P = x_1\gamma_1 P_1^{\mathrm{sat}} + x_2\gamma_2 P_2^{\mathrm{sat}}\).</p>
+        <figure class="chart-figure" aria-labelledby="raoult-cap">
+          <ul class="legend" id="raoult-legend"></ul>
+          <div class="chart" id="chart-raoult"></div>
+          <figcaption id="raoult-cap"><b>Ethanol–water at 350 K.</b> Raoult's law gives a straight bubble line between the two vapor pressures. With activity coefficients, the pressure rises above it and passes through a maximum: an azeotrope.</figcaption>
+        </figure>
+        <p>The activity coefficient is largest when a compound is surrounded entirely by the other one. That limit, \(\gamma_i^{\infty}\), is the <b>infinite-dilution</b> activity coefficient. For this mixture at 350 K, \(\gamma^{\infty}\) is <span data-v="ew350.nrtl.gamma1.0" data-d="2"></span> for ethanol in water and <span data-v="ew350.nrtl.gamma2.-1" data-d="2"></span> for water in ethanol.</p>
+        <h3>Negative deviation</h3>
+        <p>Acetone and chloroform form a hydrogen bond with each other that neither forms alone. Both activity coefficients fall below 1, the total pressure dips below Raoult's line, and the mixture has a pressure minimum: a maximum-boiling azeotrope.</p>
+        <figure class="chart-figure" aria-labelledby="ac-cap">
+          <ul class="legend" id="ac-legend"></ul>
+          <div class="chart" id="chart-ac"></div>
+          <figcaption id="ac-cap"><b>Acetone–chloroform at 323 K</b> (NRTL). At infinite dilution the activity coefficients are <span data-v="acetone_chloroform.gamma1.0" data-d="2"></span> and <span data-v="acetone_chloroform.gamma2.-1" data-d="2"></span>.</figcaption>
+        </figure>
+        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=gamma&amp;x=x1&amp;hold=T&amp;T=350">Activity coefficients in the calculator</a> · <a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=f&amp;x=x1&amp;hold=T&amp;T=350">Fugacities in the calculator</a></p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="models">
+        <h2>Activity models</h2>
+        <p>Activity coefficients are not chosen freely. They come from one function, the <b>excess Gibbs energy</b> \(G^{E}\): the Gibbs energy of the real mixture minus that of an ideal solution of the same composition. The two are linked by</p>
+        \[ \frac{G^{E}}{RT} = \sum_i x_i \ln\gamma_i , \qquad \ln\gamma_i = \left(\frac{\partial\,(nG^{E}/RT)}{\partial n_i}\right)_{T,P,n_{j\neq i}} . \]
+        <p>An activity model is a formula for \(G^{E}\) as a function of composition, with a few parameters fitted to measurements. Because both \(\gamma_1\) and \(\gamma_2\) come from the same function, they automatically satisfy the Gibbs–Duhem equation: when one rises, the other must fall in a fixed way. The calculator has three such models.</p>
+
+        <h3>Margules</h3>
+        \[ \frac{G^{E}}{RT} = x_1x_2\,(A_{21}x_1 + A_{12}x_2) \]
+        \[ \ln\gamma_1 = x_2^2\,[A_{12} + 2(A_{21}-A_{12})\,x_1], \qquad \ln\gamma_2 = x_1^2\,[A_{21} + 2(A_{12}-A_{21})\,x_2] \]
+        <p>The simplest useful form: a polynomial in composition. It works well when the two molecules are of similar size.</p>
+
+        <h3>van Laar</h3>
+        \[ \frac{G^{E}}{RT} = \frac{A_{12}A_{21}\,x_1x_2}{A_{12}x_1 + A_{21}x_2} \]
+        \[ \ln\gamma_1 = A_{12}\left(\frac{A_{21}x_2}{A_{12}x_1 + A_{21}x_2}\right)^{2}, \qquad \ln\gamma_2 = A_{21}\left(\frac{A_{12}x_1}{A_{12}x_1 + A_{21}x_2}\right)^{2} \]
+        <p>Handles unequal molecules better. Both parameters must have the same sign.</p>
+        <p>In both models the parameters have a direct meaning. Setting \(x_1 \to 0\) gives \(\ln\gamma_1^{\infty} = A_{12}\), and \(x_2 \to 0\) gives \(\ln\gamma_2^{\infty} = A_{21}\). <b>Each parameter is the logarithm of an infinite-dilution activity coefficient.</b></p>
+
+        <h3>NRTL</h3>
+        \[ \frac{G^{E}}{RT} = x_1x_2\left[\frac{\tau_{21}G_{21}}{x_1 + x_2G_{21}} + \frac{\tau_{12}G_{12}}{x_2 + x_1G_{12}}\right], \qquad \tau_{ij} = \frac{\Delta g_{ij}}{RT}, \quad G_{ij} = e^{-\alpha\,\tau_{ij}} \]
+        <p>The non-random two-liquid model assumes that the composition around a molecule differs from the average, because molecules prefer some neighbors. \(\Delta g_{12}\) and \(\Delta g_{21}\) are interaction energies, and \(\alpha\) sets how strongly the local composition departs from random. Since \(\tau\) depends on temperature, so do the activity coefficients. NRTL extends to any number of compounds using only parameters for pairs, and it can describe mixtures that split into two liquids.</p>
+
+        <figure class="chart-figure" aria-labelledby="three-cap">
+          <ul class="legend" id="three-legend"></ul>
+          <div class="panels">
+            <div class="chart" id="chart-three-1"></div>
+            <div class="chart" id="chart-three-2"></div>
+          </div>
+          <figcaption id="three-cap"><b>The three models for ethanol–water at <span data-v="three_models.T" data-d="0"></span> K,</b> all given the same infinite-dilution values (\(A_{12}\) = <span data-v="three_models.A12" data-d="2"></span>, \(A_{21}\) = <span data-v="three_models.A21" data-d="2"></span>). They agree at the two ends by construction and differ in between.</figcaption>
+        </figure>
+
+        <h3>Where the parameters come from</h3>
+        <p>Parameters are fitted to measured vapor–liquid data. The calculator's database holds published NRTL parameters for <span data-v="database.n_nrtl" data-d="0"></span> pairs. There is no comparable table for Margules and van Laar, so for those the calculator starts from the infinite-dilution values that the NRTL model gives, and starts from zero (an ideal solution) when it has nothing. Every parameter can then be changed with a slider to see what it does.</p>
+        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=vanlaar&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325&amp;compare=nrtl">Compare van Laar with NRTL in the calculator</a> · <a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=GE&amp;x=x1&amp;hold=T&amp;T=350">Excess Gibbs energy</a></p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="eos">
+        <h2>Equations of state</h2>
+        <p>An activity model describes only the liquid. An <b>equation of state</b> describes both phases at once. It gives pressure as a function of temperature, molar volume \(v\) and composition. The cubic equations used here share one form:</p>
+        \[ P = \frac{RT}{v-b} - \frac{a(T)}{(v+\delta_1 b)(v+\delta_2 b)} \]
+        <p>The first term is the ideal gas law with the volume reduced by \(b\), the space the molecules themselves take up. The second term lowers the pressure because molecules attract each other, with strength \(a\). The three equations differ in the constants \(\delta_1, \delta_2\) and in whether \(a\) changes with temperature:</p>
+        <div class="table-wrap">
+          <table class="keep-first">
+            <thead><tr><th>Equation</th><th>\(\delta_1\)</th><th>\(\delta_2\)</th><th>\(a\) depends on \(T\)</th><th>Needs per compound</th></tr></thead>
+            <tbody>
+              <tr><td>van der Waals</td><td>0</td><td>0</td><td>no</td><td>\(T_c, P_c\)</td></tr>
+              <tr><td>Soave–Redlich–Kwong</td><td>1</td><td>0</td><td>yes</td><td>\(T_c, P_c, \omega\)</td></tr>
+              <tr><td>Peng–Robinson</td><td>\(1+\sqrt2\)</td><td>\(1-\sqrt2\)</td><td>yes</td><td>\(T_c, P_c, \omega\)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>\(a\) and \(b\) come from the critical temperature and pressure. The acentric factor \(\omega\) tunes \(a(T)\) so that the equation reproduces the compound's vapor pressure. For a mixture, the pure-compound values are combined with mixing rules, and one <b>binary interaction parameter</b> \(k_{12}\) adjusts the attraction between unlike molecules:</p>
+        \[ a = \sum_i\sum_j x_i x_j \sqrt{a_i a_j}\,(1-k_{ij}), \qquad b = \sum_i x_i b_i . \]
+        <h3>From the equation to fugacity</h3>
+        <p>Pressure as a function of \(T\) and \(V\) is exactly what the Helmholtz form of the fundamental equation needs. Integrating the difference between the real pressure and the ideal-gas pressure over volume gives the <b>residual Helmholtz energy</b>, and one derivative of that gives the fugacity coefficient of each compound:</p>
+        \[ \frac{A^{\mathrm{res}}}{RT} = -\int_{\infty}^{V}\left(\frac{P}{RT} - \frac{N}{V'}\right)dV', \qquad \ln\hat\varphi_i = \left(\frac{\partial\,(A^{\mathrm{res}}/RT)}{\partial N_i}\right)_{T,V,N_{j\neq i}} - \ln Z . \]
+        <p>Here \(Z = Pv/RT\) is the compressibility factor. At a given temperature and pressure the cubic can have three roots for the volume. The smallest is the liquid, the largest is the vapor. The same formula then gives the fugacity in both phases, and equilibrium reads</p>
+        \[ x_i\,\hat\varphi_i^{L}\,P = y_i\,\hat\varphi_i^{V}\,P . \]
+        <p>An equation of state implies activity coefficients too: \(\gamma_i = \hat\varphi_i^{L}(\text{mixture}) / \varphi_i^{L}(\text{pure } i)\). The calculator reports these, so the two kinds of model can be compared on the same plot.</p>
+        <p class="note"><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;y=P&amp;x=xy&amp;hold=T&amp;T=300&amp;compare=vdW">Peng–Robinson against van der Waals in the calculator</a></p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="routes">
+        <h2>Choosing a model</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>Activity model + ideal gas</th><th>Equation of state</th></tr></thead>
+            <tbody>
+              <tr><td>Liquid fugacity</td><td>\(x_i\,\gamma_i\,P_i^{\mathrm{sat}}\)</td><td>\(x_i\,\hat\varphi_i^{L}\,P\)</td></tr>
+              <tr><td>Vapor fugacity</td><td>\(y_i\,P\)</td><td>\(y_i\,\hat\varphi_i^{V}\,P\)</td></tr>
+              <tr><td>Data needed</td><td>Vapor-pressure equation for each compound; model parameters for the pair</td><td>\(T_c, P_c, \omega\) for each compound; \(k_{12}\) for the pair</td></tr>
+              <tr><td>Works best for</td><td>Polar and strongly non-ideal liquids at low to moderate pressure: alcohols, water, ketones</td><td>Non-polar mixtures and high pressure: hydrocarbons, up toward the critical region</td></tr>
+              <tr><td>Weak point</td><td>Fails at high pressure, where the vapor is not ideal</td><td>With simple mixing rules, poor for polar mixtures unless \(k_{12}\) is fitted</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>A useful experiment: put ethanol and water through Peng–Robinson with \(k_{12} = 0\). The model wrongly predicts that they separate into two liquid layers. Then compare with NRTL, or adjust \(k_{12}\).</p>
+        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=PR&amp;y=P&amp;x=xy&amp;hold=T&amp;T=350&amp;compare=nrtl">Try it in the calculator</a></p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="diagrams">
+        <h2>Reading the diagrams</h2>
+        <h3>Pxy: pressure against composition at one temperature</h3>
+        <p>The <b>bubble curve</b> gives the pressure at which a liquid of composition \(x\) starts to boil. The <b>dew curve</b> gives the pressure at which a vapor of composition \(y\) starts to condense. Above the bubble curve everything is liquid, below the dew curve everything is vapor, and between them the two phases coexist. A horizontal line across the two-phase region joins a liquid to the vapor in equilibrium with it.</p>
+        <h3>Txy: temperature against composition at one pressure</h3>
+        <p>The same picture turned upside down, because a compound with a higher vapor pressure has a lower boiling point. Liquid is now at the bottom. This is the diagram used for distillation, which runs at fixed pressure.</p>
+        <h3>xy: vapor against liquid composition</h3>
+        <p>Each point is one liquid and its equilibrium vapor. The further the curve bends away from the diagonal, the easier the separation.</p>
+        <h3>Azeotrope</h3>
+        <p>At an <b>azeotrope</b> the liquid and vapor have the same composition, so boiling no longer separates the mixture. The bubble and dew curves touch, and the xy curve crosses the diagonal. With an ideal-gas vapor this happens where \(\gamma_1 P_1^{\mathrm{sat}} = \gamma_2 P_2^{\mathrm{sat}}\). Positive deviations give a pressure maximum (a minimum boiling point), negative deviations the opposite. The solver detects azeotropes and marks them.</p>
+        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=y1&amp;x=x1&amp;hold=P&amp;P=1.01325">The xy diagram of ethanol–water in the calculator</a></p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="kvalues">
+        <h2>K-values and relative volatility</h2>
+        <p>The <b>K-value</b> of a compound is the ratio of its vapor and liquid mole fractions. From the equal-fugacity condition it is a ratio of fugacity coefficients:</p>
+        \[ K_i = \frac{y_i}{x_i} = \frac{\hat\varphi_i^{L}}{\hat\varphi_i^{V}} \qquad\left(= \frac{\gamma_i\,P_i^{\mathrm{sat}}}{P}\ \text{ for an activity model}\right). \]
+        <p>A compound with \(K > 1\) concentrates in the vapor. The <b>relative volatility</b> \(\alpha_{12} = K_1/K_2\) compares the two compounds: the further it is from 1, the easier they are to separate, and it equals exactly 1 at an azeotrope.</p>
+        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=alpha&amp;x=x1&amp;hold=P&amp;P=1.01325">Relative volatility in the calculator</a></p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="two-liquids">
+        <h2>Two liquid layers</h2>
+        <p>If the molecules dislike each other strongly enough, the liquid does better by not mixing at all. The test comes from the fundamental equation: a mixture is stable only if its Gibbs energy curves upward with composition,</p>
+        \[ \left(\frac{\partial^2 G}{\partial x_1^2}\right)_{T,P} > 0 . \]
+        <p>Where this fails, the mixture lowers its Gibbs energy by splitting into two liquids of different composition. The calculator plots the quantity \(x_1x_2\,\partial^2(G/RT)/\partial x_1^2\), which is exactly 1 for an ideal solution and negative where the liquid is unstable. For the symmetric Margules model this happens once \(A\) exceeds 2.</p>
+        <p>When a model predicts a split, there is one pressure (at fixed temperature) or one temperature (at fixed pressure) at which both liquids and a vapor coexist. The solver finds it by looking for two liquid compositions that are in equilibrium with the same vapor, and draws the flat <b>three-phase line</b> between them. If the vapor composition lies between the two liquids, the point is a heterogeneous azeotrope.</p>
+        <figure class="chart-figure" aria-labelledby="bw-cap">
+          <ul class="legend" id="bw-legend"></ul>
+          <div class="chart" id="chart-bw"></div>
+          <figcaption id="bw-cap"><b>1-Butanol–water at 1 atm</b> (NRTL). Between \(x\) = <span data-v="butanol_water.three_phase.x_alpha" data-d="3"></span> and <span data-v="butanol_water.three_phase.x_beta" data-d="3"></span> the liquid is two layers, which boil together at <span data-v="butanol_water.three_phase.T" data-d="1"></span> K. The measured value is about 365.9 K.</figcaption>
+        </figure>
+        <p>The tool calculates the three-phase line, not the full boundary between one and two liquids away from it.</p>
+        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=margules&amp;y=stab&amp;x=x1&amp;hold=T&amp;T=350&amp;A12=2.4&amp;A21=2.4">Raise the Margules parameters past 2 and watch the stability function</a></p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="pt">
+        <h2>The P–T diagram</h2>
+        <p>Hold the composition fixed and change the temperature. A pure compound has a single vapor-pressure curve. A mixture has two: the pressure at which a liquid of that composition starts to boil, and the lower pressure at which a vapor of the same composition starts to condense. Between them the mixture is partly liquid and partly vapor. With an equation of state, the two curves approach each other toward the mixture's critical point.</p>
+        <p class="note"><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;y=P&amp;x=T&amp;hold=x&amp;x1=0.5">A P–T diagram in the calculator</a></p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="phase-rule">
+        <h2>What you may choose</h2>
+        <p>The calculator always asks for one variable to hold constant. The reason is the <b>phase rule</b>. Counting the variables of each phase and subtracting the equilibrium conditions leaves</p>
+        \[ F = n + 2 - \pi \]
+        <p>independent variables, for \(n\) compounds in \(\pi\) phases. Two compounds in two phases gives \(F = 2\). Fix one variable (the temperature, say), sweep a second (the liquid composition), and everything else follows: pressure, vapor composition, fugacities. Three phases leave \(F = 1\), which is why the three-phase line sits at a single pressure once the temperature is fixed.</p>
+        <p>The Python program applies the same count to any input, to decide whether a problem is fully specified, underspecified or overspecified. An external field adds one more variable.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="beyond">
+        <h2>Solids and fields</h2>
+        <p>The calculator page covers vapor–liquid equilibrium. The Python program applies the same equal-fugacity idea in two more directions.</p>
+        <h3>Solids</h3>
+        <p>A pure solid has a fugacity too. Relative to the pure liquid, it follows from the melting point and the enthalpy of fusion:</p>
+        \[ \ln\frac{f_i^{S}}{f_i^{L}} = -\frac{\Delta H_{\mathrm{fus}}}{R}\left(\frac1T - \frac1{T_m}\right) . \]
+        <p>Setting this equal to the liquid-mixture fugacity \(x_i\gamma_i f_i^{L}\) gives freezing and solubility curves, and the eutectic where two solids form together.</p>
+        <h3>Gravity and centrifugal fields</h3>
+        <p>In a field, a molecule also has potential energy, so the quantity that must be uniform becomes \(\mu_i + M_i\Phi\), with \(M_i\) the molar mass and \(\Phi\) the potential (\(gz\) for gravity). In fugacity terms,</p>
+        \[ \ln\hat f_i + \frac{M_i\,\Phi}{RT} = \text{constant throughout the system}. \]
+        <p>Two phases touching at one height share the same \(\Phi\), so the phase diagram at any one position is unchanged. What the field changes is how pressure and composition vary from place to place.</p>
+        <p class="note"><a href="examples.html">See both in the worked examples</a></p>
+      </section>
+    </main>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="inner">
+    <!-- Add your team members' names and the course code here. -->
+    <span>Phase Equilibrium Calculator: a course project for Chemical Engineering Thermodynamics.</span>
+    <span><a href="reference.html#data">Data sources</a> · <a href="https://github.com/Fang099/phase-equilibrium-calculator">Source code</a></span>
+  </div>
+</footer>
+
+<script src="assets/vendor/katex/katex.min.js"></script>
+<script src="assets/vendor/katex/auto-render.min.js"></script>
+<script src="assets/charts.js?v=4ff9f1d86c"></script>
+<script src="assets/data.js?v=4ff9f1d86c"></script>
+<script>
+(function () {
+  var D = window.PEC_DATA, zip = PEC.zip, $ = function (id) { return document.getElementById(id); };
+  var ph = D.phi_propane;
+  ph.f_sat = ph.phi[ph.phi.length - 1] * ph.Psat;
+  PEC.bindNumbers(D);
+
+  /* fugacity coefficient of propane */
+  PEC.drawChart($("chart-phi"), {
+    aria: "Fugacity coefficient of propane vapor against pressure at 300 K",
+    ratio: 0.45,
+    series: [{ name: "Fugacity coefficient", color: "--liquid", pts: zip(ph.P, ph.phi) }],
+    hlines: [{ y: 1, text: "ideal gas" }],
+    xDomain: [0, 10], yDomain: [0.8, 1.02], yDec: 2,
+    xTitle: "Pressure (bar)", yTitle: "Fugacity coefficient of the vapor",
+    fx: function (v) { return "P = " + PEC.fmt(v, 2) + " bar"; },
+    fy: function (v) { return "φ = " + PEC.fmt(v, 3); }
+  });
+
+  /* fugacities in ethanol-water */
+  var E = D.ew350.nrtl, n = E.x1.length, f1p = E.f1[n - 1], f2p = E.f2[0];
+  PEC.legend("fug-legend", [{ name: "Ethanol", color: "--liquid" }, { name: "Water", color: "--vapor" }, { name: "Ideal solution", color: "--muted" }]);
+  PEC.drawChart($("chart-fug"), {
+    aria: "Fugacity of ethanol and of water against liquid composition at 350 K",
+    ratio: 0.5,
+    series: [
+      { name: "Ideal solution", color: "--muted", width: 1.2, noHover: true, pts: [[0, 0], [1, f1p]] },
+      { name: "Ideal solution", color: "--muted", width: 1.2, noHover: true, pts: [[0, f2p], [1, 0]] },
+      { name: "Fugacity of ethanol", color: "--liquid", pts: zip(E.x1, E.f1) },
+      { name: "Fugacity of water", color: "--vapor", pts: zip(E.x1, E.f2) }],
+    xDomain: [0, 1], yDomain: [0, 1.0], xDec: 1,
+    xTitle: "Liquid mole fraction of ethanol", yTitle: "Fugacity (bar)",
+    fx: function (v) { return "x = " + PEC.fmt(v, 3); },
+    fy: function (v) { return "f = " + PEC.fmt(v, 3) + " bar"; }
+  });
+
+  /* Raoult's law against the real mixture */
+  var I = D.ew350.ideal, az = D.ew350.azeotrope;
+  PEC.legend("raoult-legend", [{ name: "Bubble curve", color: "--liquid" }, { name: "Dew curve", color: "--vapor" },
+    { name: "Raoult's law", color: "--muted" }, { name: "Azeotrope", color: "--ink-2", dot: true }]);
+  PEC.drawChart($("chart-raoult"), {
+    aria: "Pressure against composition for ethanol and water at 350 K, real and ideal",
+    ratio: 0.5,
+    series: [
+      { name: "Raoult's law, bubble line", color: "--muted", width: 1.5, pts: zip(I.x1, I.P) },
+      { name: "Raoult's law, dew curve", color: "--muted", width: 1.5, pts: zip(I.y1, I.P) },
+      { name: "Bubble curve", color: "--liquid", pts: zip(E.x1, E.P) },
+      { name: "Dew curve", color: "--vapor", pts: zip(E.y1, E.P) }],
+    areas: [{ color: "--liquid", poly: zip(E.x1, E.P).concat(zip(E.y1, E.P).reverse()) }],
+    points: az ? [{ x: az.x1, y: az.P, color: "--ink-2" }] : [],
+    regions: [{ x: 0.25, y: 0.97, text: "Liquid", minW: 300 }, { x: 0.75, y: 0.5, text: "Vapor", minW: 300 }],
+    xDomain: [0, 1], yDomain: [0.4, 1.0], xDec: 1,
+    xTitle: "Mole fraction of ethanol", yTitle: "Pressure (bar)",
+    fx: function (v) { return "x or y = " + PEC.fmt(v, 3); },
+    fy: function (v) { return "P = " + PEC.fmt(v, 3) + " bar"; }
+  });
+
+  /* acetone-chloroform */
+  var A = D.acetone_chloroform, azA = A.azeotrope_T;
+  var Araoult = [[0, A.P[0]], [1, A.P[A.P.length - 1]]];
+  PEC.legend("ac-legend", [{ name: "Bubble curve", color: "--liquid" }, { name: "Dew curve", color: "--vapor" },
+    { name: "Raoult's law", color: "--muted" }, { name: "Azeotrope", color: "--ink-2", dot: true }]);
+  PEC.drawChart($("chart-ac"), {
+    aria: "Pressure against composition for acetone and chloroform at 323 K",
+    ratio: 0.5,
+    series: [
+      { name: "Raoult's law", color: "--muted", width: 1.5, noHover: true, pts: Araoult },
+      { name: "Bubble curve", color: "--liquid", pts: zip(A.x1, A.P) },
+      { name: "Dew curve", color: "--vapor", pts: zip(A.y1, A.P) }],
+    areas: [{ color: "--liquid", poly: zip(A.x1, A.P).concat(zip(A.y1, A.P).reverse()) }],
+    points: azA ? [{ x: azA.x1, y: azA.P, color: "--ink-2" }] : [],
+    xDomain: [0, 1], xDec: 1, yOpts: { pad: 0.12 },
+    xTitle: "Mole fraction of acetone", yTitle: "Pressure (bar)",
+    fx: function (v) { return "x or y = " + PEC.fmt(v, 3); },
+    fy: function (v) { return "P = " + PEC.fmt(v, 3) + " bar"; }
+  });
+
+  /* three activity models */
+  var M = D.three_models.models;
+  var mods = [["margules", "Margules", "--liquid"], ["vanlaar", "van Laar", "--vapor"], ["nrtl", "NRTL", "--third"]];
+  PEC.legend("three-legend", mods.map(function (m) { return { name: m[1], color: m[2] }; }));
+  [["chart-three-1", "gamma1", "Activity coefficient of ethanol"], ["chart-three-2", "gamma2", "Activity coefficient of water"]].forEach(function (c) {
+    PEC.drawChart($(c[0]), {
+      aria: c[2] + " from three models",
+      ratio: 0.8,
+      series: mods.map(function (m) { return { name: m[1], color: m[2], pts: zip(M[m[0]].x1, M[m[0]][c[1]]) }; }),
+      hlines: [{ y: 1 }],
+      xDomain: [0, 1], xDec: 1, yOpts: { include: 1 },
+      xTitle: "Liquid mole fraction of ethanol", yTitle: c[2],
+      fx: function (v) { return "x = " + PEC.fmt(v, 3); },
+      fy: function (v) { return "γ = " + PEC.fmt(v, 3); }
+    });
+  });
+
+  /* butanol-water with a three-phase line */
+  var B = D.butanol_water, tp = B.three_phase;
+  PEC.legend("bw-legend", [{ name: "Bubble curve", color: "--liquid" }, { name: "Dew curve", color: "--vapor" },
+    { name: "Two liquids and vapor coexist", color: "--third" }]);
+  PEC.drawChart($("chart-bw"), {
+    aria: "Temperature against composition for 1-butanol and water at 1 atm with a three-phase line",
+    ratio: 0.5,
+    series: [
+      { name: "Bubble curve", color: "--liquid", pts: zip(B.x1, B.T) },
+      { name: "Dew curve", color: "--vapor", pts: zip(B.y1, B.T) },
+      { name: "Two liquids and vapor", color: "--third", width: 3, noHover: true, pts: [[tp.x_alpha, tp.T], [tp.x_beta, tp.T]] }],
+    areas: [{ color: "--liquid", poly: zip(B.x1, B.T).concat(zip(B.y1, B.T).reverse()) }],
+    points: [{ x: tp.y, y: tp.T, color: "--third" }],
+    regions: [{ x: 0.6, y: 389, text: "Vapor", minW: 300 }, { x: 0.75, y: 368, text: "One liquid", minW: 300 },
+      { x: 0.2, y: 363.6, text: "Two liquids", minW: 300 }],
+    xDomain: [0, 1], yDomain: [362, 392], xDec: 1, yDec: 0,
+    xTitle: "Mole fraction of 1-butanol", yTitle: "Temperature (K)",
+    fx: function (v) { return "x or y = " + PEC.fmt(v, 3); },
+    fy: function (v) { return "T = " + PEC.fmt(v, 2) + " K"; }
+  });
+})();
+</script>
+</body>
+</html>

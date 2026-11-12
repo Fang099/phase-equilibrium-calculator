@@ -182,7 +182,7 @@ def _solve(req):
     hold = req.get("hold", "T")
     notes = []
     out.update(route=eq.route, calculation=eq.calculation, names=list(system.names),
-               hold=hold, azeotrope=None)
+               hold=hold, azeotrope=None, three_phase=None)
     if hold in ("T", "P"):
         d = (es.vle_diagram(L, V, T=float(req["T"]), npts=npts, spacing="ends") if hold == "T"
              else es.vle_diagram(L, V, P=float(req["P"]) * 1e5, npts=npts, spacing="ends"))
@@ -194,6 +194,27 @@ def _solve(req):
             return out
         out["columns"] = _columns(es.diagram_properties(L, V, d))
         out["fixed"] = {"T": float(req["T"])} if hold == "T" else {"P": float(req["P"])}
+        if d.three_phase:
+            tp = d.three_phase
+            val = tp["value"] / 1e5 if hold == "T" else tp["value"]
+            out["three_phase"] = {"x_alpha": float(f"{tp['x_alpha']:.5g}"),
+                                  "x_beta": float(f"{tp['x_beta']:.5g}"),
+                                  "y": float(f"{tp['y']:.5g}"),
+                                  "P" if hold == "T" else "T": float(f"{val:.6g}"),
+                                  "heteroazeotrope": tp["heteroazeotrope"]}
+            # a row in the middle of the gap: the bubble and dew curves pass
+            # through it (the three-phase line), every other column is empty,
+            # which breaks those curves across the two-liquid region
+            cols = out["columns"]
+            k = sum(1 for x in cols["x1"] if x <= tp["x_alpha"] * (1 + 1e-5) + 1e-12)
+            mid = 0.5 * (tp["x_alpha"] + tp["x_beta"])
+            for name in cols:
+                keep = {"x1": mid, "y1": cols["y1"][k], "T": cols["T"][k], "P": cols["P"][k]}
+                cols[name].insert(k, float(f"{keep[name]:.7g}") if name in keep else None)
+            notes = [n for n in notes if not n.startswith("the liquid splits")]
+            notes.append(f"This model predicts two liquid phases between x = {tp['x_alpha']:.3f} "
+                         f"and {tp['x_beta']:.3f}. Along the flat part of the bubble curve, both "
+                         f"liquids and a vapor of y = {tp['y']:.3f} coexist.")
         if d.azeotrope:
             xa, va = d.azeotrope
             out["azeotrope"] = {"x1": float(f"{xa:.5g}"),
@@ -208,7 +229,11 @@ def _solve(req):
     stab = out["columns"].get("stability") or []
     bad = [x for x, v in zip(out["columns"]["x1"], stab) if v is not None and v < 0]
     out["unstable"] = None
-    if bad and hold in ("T", "P"):
+    if hold == "x" and bad:
+        notes.append("With this model a liquid of this composition is unstable and would "
+                     "split into two liquid phases, so its bubble curve is not physical. "
+                     "Choose a composition outside the two-liquid range.")
+    if bad and hold in ("T", "P") and not out["three_phase"]:
         lo_x, hi_x = min(bad), max(bad)
         out["unstable"] = [lo_x, hi_x]
         cols = out["columns"]
@@ -262,12 +287,14 @@ def compute(req):
 
 
 def handle(message):
-    """JSON in, JSON out: {"op": "catalog"} | {"op": "pair", "a":, "b":} |
-    {"op": "compute", "request": {...}}."""
+    """JSON in, JSON out: {"op": "ping"} | {"op": "catalog"} |
+    {"op": "pair", "a":, "b":} | {"op": "compute", "request": {...}}."""
     msg = json.loads(message) if isinstance(message, str) else message
     op = msg.get("op")
     try:
-        if op == "catalog":
+        if op == "ping":
+            res = {"ok": True, "engine": "python"}
+        elif op == "catalog":
             res = catalog()
         elif op == "pair":
             res = pair_defaults(msg["a"], msg["b"])
@@ -335,6 +362,18 @@ if __name__ == "__main__":
     report("van Laar defaults matched to NRTL at infinite dilution give an azeotrope",
            r1["ok"] and r1.get("azeotrope") is not None,
            f"A12 = {d['A']['A12']}, A21 = {d['A']['A21']}, azeotrope {r1.get('azeotrope')}")
+
+    A_ = 2.6
+    r = compute({"components": ["ethanol", "water"], "model": "margules", "hold": "T", "T": 350,
+                 "params": {"A12": A_, "A21": A_}})
+    tp = r.get("three_phase") or {}
+    xa = tp.get("x_alpha", 0.5)
+    exact = abs(math.log(xa / (1 - xa)) - A_ * (2 * xa - 1))       # symmetric Margules binodal
+    report("a model that predicts two liquids gives the three-phase line (checked against "
+           "the closed-form Margules result)",
+           r["ok"] and tp and exact < 1e-3 and abs(tp["x_alpha"] + tp["x_beta"] - 1) < 1e-4
+           and r["azeotrope"] is None and tp["heteroazeotrope"],
+           f"x = {tp.get('x_alpha')} and {tp.get('x_beta')}, vapor y = {tp.get('y')}")
 
     r = compute({"components": ["n-hexane", "n-heptane"], "model": "ideal", "hold": "T", "T": 340})
     c = r["columns"]

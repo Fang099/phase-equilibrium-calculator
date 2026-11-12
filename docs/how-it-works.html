@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it works · Phase Equilibrium Calculator</title>
+<meta name="description" content="One calculation followed through the code: from the choices on the calculator page to the input file, the sufficiency check, the fugacity models, the equilibrium solver and the plot.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="assets/site.css?v=4ff9f1d86c">
+</head>
+<body class="" data-math>
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html" aria-label="Phase Equilibrium Calculator, home">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M2 19 C8 17, 14 11, 20 3" fill="none" stroke="var(--liquid)" stroke-width="2" stroke-linecap="round"/><path d="M2 19 C10 18, 17 14, 20 3" fill="none" stroke="var(--vapor)" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Phase Equilibrium Calculator</span>
+    </a>
+    <nav aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="app.html">Calculator</a>
+      <a href="concepts.html">Concepts</a>
+      <a href="how-it-works.html" aria-current="page">How it works</a>
+      <a href="examples.html">Examples</a>
+      <a href="reference.html">Reference</a>
+      <a href="https://github.com/Fang099/phase-equilibrium-calculator">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="page-head">
+    <h1>How it works</h1>
+    <p>One calculation followed through the code, from the choices on the calculator page to the curve on the screen. The ideas themselves are on the <a href="concepts.html">Concepts</a> page.</p>
+  </div>
+  <div class="layout">
+    <nav class="toc" aria-label="On this page">
+      <p>On this page</p>
+      <ol>
+        <li><a href="#overview">The pipeline</a></li>
+        <li><a href="#request">1. From choices to an input file</a></li>
+        <li><a href="#checker">2. The input checker</a></li>
+        <li><a href="#models">3. The fugacity models</a></li>
+        <li><a href="#solver">4. The equilibrium solver</a></li>
+        <li><a href="#output">5. Results and plots</a></li>
+        <li><a href="#browser">Running in the browser</a></li>
+        <li><a href="#database">The compound database</a></li>
+        <li><a href="#verification">Verification</a></li>
+        <li><a href="#limits">Limitations and next steps</a></li>
+      </ol>
+    </nav>
+
+    <main class="doc" id="main">
+      <details class="toc-mobile">
+        <summary>On this page</summary>
+        <ol>
+          <li><a href="#overview">The pipeline</a></li>
+          <li><a href="#request">1. From choices to an input file</a></li>
+          <li><a href="#checker">2. The input checker</a></li>
+          <li><a href="#models">3. The fugacity models</a></li>
+          <li><a href="#solver">4. The equilibrium solver</a></li>
+          <li><a href="#output">5. Results and plots</a></li>
+          <li><a href="#browser">Running in the browser</a></li>
+          <li><a href="#database">The compound database</a></li>
+          <li><a href="#verification">Verification</a></li>
+          <li><a href="#limits">Limitations and next steps</a></li>
+        </ol>
+      </details>
+
+      <!-- ============================================================ -->
+      <section id="overview">
+        <h2>The pipeline</h2>
+        <p>The program is a chain of Python modules. Each one takes the output of the one before, so each can be tested alone. The calculator page and the command line both feed the same chain.</p>
+        <ol class="pipeline">
+          <li><h4>Input checker<code>input_checker.py</code></h4><p>Reads a plain-text description of the mixture, converts units, fills in database values, and decides whether the information is sufficient and which calculation it implies.</p></li>
+          <li><h4>Thermodynamic models<code>thermo_models.py</code></h4><p>Builds one object per phase. Each object answers one question: what is the fugacity of every compound at this \(T\), \(P\) and composition?</p></li>
+          <li><h4>Equilibrium solver<code>equilibrium_solver.py</code></h4><p>Finds the states where fugacities match between phases, and sweeps them into diagrams and tables.</p></li>
+          <li><h4>Output<code>plotter.py</code> · <code>web_api.py</code></h4><p>Draws figures with Matplotlib from the command line, or returns numbers as JSON for the charts on the calculator page.</p></li>
+        </ol>
+        <p>Supporting files: <code>compound_db.py</code> and <code>data/compounds.json</code> (the property database), and <code>numerics.py</code> (root finders used when SciPy is not available).</p>
+        <p>The rest of this page follows one request: <b>ethanol and water, NRTL model, a Txy diagram at 1.01325 bar</b>.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="request">
+        <h2>1. From choices to an input file</h2>
+        <p>The calculator page does no thermodynamics. It collects the choices into a small request and passes it to <code>web_api.compute()</code>:</p>
+        <pre id="walk-request"></pre>
+        <p><code>web_api.build_input()</code> turns the request into the same kind of input file a person would write for the command-line program. Parameters the user has not touched come from the database; anything changed with a slider is written in explicitly.</p>
+        <pre id="walk-input"></pre>
+        <p>From here on, the website and the command line run exactly the same code. The calculator shows this file, and the report below, under "Input file and checker report".</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="checker">
+        <h2>2. The input checker</h2>
+        <p><code>check_input(text)</code> works through the file in five steps.</p>
+        <ol>
+          <li><b>Parse.</b> Each line is a quantity, an optional target (a compound or a pair) and a value with a unit. Unknown names get a spelling suggestion.</li>
+          <li><b>Convert units</b> to SI: kelvin, pascal, joule per mole, kilogram per mole.</li>
+          <li><b>Fill from the database.</b> With <code>database = builtin</code>, any property the file does not give is looked up: \(T_c\), \(P_c\), \(\omega\), molar mass, Antoine constants, and the pair's NRTL parameters or \(k_{12}\). Values written in the file always win.</li>
+          <li><b>Choose a route</b> for each possible equilibrium. If an equation of state was requested and its constants are complete, it is used for both phases. Otherwise the checker looks for a vapor-pressure source for each compound and uses the activity model for the liquid.</li>
+          <li><b>Count degrees of freedom</b> with the phase rule and compare with what was specified. Here \(F = 2 + 2 - 2 = 2\): the pressure is given and the composition is swept, so the problem is exactly specified.</li>
+        </ol>
+        <p>The verdict is one of four words. <b>SUFFICIENT</b> means it can be solved. <b>INSUFFICIENT</b> lists what is missing. <b>OVERSPECIFIED</b> says how many variables to remove. <b>INVALID</b> points at a mistake in the input. This is the actual report for the request above:</p>
+        <pre id="walk-report"></pre>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="models">
+        <h2>3. The fugacity models</h2>
+        <p><code>build_system(text)</code> creates two objects for this request: a liquid and a vapor. Every phase object has the same method, <code>ln_f(T, P, x)</code>, which returns \(\ln \hat f_i\) for each compound. The solver never needs to know which model is behind it.</p>
+        <div class="table-wrap">
+          <table class="keep-first">
+            <thead><tr><th>Phase object</th><th>Used for</th><th>\(\ln\hat f_i\)</th></tr></thead>
+            <tbody>
+              <tr><td><code>SolutionLiquid</code></td><td>Liquid with an activity model (or ideal)</td><td>\(\ln x_i + \ln\gamma_i + \ln f_i^{L}\)</td></tr>
+              <tr><td><code>IdealGasPhase</code></td><td>Vapor on the activity route</td><td>\(\ln(y_i P)\)</td></tr>
+              <tr><td><code>EOSPhase</code></td><td>Liquid or vapor from a cubic equation of state</td><td>\(\ln x_i + \ln\hat\varphi_i + \ln P\)</td></tr>
+              <tr><td><code>PureSolidPhase</code></td><td>A pure solid (command-line program)</td><td>\(\ln f_i^{L} + \ln(f_i^{S}/f_i^{L})\)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Activity route (this example)</h3>
+        <p>The pure-liquid fugacity \(f_i^{L}\) is the vapor pressure from the Antoine equation, multiplied by a Poynting correction \(\exp[V_i^{L}(P - P_i^{\mathrm{sat}})/RT]\) when a liquid volume is given. \(\ln\gamma_i\) comes from the <code>NRTL</code> class, which holds the model's \(G^{E}\) and its analytic derivatives. <code>Margules</code> and <code>VanLaar</code> have the same two methods, <code>ge_rt</code> and <code>ln_gamma</code>.</p>
+        <h3>Equation-of-state route</h3>
+        <p><code>CubicEOS</code> stores van der Waals, SRK and Peng–Robinson as one residual Helmholtz energy with two constants:</p>
+        \[ \frac{A^{\mathrm{res}}}{NRT} = -\ln\!\left(1-\frac{b}{v}\right) - \frac{a}{bRT(\delta_1-\delta_2)}\,\ln\frac{v+\delta_1 b}{v+\delta_2 b} . \]
+        <p>Pressure and \(\ln\hat\varphi_i\) are coded as its exact derivatives, and the tests compare them with numerical derivatives of this function. To evaluate at a given \(T\) and \(P\), the cubic for \(Z\) is solved in closed form (Cardano's formula, then two Newton steps to polish), and the smallest or largest root is taken for liquid or vapor.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="solver">
+        <h2>4. The equilibrium solver</h2>
+        <h3>One bubble point</h3>
+        <p>A Txy diagram is a row of bubble points. For one liquid composition \(\mathbf x\) at the given pressure, the unknowns are the temperature and the vapor composition. The solver works with K-values, \(K_i = y_i/x_i = \hat\varphi_i^{L}/\hat\varphi_i^{V}\), and a material balance for a feed \(\mathbf z\) of which a fraction \(\beta\) is vapor (the Rachford–Rice equation):</p>
+        \[ \sum_i \frac{z_i\,(K_i-1)}{1+\beta\,(K_i-1)} = 0 . \]
+        <p>With \(\beta = 0\) this is a bubble point and with \(\beta = 1\) a dew point, so one routine, <code>saturation()</code>, does both:</p>
+        <ol>
+          <li>Guess the temperature from K-values that ignore composition (Wilson's correlation for an equation of state, the ideal-solution value otherwise).</li>
+          <li>At a trial temperature, compute the vapor composition from the current K-values, recompute the K-values from the two phase models, and repeat until they stop changing.</li>
+          <li>Evaluate the Rachford–Rice sum. Step outward from the guess until it changes sign, then close in with Brent's method.</li>
+          <li>For an equation of state, reject a result where liquid and vapor came out identical (the "trivial solution" near a critical point).</li>
+        </ol>
+        <h3>The diagram</h3>
+        <p><code>vle_diagram()</code> repeats this across the composition range, each point starting from the previous answer. For the website, the points are spaced more closely near the pure compounds, where the curves are steepest. Each bubble point also gives one point of the dew curve, since the vapor it finds is a vapor at its dew point.</p>
+        <p>Afterwards two checks run on the result:</p>
+        <ul>
+          <li><b>Azeotrope.</b> If \(y_1 - x_1\) changes sign between two neighboring points, the exact composition where \(y_1 = x_1\) is found by Brent's method.</li>
+          <li><b>Liquid stability.</b> The second derivative of the Gibbs energy is evaluated at every point. If it is negative anywhere, the model predicts two liquid layers. The solver then looks for two liquid compositions whose bubble points share the same vapor and the same temperature, refines them with a two-variable root finder, removes the unphysical points between them and inserts the three-phase line.</li>
+        </ul>
+        <h3>Everything else along the curve</h3>
+        <p><code>diagram_properties()</code> then evaluates, at each point, the K-values, relative volatility, activity coefficients, fugacities, fugacity coefficients, \(G^{E}/RT\), the Gibbs energy of mixing and the stability function. Fugacities are computed from the liquid side and from the vapor side; they agree, which is the equilibrium condition itself. This table is what "plot any variable against any other" draws from.</p>
+        <h3>Other calculations in the same module</h3>
+        <dl class="terms">
+          <dt>P–T diagram</dt><dd><code>pt_envelope()</code> holds the composition and steps through temperature, solving a bubble and a dew pressure at each. Each guess is extrapolated from the last two points, using the fact that \(\ln P\) is nearly linear in \(1/T\).</dd>
+          <dt>Flash</dt><dd><code>flash_TP()</code> fixes \(T\) and \(P\) and solves the Rachford–Rice equation for the vapor fraction, for any number of compounds.</dd>
+          <dt>Solid–liquid</dt><dd>One equation, liquid fugacity equals solid fugacity, solved for temperature or composition; the eutectic is where two such curves meet.</dd>
+          <dt>Fields</dt><dd><code>column_profile()</code> marches along height or radius, solving \(\ln\hat f_i + M_i\Phi/RT = \text{constant}\) for pressure and composition at each position, and switches phase where the fluid reaches saturation.</dd>
+        </dl>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="output" class="wide">
+        <div class="measure">
+          <h2>5. Results and plots</h2>
+          <p>For the example, the solver returns <span data-v="walkthrough.n" data-d="0"></span> points and an azeotrope at \(x\) = <span data-v="walkthrough.azeotrope.x1" data-d="3"></span>, <span data-v="walkthrough.azeotrope.T" data-d="2"></span> K. The measured azeotrope is at about 0.894 and 351.3 K. Every fifth row of the table:</p>
+        </div>
+        <div class="table-wrap" id="walk-table"></div>
+        <div class="measure">
+          <p>On the website, <code>web_api.py</code> converts this to bar and JSON, and the page draws it as SVG. From the command line, <code>plotter.py</code> draws the same results with Matplotlib and saves PNG files, including 3D surfaces. Neither does any thermodynamics.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="browser">
+        <h2>Running in the browser</h2>
+        <p>The calculator runs the Python modules themselves, not a copy written in JavaScript. A background worker loads <a href="https://pyodide.org/">Pyodide</a> (Python compiled to WebAssembly) and NumPy, fetches the module files from the site's <code>py/</code> folder, and calls <code>web_api.handle()</code> with each request. Nothing is sent to a server.</p>
+        <p>Two things make this practical:</p>
+        <ul>
+          <li><b>No SciPy needed.</b> The solver uses only two SciPy routines, <code>brentq</code> and <code>fsolve</code>. <code>numerics.py</code> has plain-Python versions of both, used automatically when SciPy is absent. SciPy would be by far the largest download, so the calculator starts sooner without it. The test suite passes with either.</li>
+          <li><b>Fast inner loops.</b> The cubic is solved in closed form, and the mixing rules are evaluated once per fugacity call.</li>
+        </ul>
+        <p>For use without an internet connection, run <code>python scripts/dev_server.py</code> and open <code>http://localhost:8000/</code>. The page detects the local server and sends its requests there, to the same <code>web_api.handle()</code> running in ordinary Python.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="database">
+        <h2>The compound database</h2>
+        <p><code>data/compounds.json</code> is generated by <code>scripts/build_compound_db.py</code>, so no value is typed by hand. The script reads the list of wanted compounds from <code>data/compound_list.csv</code> (name, formula, CAS number) and looks each one up by CAS number in published tables distributed with the open-source <code>chemicals</code> and <code>thermo</code> libraries. Every value is stored with a tag naming its source.</p>
+        <p>To add a compound, add one row to the CSV file and run the script again. The <a href="reference.html#data">Reference</a> page lists the compounds, the sources and the full citations.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="verification">
+        <h2>Verification</h2>
+        <p>Each module runs its own tests when executed directly. They compare against exact identities, closed-form results and independent routes, not against the code's own earlier output.</p>
+        <div class="table-wrap">
+          <table class="results">
+            <thead><tr><th>Check</th><th>Result</th></tr></thead>
+            <tbody>
+              <tr><td>Equation-of-state pressure and \(\ln\hat\varphi_i\) against numerical derivatives of \(A^{\mathrm{res}}\)</td><td>About \(10^{-9}\)</td></tr>
+              <tr><td>\(\sum_i x_i \ln\hat\varphi_i = A^{\mathrm{res}}/NRT + Z - 1 - \ln Z\)</td><td>Machine precision</td></tr>
+              <tr><td>Activity models: \(\ln\gamma_i\) against numerical derivatives of \(nG^{E}/RT\), and the Gibbs–Duhem equation</td><td>About \(10^{-11}\)</td></tr>
+              <tr><td>Equal fugacities written three ways: \(\hat f_1\), \(y_1P\) and \(x_1\gamma_1 f_1^{L}\)</td><td>Identical</td></tr>
+              <tr><td>Ends of a Pxy diagram equal the pure vapor pressures</td><td>Exact</td></tr>
+              <tr><td>Bubble point, then dew point of that vapor, returns the starting state</td><td><span data-v="verification.roundtrip_err" data-e="1"></span></td></tr>
+              <tr><td>Flash: material balance and equal fugacities</td><td><span data-v="verification.flash_mb" data-e="1"></span>, <span data-v="verification.flash_lnf" data-e="1"></span></td></tr>
+              <tr><td>Azeotrope: \(x = y\) and bubble temperature equals dew temperature</td><td>Exact</td></tr>
+              <tr><td>Three-phase line: fugacities equal in both liquids and the vapor</td><td><span data-v="verification.three_phase_mismatch" data-e="1"></span></td></tr>
+              <tr><td>Three-phase line for symmetric Margules against its closed-form solution</td><td>Exact</td></tr>
+              <tr><td>Freezing point, eutectic, boiling point with a non-volatile compound, against closed-form results</td><td>Exact</td></tr>
+              <tr><td>Gravity: pressure against \(\int\rho g\,dz\) over a <span data-v="verification.hydro_drop_bar" data-d="2"></span> bar drop</td><td><span data-v="verification.hydro_err_bar" data-e="1"></span> bar</td></tr>
+              <tr><td>Field profile independent of the number of grid points</td><td>Identical</td></tr>
+              <tr><td>Whole suite with SciPy and with the built-in root finders</td><td>Both pass</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Four results meet measured data: propane's vapor pressure at 300 K (Peng–Robinson within 0.1%), the ethanol–water azeotrope, the benzene–naphthalene eutectic and the 1-butanol–water heterogeneous azeotrope. A systematic comparison with experimental data sets is the next stage of the project.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="limits">
+        <h2>Limitations and next steps</h2>
+        <h3>Limitations</h3>
+        <ul>
+          <li>On the activity route the vapor is an ideal gas, so that route is for low to moderate pressure.</li>
+          <li>Margules and van Laar parameters are constants. Only NRTL carries a temperature dependence.</li>
+          <li>Antoine constants are fitted over a limited temperature range. Outside it the vapor pressure is extrapolated, and the calculator says so.</li>
+          <li>Equations of state use van der Waals mixing rules with one \(k_{12}\). That suits hydrocarbons and is poor for polar mixtures.</li>
+          <li>Near a mixture critical point, bubble and dew calculations with an equation of state can fail. The curves stop there and a note is shown.</li>
+          <li>When a model predicts two liquids, the three-phase line is calculated but the liquid–liquid boundary away from it is not.</li>
+          <li>Diagrams are for two compounds. Flash and single bubble or dew points work for any number.</li>
+        </ul>
+        <h3>Next steps</h3>
+        <ul>
+          <li>Comparison with experimental data sets, with deviations reported and parameters fitted.</li>
+          <li>Full liquid–liquid equilibrium.</li>
+          <li>Ternary diagrams.</li>
+          <li>A larger compound database, and gravity and centrifugal fields in the calculator page.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</div>
+
+<footer class="site">
+  <div class="inner">
+    <!-- Add your team members' names and the course code here. -->
+    <span>Phase Equilibrium Calculator: a course project for Chemical Engineering Thermodynamics.</span>
+    <span><a href="reference.html#data">Data sources</a> · <a href="https://github.com/Fang099/phase-equilibrium-calculator">Source code</a></span>
+  </div>
+</footer>
+
+<script src="assets/vendor/katex/katex.min.js"></script>
+<script src="assets/vendor/katex/auto-render.min.js"></script>
+<script src="assets/charts.js?v=4ff9f1d86c"></script>
+<script src="assets/data.js?v=4ff9f1d86c"></script>
+<script>
+(function () {
+  var D = window.PEC_DATA, W = D.walkthrough, $ = function (id) { return document.getElementById(id); };
+  PEC.bindNumbers(D);
+  $("walk-request").textContent = JSON.stringify(W.request, null, 2);
+  $("walk-input").textContent = W.input_text;
+  $("walk-report").textContent = W.report;
+  var cols = [["x1", "x ethanol", 4], ["y1", "y ethanol", 4], ["T", "T (K)", 2], ["gamma1", "γ ethanol", 3], ["gamma2", "γ water", 3],
+    ["f1", "f ethanol (bar)", 4], ["f2", "f water (bar)", 4], ["K1", "K ethanol", 3], ["K2", "K water", 3]];
+  PEC.dataTable("walk-table", cols.map(function (c) { return c[1]; }),
+    W.rows.map(function (r) { return cols.map(function (c) { return PEC.fmt(r[c[0]], c[2]); }); }));
+})();
+</script>
+</body>
+</html>

@@ -7,29 +7,45 @@
   var query = new URLSearchParams(location.search);
 
   /* ------------------------------------------------------------ engine */
+  /* Two ways to reach the same Python code (web_api.handle):
+     - normally, a Web Worker runs it in the browser with Pyodide;
+     - when the page is served by scripts/dev_server.py on this computer, requests
+       go to that server instead, so the calculator also works with no internet.
+     ?engine=pyodide or ?engine=http forces one of them. */
   function Engine(onStatus, onFatal) {
-    var self = this;
-    this.local = query.get("engine") === "http";
-    if (this.local) {
-      this.ready = Promise.resolve();
-      this.call = function (msg) {
-        return fetch("/api", { method: "POST", body: JSON.stringify(msg) }).then(function (r) { return r.json(); });
-      };
-      return;
+    var self = this, forced = query.get("engine");
+    var onLocalhost = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+    this.local = false;
+    function viaHttp(msg) {
+      return fetch("/api", { method: "POST", body: JSON.stringify(msg) }).then(function (r) {
+        if (!r.ok) throw new Error("no local engine");
+        return r.json();
+      });
     }
-    var worker = new Worker("assets/worker.js"), pending = {}, seq = 0, readyResolve;
-    this.ready = new Promise(function (res) { readyResolve = res; });
-    worker.onmessage = function (e) {
-      var d = e.data;
-      if (d.type === "status") onStatus(d.text);
-      else if (d.type === "ready") readyResolve();
-      else if (d.type === "fatal") onFatal(d.error);
-      else if (d.type === "result" && pending[d.id]) { pending[d.id](d.result); delete pending[d.id]; }
-    };
-    worker.onerror = function (e) { onFatal(e.message || "the worker stopped"); };
-    this.call = function (msg) {
-      return new Promise(function (res) { var id = ++seq; pending[id] = res; worker.postMessage({ id: id, msg: msg }); });
-    };
+    function startWorker() {
+      var worker = new Worker("assets/worker.js"), pending = {}, seq = 0;
+      worker.onmessage = function (e) {
+        var d = e.data;
+        if (d.type === "status") onStatus(d.text);
+        else if (d.type === "fatal") onFatal(d.error);
+        else if (d.type === "result" && pending[d.id]) { pending[d.id](d.result); delete pending[d.id]; }
+      };
+      worker.onerror = function (e) { onFatal(e.message || "the worker stopped"); };
+      return function (msg) {
+        return new Promise(function (res) { var id = ++seq; pending[id] = res; worker.postMessage({ id: id, msg: msg }); });
+      };
+    }
+    var impl;
+    if (forced === "http" || (onLocalhost && forced !== "pyodide")) {
+      impl = viaHttp({ op: "ping" }).then(function (r) {
+        if (!r || !r.ok) throw new Error("no local engine");
+        self.local = true;
+        return viaHttp;
+      }).catch(function () { return startWorker(); });
+    } else {
+      impl = Promise.resolve(startWorker());
+    }
+    this.call = function (msg) { return impl.then(function (f) { return f(msg); }); };
   }
 
   /* ------------------------------------------------------------ definitions */
@@ -315,11 +331,13 @@
     if (!res.ok) {
       overlay("This case could not be calculated", res.error || "", true);
       $("timing").textContent = ""; $("route").textContent = "";
+      $("facts").innerHTML = ""; $("notice").hidden = true;      // nothing from the previous case stays on screen
       return;
     }
     $("overlay").hidden = true;
     last = { res: res, req: req, view: view };
     plot(res, view);
+    $("about-plot").href = "concepts.html#" + aboutAnchor(view);
     $("route").textContent = res.route.charAt(0).toUpperCase() + res.route.slice(1);
     $("timing").className = "";
     $("timing").textContent = res.columns.x1.length + " points · " + res.ms + " ms · " +
@@ -328,6 +346,16 @@
     var notes = (res.notes || []).filter(function (n) { return n.indexOf("azeotrope at") !== 0; });
     $("notice").hidden = !notes.length; $("notice").textContent = notes.join(" ");
     drawTable(res);
+  }
+  /* the section of the Concepts page that explains the current plot */
+  function aboutAnchor(view) {
+    var Y = view.y;
+    if (!isComp(view.x)) return "pt";
+    if (Y === "gamma" || Y === "lngamma" || Y === "GE") return "activity";
+    if (Y === "f" || Y === "phiL" || Y === "phiV") return "fugacity";
+    if (Y === "K" || Y === "alpha") return "kvalues";
+    if (Y === "Gmix" || Y === "stab") return "two-liquids";
+    return "diagrams";
   }
   function axisTitle(v) {
     var a = lower(nameA());
@@ -405,6 +433,13 @@
     if (Y === "lngamma" || Y === "GE" || Y === "f") cfg.yOpts = { include: 0 };
     if (Y === "lngamma" || Y === "GE" || Y === "stab") cfg.hlines.push({ y: 0 });
     if (Y === "stab") cfg.yOpts = { include: 0 };
+    var tp = res.three_phase;
+    if (tp && isComp(X) && (Y === "P" || Y === "T" || Y === "y1")) {
+      var lv = Y === "y1" ? tp.y : (tp.P != null ? tp.P : tp.T);
+      if (X !== "y1") cfg.series.push({ name: "Two liquids and vapor", color: "--third", width: 3, noHover: true, pts: [[tp.x_alpha, lv], [tp.x_beta, lv]] });
+      if (Y !== "y1") cfg.points.push({ x: tp.y, y: lv, color: "--third" });
+      items.push({ name: "Two liquids and vapor coexist", color: "--third" });
+    }
     var az = res.azeotrope;
     if (az && isComp(X) && (Y === "P" || Y === "T" || Y === "y1")) {
       cfg.points.push({ x: az.x1, y: Y === "y1" ? az.x1 : (az.P != null ? az.P : az.T), color: "--ink-2" });
@@ -426,7 +461,7 @@
     function add(k, v) { out.push("<li><span class='k'>" + k + "</span><span class='v'>" + v + "</span></li>"); }
     if (res.azeotrope) {
       add("Azeotrope", "x = " + PEC.fmt(res.azeotrope.x1, 3) + " at " + (res.azeotrope.P != null ? PEC.sig(res.azeotrope.P, 4) + " bar" : PEC.fmt(res.azeotrope.T, 2) + " K"));
-    } else if (res.hold !== "x" && full) add("Azeotrope", "none");
+    } else if (res.hold !== "x" && full && !res.three_phase) add("Azeotrope", "none");
     if (res.hold === "T" && full) {
       add("Vapor pressure of " + a, PEC.sig(c.P[n - 1], 4) + " bar"); add("Vapor pressure of " + b, PEC.sig(c.P[0], 4) + " bar");
     } else if (res.hold === "P" && full) {
@@ -437,6 +472,12 @@
     }
     if (res.hold === "x") add("Composition", PEC.fmt(res.fixed.x1, 3) + " " + a);
     if (res.unstable) add("Liquid unstable", "x from " + PEC.fmt(res.unstable[0], 2) + " to " + PEC.fmt(res.unstable[1], 2));
+    if (res.three_phase) {
+      var t3 = res.three_phase;
+      add("Two liquid phases", "x = " + PEC.fmt(t3.x_alpha, 3) + " and " + PEC.fmt(t3.x_beta, 3));
+      add(t3.heteroazeotrope ? "Heterogeneous azeotrope" : "Vapor with both liquids",
+        "y = " + PEC.fmt(t3.y, 3) + " at " + (t3.P != null ? PEC.sig(t3.P, 4) + " bar" : PEC.fmt(t3.T, 2) + " K"));
+    }
     $("facts").innerHTML = out.join("");
   }
   var TABLE_COLS = [["x1", "x₁", 4], ["y1", "y₁", 4], ["T", "T (K)", 2], ["P", "P (bar)", 4], ["P_dew", "P dew (bar)", 4], ["K1", "K₁", 4], ["K2", "K₂", 4],

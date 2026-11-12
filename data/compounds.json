@@ -7,10 +7,10 @@
    "thermo": "2bb466e98439c2395a004e7095d07f9b97a5a0f0 2026-07-12"
   },
   "sources": {
-   "psrk4": "Horstmann, S., Jablonec, A., Krafczyk, J., Fischer, K., Gmehling, J. PSRK group contribution equation of state: comprehensive revision and extension IV, including critical constants and alpha-function parameters for 1000 components. Fluid Phase Equilibria 227 (2005) 157-164. Read from the chemicals library data files.",
+   "psrk4": "Horstmann, S., Jab\u0142oniec, A., Krafczyk, J., Fischer, K., Gmehling, J. PSRK group contribution equation of state: comprehensive revision and extension IV, including critical constants and alpha-function parameters for 1000 components. Fluid Phase Equilibria 227 (2005) 157-164. Read from the chemicals library data files.",
    "poling": "Poling, B. E., Prausnitz, J. M., O'Connell, J. P. The Properties of Gases and Liquids, 5th ed., McGraw-Hill, 2001, Appendix A. Read from the chemicals library data files, which store log10(P/Pa) = A - B/(T/K + C).",
-   "chemsep_nrtl": "ChemSep binary interaction parameter library (Kooijman, H., Taylor, R.), 'DECHEMA NRTL at P = 1 atm', Artistic License 2.0. Read from the thermo library data files (b_ij in K, tau_ij = b_ij / T).",
-   "chemsep_pr": "ChemSep binary interaction parameter library (Kooijman, H., Taylor, R.), 'DECHEMA Peng-Robinson parameters', Artistic License 2.0. Read from the thermo library data files.",
+   "chemsep_nrtl": "ChemSep interaction parameter data, file 'DECHEMA NRTL at P = 1 atm' (copyright 2008 H. Kooijman and R. Taylor, Artistic License 2.0). The file gives A12 and A21 in cal/mol with tau_ij = A_ij / RT; read from the thermo library data files and converted to J/mol.",
+   "chemsep_pr": "ChemSep interaction parameter data, file 'DECHEMA Peng-Robinson Parameters' (copyright 2009 H. Kooijman and R. Taylor, Artistic License 2.0). Read from the thermo library data files.",
    "iupac_aw": "Molar mass from the molecular formula and IUPAC abridged standard atomic weights (2021).",
    "derived": "Calculated here: temperature at which the Antoine equation gives 101 325 Pa.",
    "libraries": "Bell, C. and contributors. chemicals: Chemical properties component of Chemical Engineering Design Library (ChEDL), and thermo: Chemical properties component of ChEDL. https://github.com/CalebBell/chemicals, https://github.com/CalebBell/thermo (MIT License)."

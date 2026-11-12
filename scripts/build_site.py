@@ -5,13 +5,17 @@ Run it after changing any Python module or the compound database:
 
     python scripts/build_site.py
 
-It does three things:
+It does four things:
   1. copies the Python modules and data/compounds.json into docs/py/, where
      the calculator page loads them to run in the browser (Pyodide);
   2. recomputes the numbers and chart data shown on the static pages and
      writes them to docs/assets/data.js;
-  3. redraws the gallery images in docs/img/ with plotter.py.
-Nothing on the site is typed in by hand, so it cannot drift from the code.
+  3. redraws the gallery images in docs/img/ with plotter.py;
+  4. renders the pages in site/pages/ through site/layout.html into docs/,
+     so every page has the same header, navigation and footer.
+No number on the site is typed in by hand, so it cannot drift from the code.
+
+    python scripts/build_site.py --pages     # step 4 only (after editing text)
 """
 
 import json
@@ -32,6 +36,79 @@ from input_checker import DEMOS, check_input                      # noqa: E402
 from thermo_models import CubicEOS, build_system, R               # noqa: E402
 import equilibrium_solver as es                                   # noqa: E402
 import web_api                                                    # noqa: E402
+
+# ------------------------------------------------- 4. pages (defined first)
+NAV = [("index.html", "Home"), ("app.html", "Calculator"), ("concepts.html", "Concepts"),
+       ("how-it-works.html", "How it works"), ("examples.html", "Examples"),
+       ("reference.html", "Reference")]
+REPO_URL = "https://github.com/Fang099/phase-equilibrium-calculator"
+
+
+def asset_version():
+    h = hashlib.sha1()
+    for folder in ("docs/assets", "docs/py", "site"):
+        for base, _dirs, files in sorted(os.walk(os.path.join(ROOT, folder))):
+            if "vendor" in base:
+                continue
+            for f in sorted(files):
+                with open(os.path.join(base, f), "rb") as fh:
+                    h.update(fh.read())
+    return h.hexdigest()[:10]
+
+
+def render_pages():
+    """site/pages/*.html + site/layout.html -> docs/*.html.
+
+    Each page starts with a comment holding its settings as JSON, e.g.
+        <!-- {"title": "Concepts", "description": "...", "math": true, "data": true} -->
+    Text after a line containing only <!-- scripts --> is placed after the
+    shared scripts, so page scripts can use the chart library."""
+    with open(os.path.join(ROOT, "site", "layout.html"), encoding="utf-8") as fh:
+        layout = fh.read()
+    version = asset_version()
+    pages_dir = os.path.join(ROOT, "site", "pages")
+    for fn in sorted(os.listdir(pages_dir)):
+        if not fn.endswith(".html"):
+            continue
+        with open(os.path.join(pages_dir, fn), encoding="utf-8") as fh:
+            src = fh.read()
+        m = re.match(r"\s*<!--\s*(\{.*?\})\s*-->\n", src, re.S)
+        if not m:
+            sys.exit(f"site/pages/{fn}: missing the settings comment on the first line")
+        meta = json.loads(m.group(1))
+        body, _, page_scripts = src[m.end():].partition("<!-- scripts -->")
+        nav = "\n".join(
+            f'      <a href="{href}"' + (' aria-current="page"' if href == fn else "") + f">{label}</a>"
+            for href, label in NAV) + f'\n      <a href="{REPO_URL}">GitHub</a>'
+        head, libs = [], [f'<script src="assets/charts.js?v={version}"></script>']
+        if meta.get("math"):
+            head.append('<link rel="stylesheet" href="assets/vendor/katex/katex.min.css">')
+            libs.insert(0, '<script src="assets/vendor/katex/auto-render.min.js"></script>')
+            libs.insert(0, '<script src="assets/vendor/katex/katex.min.js"></script>')
+        if meta.get("data"):
+            libs.append(f'<script src="assets/data.js?v={version}"></script>')
+        for sc in meta.get("scripts", []):
+            libs.append(f'<script src="{sc}?v={version}"></script>')
+        title = meta["title"]
+        full_title = title if fn == "index.html" else f"{title} · Phase Equilibrium Calculator"
+        out = (layout.replace("{{title}}", full_title)
+               .replace("{{description}}", meta.get("description", ""))
+               .replace("{{head}}", "\n".join(head))
+               .replace("{{body_class}}", meta.get("body_class", ""))
+               .replace("{{math_attr}}", " data-math" if meta.get("math") else "")
+               .replace("{{nav}}", nav)
+               .replace("{{repo}}", REPO_URL)
+               .replace("{{version}}", version)
+               .replace("{{body}}", body.strip("\n"))
+               .replace("{{scripts}}", "\n".join(libs) + "\n" + page_scripts.strip("\n")))
+        with open(os.path.join(ROOT, "docs", fn), "w", encoding="utf-8") as fh:
+            fh.write(out.rstrip("\n") + "\n")
+    print(f"rendered {len(os.listdir(pages_dir))} pages into docs/ (asset version {version})")
+
+
+if "--pages" in sys.argv:
+    render_pages()
+    sys.exit(0)
 
 # ------------------------------------------------- 1. modules for the browser
 WEB_FILES = ["input_checker.py", "thermo_models.py", "equilibrium_solver.py", "numerics.py",
@@ -236,13 +313,52 @@ data["acetone_chloroform"] = {"azeotrope": ac["azeotrope"],
 ewP = run(components=ew, model="nrtl", hold="P", P=1.01325)
 data["ew_azeotrope_1atm"] = ewP["azeotrope"]
 
+# positive deviation large enough to split the liquid: 1-butanol / water
+bw = run(components=["1-butanol", "water"], model="nrtl", hold="P", P=1.01325)
+data["butanol_water"] = {k: bw["columns"][k] for k in ("x1", "y1", "T")}
+data["butanol_water"]["three_phase"] = bw["three_phase"]
+
+# negative deviation curve for the figure
+ac323 = run(components=["acetone", "chloroform"], model="nrtl", hold="T", T=323.15)
+data["acetone_chloroform"]["T"] = 323.15
+data["acetone_chloroform"].update({k: ac323["columns"][k] for k in ("x1", "y1", "P", "gamma1", "gamma2")})
+data["acetone_chloroform"]["azeotrope_T"] = ac323["azeotrope"]
+
+# one calculator request followed through the code (How it works page)
+walk_req = {"components": ["ethanol", "water"], "model": "nrtl", "hold": "P", "P": 1.01325}
+walk = run(**walk_req)
+wc = walk["columns"]
+rows = [i for i in range(0, len(wc["x1"]), 5)]
+data["walkthrough"] = {
+    "request": walk_req, "input_text": walk["input_text"], "report": walk["report"],
+    "route": walk["route"], "calculation": walk["calculation"], "azeotrope": walk["azeotrope"],
+    "n": len(wc["x1"]),
+    "rows": [{k: wc[k][i] for k in ("x1", "y1", "T", "gamma1", "gamma2", "f1", "f2", "K1", "K2")}
+             for i in rows],
+}
+
+# three-phase check for the verification table
+sysT = build_system(web_api.build_input({"components": ["1-butanol", "water"], "model": "nrtl",
+                                         "hold": "P", "P": 1.01325}))
+LT, VT = sysT.equilibria[0].phases
+dT = es.vle_diagram(LT, VT, P=101325.0, npts=41, spacing="ends")
+tp = dT.three_phase
+fa = LT.ln_f(tp["value"], 101325.0, [tp["x_alpha"], 1 - tp["x_alpha"]])
+fb = LT.ln_f(tp["value"], 101325.0, [tp["x_beta"], 1 - tp["x_beta"]])
+fv = VT.ln_f(tp["value"], 101325.0, [tp["y"], 1 - tp["y"]])
+data["verification"]["three_phase_mismatch"] = float(
+    f"{max(np.max(np.abs(fa - fb)), np.max(np.abs(fa - fv))):.1e}")
+
 cat = web_api.catalog()
 data["database"] = {"n_compounds": len(cat["compounds"]),
                     "n_nrtl": sum(1 for p_ in cat["pairs"] if p_["nrtl"]),
                     "n_kij": sum(1 for p_ in cat["pairs"] if p_["kij_pr"]),
-                    "compounds": [{"name": c["name"], "formula": c["formula"], "cas": c["cas"],
+                    "compounds": [{"id": c["id"], "name": c["name"], "formula": c["formula"],
+                                   "cas": c["cas"], "family": c["family"], "M": c["M"],
                                    "Tc": c["Tc"], "Pc": r(c["Pc_bar"], 2), "omega": c["omega"],
-                                   "Tb": c["Tb"]} for c in cat["compounds"]],
+                                   "Tb": c["Tb"], "antoine": c["antoine"]}
+                                  for c in cat["compounds"]],
+                    "pairs": cat["pairs"],
                     "sources": cat["sources"], "generated": cat["generated"]}
 
 # ------------------------------------------------------ write the data file
@@ -255,3 +371,5 @@ print(json.dumps({k: v for k, v in data.items()
                   if k in ("psat_propane_300K", "verification", "ew_azeotrope_1atm")}, indent=1))
 print("eutectic", data["latent"]["eutectic"], "azeotrope (van Laar)", data["azeo"]["azeotrope"],
       "contact", zc, Pc)
+
+render_pages()

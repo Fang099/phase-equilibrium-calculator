@@ -1,0 +1,270 @@
+<!-- {"title": "Examples", "math": true, "data": true, "description": "Worked examples computed by the Python program: three equations of state, a complete phase diagram from latent heats, an azeotrope, a column in gravity, a centrifuge, and the plots it draws."} -->
+<div class="wrap">
+  <div class="page-head">
+    <h1>Examples</h1>
+    <p>Cases computed by the Python program from the input files in the repository's <code>examples/</code> folder. Several go beyond what the calculator page offers: solids, gravity and a centrifuge.</p>
+  </div>
+  <div class="layout">
+    <nav class="toc" aria-label="On this page">
+      <p>On this page</p>
+      <ol>
+        <li><a href="#eos">Three equations of state</a></li>
+        <li><a href="#latent">A diagram from latent heats</a></li>
+        <li><a href="#azeotrope">An azeotrope from two parameters</a></li>
+        <li><a href="#database">Using the database</a></li>
+        <li><a href="#gravity">A 500 m column in gravity</a></li>
+        <li><a href="#centrifuge">A centrifuge</a></li>
+        <li><a href="#gallery">Plots from the Python program</a></li>
+      </ol>
+    </nav>
+
+    <main class="doc" id="main">
+      <details class="toc-mobile">
+        <summary>On this page</summary>
+        <ol>
+          <li><a href="#eos">Three equations of state</a></li>
+          <li><a href="#latent">A diagram from latent heats</a></li>
+          <li><a href="#azeotrope">An azeotrope from two parameters</a></li>
+          <li><a href="#database">Using the database</a></li>
+          <li><a href="#gravity">A 500 m column in gravity</a></li>
+          <li><a href="#centrifuge">A centrifuge</a></li>
+          <li><a href="#gallery">Plots from the Python program</a></li>
+        </ol>
+      </details>
+
+      <!-- ============================================================ -->
+      <section id="eos" class="wide">
+        <div class="measure">
+          <h2>Three equations of state</h2>
+          <p><code>examples/propane_butane_pr_pxy.txt</code> gives four constants per compound and asks for a Pxy diagram at 300 K with Peng–Robinson. At \(x_{\text{propane}} = 0.4\) the bubble pressure is <span data-v="verification.bubble_P_x04" data-d="3"></span> bar, and the first vapor contains <span data-v="verification.y_x04" data-d="3"></span> propane.</p>
+        </div>
+        <figure class="chart-figure" aria-labelledby="pxy-cap">
+          <ul class="legend" id="pxy-legend"></ul>
+          <div class="chart" id="chart-pxy"></div>
+          <figcaption id="pxy-cap"><b>Propane / n-butane at 300 K, Peng–Robinson.</b></figcaption>
+        </figure>
+        <div class="measure">
+          <p>The ends of the diagram are the vapor pressures of the pure compounds, so the three equations can be compared on pure propane:</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Equation</th><th class="num">Vapor pressure of propane at 300 K (bar)</th></tr></thead>
+              <tbody>
+                <tr><td>van der Waals</td><td class="num" data-v="psat_propane_300K.vdW" data-d="2"></td></tr>
+                <tr><td>Soave–Redlich–Kwong</td><td class="num" data-v="psat_propane_300K.SRK" data-d="2"></td></tr>
+                <tr><td>Peng–Robinson</td><td class="num" data-v="psat_propane_300K.PR" data-d="2"></td></tr>
+                <tr><td>Measured (NIST)</td><td class="num">≈ 9.98</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>van der Waals, with no acentric factor and a constant \(a\), is far off. SRK and Peng–Robinson tune \(a(T)\) to vapor-pressure behavior and land within about 1%.</p>
+          <p class="note"><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;y=P&amp;x=xy&amp;hold=T&amp;T=300&amp;compare=vdW">Open this comparison in the calculator</a></p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="latent" class="wide">
+        <div class="measure">
+          <h2>A complete phase diagram from latent heats</h2>
+          <p><code>examples/benzene_naphthalene.txt</code> contains no critical constants and no vapor-pressure equation, only boiling points, melting points and the two latent heats of each compound:</p>
+<pre><code>components = benzene, naphthalene
+P = 1 atm
+sweep = x
+benzene.Tb = 353.24 K
+benzene.dHvap = 30.72 kJ/mol
+benzene.Tm = 278.68 K
+benzene.dHfus = 9.87 kJ/mol
+naphthalene.Tb = 491.14 K
+naphthalene.dHvap = 43.2 kJ/mol
+naphthalene.Tm = 353.43 K
+naphthalene.dHfus = 19.01 kJ/mol</code></pre>
+          <p>The checker finds three equilibria it can calculate from this: boiling, benzene crystallizing and naphthalene crystallizing. The solver adds the eutectic where both solids form together: <span data-v="latent.eutectic.T" data-d="1"></span> K at \(x_{\text{benzene}}\) = <span data-v="latent.eutectic.x" data-d="3"></span>, close to the measured value of about 270 K.</p>
+        </div>
+        <figure class="chart-figure" aria-labelledby="latent-cap">
+          <ul class="legend" id="latent-legend"></ul>
+          <div class="chart" id="chart-latent"></div>
+          <figcaption id="latent-cap"><b>Benzene / naphthalene at 1 atm.</b> Liquid exists between the crystallization curves and the boiling curve. Below the eutectic line both compounds are solid.</figcaption>
+        </figure>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="azeotrope" class="wide">
+        <div class="measure">
+          <h2>An azeotrope from two parameters</h2>
+          <p><code>examples/ethanol_water_vanlaar.txt</code> types the two vapor pressures as formulas and adds a van Laar model with \(A_{12} = 1.68\) and \(A_{21} = 0.92\). The solver finds the azeotrope at \(x_{\text{ethanol}}\) = <span data-v="azeo.azeotrope.x" data-d="3"></span> and <span data-v="azeo.azeotrope.T" data-d="2"></span> K. The measured one is at about 0.894 and 351.3 K.</p>
+        </div>
+        <figure class="chart-figure" aria-labelledby="azeo-cap">
+          <ul class="legend" id="azeo-legend"></ul>
+          <div class="chart" id="chart-azeo"></div>
+          <figcaption id="azeo-cap"><b>Ethanol–water Txy diagram at 1 atm.</b> The van Laar model gives a minimum-boiling azeotrope. The same vapor pressures with an ideal solution (gray) give none.</figcaption>
+        </figure>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="database">
+        <h2>Using the database from an input file</h2>
+        <p>One line, <code>database = builtin</code>, fills in every property the file does not give. <code>examples/database_ethanol_water_nrtl.txt</code> is the whole input for the diagram the calculator opens with:</p>
+<pre><code>components = ethanol, water
+database = builtin
+activity = nrtl
+P = 1 atm
+sweep = x</code></pre>
+        <p>Anything written in the file overrides the database, so a single value can be replaced without retyping the rest. <code>examples/database_pt_diagram.txt</code> uses <code>x(L) = 0.5</code> with <code>sweep = T</code> to ask for a P–T diagram at fixed composition.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="gravity" class="wide">
+        <div class="measure">
+          <h2>A 500 m column in gravity</h2>
+          <p><code>examples/gravity_column_gas_cap.txt</code> puts a liquid with \(z_{\text{propane}} = 0.4\) at 320 K and 25 bar at the bottom of a 500 m column. Going up, the pressure falls. At <span data-v="gravity.contact_z" data-d="1"></span> m it reaches the local bubble pressure (<span data-v="gravity.contact_P" data-d="2"></span> bar) and a gas cap forms above.</p>
+        </div>
+        <figure class="chart-figure" aria-labelledby="grav-cap">
+          <ul class="legend" id="grav-legend"></ul>
+          <div class="panels">
+            <div class="chart" id="chart-grav-P"></div>
+            <div class="chart" id="chart-grav-x"></div>
+          </div>
+          <figcaption id="grav-cap"><b>Pressure and propane mole fraction against height.</b> In the liquid the pressure gradient is the liquid density times \(g\); in the vapor it is about 28 times smaller. Within the liquid, propane rises only from 0.4000 at the bottom to <span data-v="gravity.x1_liquid_top" data-d="4"></span> at the contact. The large step is the change of phase.</figcaption>
+        </figure>
+        <div class="measure">
+          <p>The solver never uses the hydrostatic equation \(dP = -\rho g\,dz\). It only requires \(\ln\hat f_i + M_i g z/RT\) to be constant, and the pressure profile that comes out satisfies the hydrostatic equation to about \(10^{-7}\) bar.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="centrifuge">
+        <h2>A centrifuge</h2>
+        <p><code>examples/ethanol_water_centrifuge.txt</code> spins an ethanol–water liquid at 20,000 rpm. At the inner radius, 0.05 m, the liquid is at its bubble point (\(x_{\text{ethanol}} = 0.5\), 350 K, <span data-v="centrifuge.P.0" data-d="3"></span> bar) in contact with its vapor. It fills the rotor out to 0.10 m.</p>
+        <div class="table-wrap">
+          <table id="centrifuge-table">
+            <thead><tr><th>Radius (m)</th><th class="num">Pressure (bar)</th><th class="num">\(x_{\text{ethanol}}\)</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p>At the wall the liquid is at about <span data-v="centrifuge.P.-1" data-d="0"></span> bar and slightly depleted in ethanol, the lighter compound. The vapor–liquid diagram at any one radius is the ordinary one: the field changes where each state is found, not the equilibrium between phases that touch.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="gallery" class="wide">
+        <div class="measure">
+          <h2>Plots from the Python program</h2>
+          <p><code>plotter.py</code> solves an input file and saves every figure its results contain:</p>
+<pre><code>python plotter.py examples/database_ethanol_water_nrtl.txt</code></pre>
+        </div>
+        <div class="gallery">
+          <figure><a href="img/fugacity_activity.png"><img src="img/fugacity_activity.png" alt="Four panels for ethanol and water: activity coefficients, fugacities, K-values and excess Gibbs energy against composition" loading="lazy"></a><figcaption><b>Fugacity and activity.</b> Activity coefficients, fugacities, K-values and excess Gibbs energy along a diagram.</figcaption></figure>
+          <figure><a href="img/txy_azeotrope.png"><img src="img/txy_azeotrope.png" alt="Txy diagram of ethanol and water at 1 atm with the azeotrope marked" loading="lazy"></a><figcaption><b>Txy diagram.</b> The azeotrope is found and marked.</figcaption></figure>
+          <figure><a href="img/phase_diagram_latent_heats.png"><img src="img/phase_diagram_latent_heats.png" alt="Complete phase diagram of benzene and naphthalene with boiling, dew and crystallization curves and the eutectic" loading="lazy"></a><figcaption><b>Complete T–x diagram.</b> Boiling, dew and crystallization curves with the eutectic.</figcaption></figure>
+          <figure><a href="img/pt_diagram.png"><img src="img/pt_diagram.png" alt="Bubble and dew pressure against temperature for an equimolar propane and n-butane mixture" loading="lazy"></a><figcaption><b>P–T diagram.</b> Bubble and dew pressure at fixed composition.</figcaption></figure>
+          <figure><a href="img/ptx_surface.png"><img src="img/ptx_surface.png" alt="3D bubble and dew surfaces of propane and n-butane in pressure, temperature and composition" loading="lazy"></a><figcaption><b>P–T–x surface.</b> Each pair of bold lines is one Pxy diagram.</figcaption></figure>
+          <figure><a href="img/gibbs_mixing_surface.png"><img src="img/gibbs_mixing_surface.png" alt="3D surface of the Gibbs energy of mixing of liquid ethanol and water against composition and temperature" loading="lazy"></a><figcaption><b>Gibbs energy of mixing.</b> Its curvature decides whether the liquid stays as one phase.</figcaption></figure>
+          <figure class="span2"><a href="img/gravity_profile.png"><img src="img/gravity_profile.png" alt="Pressure and propane mole fraction against height in a 500 m column with a gas cap" loading="lazy"></a><figcaption><b>Field profile.</b> Pressure and composition against height, meeting at the gas–liquid contact.</figcaption></figure>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<!-- scripts -->
+<script>
+(function () {
+  var D = window.PEC_DATA, zip = PEC.zip, fmt = PEC.fmt, $ = function (id) { return document.getElementById(id); };
+  var g = D.gravity, lastLiquid = 0;
+  g.phase.forEach(function (p, k) { if (p === "liquid") lastLiquid = k; });
+  g.x1_liquid_top = g.x1[lastLiquid];
+  PEC.bindNumbers(D);
+
+  /* Pxy lens */
+  var P = D.pxy, bubble = zip(P.x, P.P), dew = zip(P.y, P.P);
+  var c = 0.56, Pb = PEC.interp(P.x, P.P, c), Pd = PEC.interp(P.y, P.P, c);
+  PEC.legend("pxy-legend", [{ name: "Bubble curve", color: "--liquid" }, { name: "Dew curve", color: "--vapor" }, { name: "Two-phase region", color: "--liquid", area: true }]);
+  PEC.drawChart($("chart-pxy"), {
+    aria: "Pressure against propane mole fraction at 300 K",
+    ratio: 0.5,
+    series: [{ name: "Bubble curve", color: "--liquid", pts: bubble }, { name: "Dew curve", color: "--vapor", pts: dew }],
+    areas: [{ color: "--liquid", poly: bubble.concat(dew.slice().reverse()) }],
+    regions: [{ x: 0.2, y: 8.6, text: "Liquid" }, { x: 0.8, y: 3.2, text: "Vapor" }, { x: c, y: (Pb + Pd) / 2 - 0.1, text: "Liquid + vapor", minW: 300 }],
+    xDomain: [0, 1], yDomain: [2, 10.5], xDec: 1,
+    xTitle: "Mole fraction of propane", yTitle: "Pressure (bar)",
+    fx: function (v) { return "x or y = " + fmt(v, 3); },
+    fy: function (v) { return "P = " + fmt(v, 3) + " bar"; }
+  });
+
+  /* complete T-x diagram from latent heats */
+  var Lt = D.latent;
+  PEC.legend("latent-legend", [{ name: "Boiling and dew curves", color: "--vapor" }, { name: "Benzene crystallizes", color: "--liquid" },
+    { name: "Naphthalene crystallizes", color: "--third" }, { name: "Eutectic", color: "--ink-2", dot: true }]);
+  PEC.drawChart($("chart-latent"), {
+    aria: "Temperature against benzene mole fraction for benzene and naphthalene at 1 atm",
+    ratio: 0.55, maxHeight: 440,
+    series: [
+      { name: "Boiling curve", color: "--vapor", pts: zip(Lt.bubble.x, Lt.bubble.T), label: { i: 20, text: "Boiling", dx: 4, dy: 18, minW: 360 } },
+      { name: "Dew curve", color: "--vapor", pts: zip(Lt.dew.x, Lt.dew.T), label: { i: 20, text: "Dew", dx: 4, dy: -8, minW: 360 } },
+      { name: "Benzene crystallizes", color: "--liquid", pts: zip(Lt.benzene.x, Lt.benzene.T) },
+      { name: "Naphthalene crystallizes", color: "--third", pts: zip(Lt.naphthalene.x, Lt.naphthalene.T) }],
+    areas: [{ color: "--vapor", poly: zip(Lt.bubble.x, Lt.bubble.T).concat(zip(Lt.dew.x, Lt.dew.T).reverse()) }],
+    hlines: [{ y: Lt.eutectic.T }],
+    regions: [{ x: 0.72, y: 330, text: "Liquid", minW: 300 }, { x: 0.42, y: 252, text: "Both solid", minW: 300 }, { x: 0.5, y: 505, text: "Vapor", minW: 300 }],
+    points: [{ x: Lt.eutectic.x, y: Lt.eutectic.T, color: "--ink-2" }],
+    xDomain: [0, 1], yDomain: [240, 520], xDec: 1,
+    xTitle: "Mole fraction of benzene", yTitle: "Temperature (K)",
+    fx: function (v) { return "x benzene = " + fmt(v, 4); },
+    fy: function (v) { return "T = " + fmt(v, 2) + " K"; }
+  });
+
+  /* azeotrope with and without an activity model */
+  var Az = D.azeo;
+  PEC.legend("azeo-legend", [{ name: "Bubble curve, van Laar", color: "--liquid" }, { name: "Dew curve, van Laar", color: "--vapor" },
+    { name: "Ideal solution", color: "--muted" }, { name: "Azeotrope", color: "--ink-2", dot: true }]);
+  PEC.drawChart($("chart-azeo"), {
+    aria: "Temperature against ethanol mole fraction at 1 atm, van Laar and ideal solution",
+    ratio: 0.5,
+    series: [
+      { name: "Ideal bubble curve", color: "--muted", width: 1.5, pts: zip(Az.ideal.x, Az.ideal.T) },
+      { name: "Ideal dew curve", color: "--muted", width: 1.5, pts: zip(Az.ideal.y, Az.ideal.T) },
+      { name: "Bubble curve, van Laar", color: "--liquid", pts: zip(Az.x, Az.T) },
+      { name: "Dew curve, van Laar", color: "--vapor", pts: zip(Az.y, Az.T) }],
+    areas: [{ color: "--liquid", poly: zip(Az.x, Az.T).concat(zip(Az.y, Az.T).reverse()) }],
+    points: [{ x: Az.azeotrope.x, y: Az.azeotrope.T, color: "--ink-2" }],
+    xDomain: [0, 1], yDomain: [348, 375], xDec: 1, yDec: 0,
+    xTitle: "Mole fraction of ethanol", yTitle: "Temperature (K)",
+    fx: function (v) { return "x or y = " + fmt(v, 4); },
+    fy: function (v) { return "T = " + fmt(v, 2) + " K"; }
+  });
+
+  /* gravity column: two panels sharing the height axis */
+  function split(vals) {
+    var liq = [], vap = [];
+    g.z.forEach(function (z, i) { (g.phase[i] === "liquid" ? liq : vap).push([vals[i], z]); });
+    return { liq: liq, vap: vap };
+  }
+  var gp = split(g.P), gx = split(g.x1);
+  PEC.legend("grav-legend", [{ name: "Liquid", color: "--liquid" }, { name: "Vapor (gas cap)", color: "--vapor" }]);
+  var contactText = "Gas–liquid contact, " + fmt(g.contact_z, 0) + " m";
+  PEC.drawChart($("chart-grav-P"), {
+    aria: "Height against pressure in the column", ratio: 0.9,
+    series: [{ name: "Liquid", color: "--liquid", pts: gp.liq }, { name: "Vapor", color: "--vapor", pts: gp.vap }],
+    hlines: [{ y: g.contact_z, text: contactText }],
+    xDomain: [6, 26], yDomain: [0, 500],
+    xTitle: "Pressure (bar)", yTitle: "Height (m)",
+    fx: function (v) { return "P = " + fmt(v, 3) + " bar"; },
+    fy: function (v) { return "height " + fmt(v, 0) + " m"; }
+  });
+  PEC.drawChart($("chart-grav-x"), {
+    aria: "Height against propane mole fraction in the column", ratio: 0.9,
+    series: [{ name: "Liquid", color: "--liquid", pts: gx.liq }, { name: "Vapor", color: "--vapor", pts: gx.vap }],
+    hlines: [{ y: g.contact_z, text: contactText }],
+    xDomain: [0.35, 0.7], yDomain: [0, 500], xDec: 2,
+    xTitle: "Mole fraction of propane", yTitle: "Height (m)",
+    fx: function (v) { return "propane " + fmt(v, 4); },
+    fy: function (v) { return "height " + fmt(v, 0) + " m"; }
+  });
+
+  /* centrifuge table */
+  var ct = document.querySelector("#centrifuge-table tbody"), C = D.centrifuge;
+  C.r.forEach(function (r, i) {
+    if (i % 2 && i !== C.r.length - 1) return;
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td>" + fmt(r, 3) + "</td><td class='num'>" + fmt(C.P[i], 2) + "</td><td class='num'>" + fmt(C.x1[i], 4) + "</td>";
+    ct.appendChild(tr);
+  });
+})();
+</script>
