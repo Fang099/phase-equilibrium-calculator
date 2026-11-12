@@ -37,7 +37,14 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import numpy as np
-from scipy.optimize import brentq, fsolve
+import os
+
+try:
+    if os.environ.get("PEC_NO_SCIPY"):
+        raise ImportError
+    from scipy.optimize import brentq, fsolve
+except ImportError:          # e.g. in the browser, where only NumPy is loaded
+    from numerics import brentq, fsolve
 
 from thermo_models import (R, P0, EOSPhase, IdealGasPhase, IdealSolutionLiquid,
                            PureSolidPhase, build_system)
@@ -341,6 +348,159 @@ def vle_diagram(L, V, T=None, P=None, npts=61, x_min=0.0):
                     pass
                 break
     return d
+
+
+# ==========================================================================
+# 4b. Fugacity and activity along the diagrams, and P-T diagrams
+# ==========================================================================
+def activity_coefficients(L, T, P, x):
+    """ln gamma_i of a liquid, by the Lewis-Randall definition
+        gamma_i = f_i(T, P, x) / (x_i f_i(pure liquid i at T, P)).
+    For a solution model this is its own ln gamma. For an equation of state
+    it is ln phi_i(mixture) - ln phi_i(pure i), which is NaN for a component
+    above its critical temperature (no pure liquid exists)."""
+    x = np.asarray(x, float)
+    if hasattr(L, "ln_gamma"):
+        return np.asarray(L.ln_gamma(T, x), float)
+    out = np.full(len(x), np.nan)
+    lnphi = L.ln_phi(T, P, x)
+    for i in range(len(x)):
+        if T >= L.eos.Tc[i]:
+            continue
+        pure = np.zeros(len(x))
+        pure[i] = 1.0
+        try:
+            out[i] = lnphi[i] - L.ln_phi(T, P, pure)[i]
+        except ValueError:
+            pass
+    return out
+
+
+def point_properties(L, V, T, P, x, y):
+    """Everything derived from one vapor-liquid equilibrium state. Fugacities
+    are in Pa; f_i is the same in both phases, which is the equilibrium
+    condition itself, so both are returned as a check."""
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    lnphiL, lnphiV = L.ln_phi(T, P, x), V.ln_phi(T, P, y)
+    K = np.exp(lnphiL - lnphiV)
+    K[~V.present] = 0.0
+    lng = activity_coefficients(L, T, P, x)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        fL = x * np.exp(lnphiL) * P
+        fV = y * np.exp(lnphiV) * P
+        ge = float(np.nansum(np.where(x > 0, x * lng, 0.0))) if np.all(np.isfinite(lng[x > 0])) else np.nan
+        gmix = ge + float(np.sum(np.where(x > 0, x * np.log(np.where(x > 0, x, 1.0)), 0.0)))
+    return {"K": K, "alpha": (K[0] / K[1] if len(K) == 2 and K[1] > 0 else np.nan),
+            "ln_gamma": lng, "f_liquid": fL, "f_vapor": fV,
+            "phi_liquid": np.exp(lnphiL), "phi_vapor": np.exp(lnphiV),
+            "GE_RT": ge, "Gmix_RT": gmix}
+
+
+def diagram_properties(L, V, d):
+    """Table of derived quantities at every point of a binary Pxy/Txy diagram.
+    Returns a dict of arrays: x1, y1, T, P and, for components 1 and 2,
+    K, gamma, f (Pa), phi_L, phi_V, plus alpha, GE_RT and Gmix_RT."""
+    n = len(d.x1)
+    T = np.full(n, d.fixed) if d.kind == "Pxy" else np.asarray(d.var, float)
+    P = np.asarray(d.var, float) if d.kind == "Pxy" else np.full(n, d.fixed)
+    return _table(L, V, T, P, np.column_stack([d.x1, 1 - d.x1]),
+                  np.column_stack([d.y1, 1 - d.y1]))
+
+
+def _table(L, V, T, P, X, Y):
+    n = len(T)
+    cols = {k: np.full(n, np.nan) for k in
+            ("K1", "K2", "alpha", "gamma1", "gamma2", "f1", "f2", "phiL1", "phiL2",
+             "phiV1", "phiV2", "GE_RT", "Gmix_RT")}
+    for k in range(n):
+        if not (np.isfinite(T[k]) and np.isfinite(P[k]) and np.all(np.isfinite(Y[k]))):
+            continue
+        try:
+            pr = point_properties(L, V, T[k], P[k], X[k], Y[k])
+        except (ValueError, SolverError, FloatingPointError):
+            continue
+        cols["K1"][k], cols["K2"][k] = pr["K"]
+        cols["alpha"][k] = pr["alpha"]
+        cols["gamma1"][k], cols["gamma2"][k] = np.exp(pr["ln_gamma"])
+        # f_i from the liquid; at a pure end the absent component has f = 0
+        cols["f1"][k], cols["f2"][k] = pr["f_liquid"]
+        cols["phiL1"][k], cols["phiL2"][k] = pr["phi_liquid"]
+        cols["phiV1"][k], cols["phiV2"][k] = pr["phi_vapor"]
+        cols["GE_RT"][k], cols["Gmix_RT"][k] = pr["GE_RT"], pr["Gmix_RT"]
+    out = {"x1": X[:, 0].copy(), "y1": Y[:, 0].copy(), "T": np.asarray(T, float),
+           "P": np.asarray(P, float)}
+    out.update(cols)
+    return out
+
+
+@dataclass
+class Envelope:
+    """Bubble and dew pressure against temperature at one composition."""
+    z: np.ndarray
+    T: np.ndarray
+    P_bubble: np.ndarray
+    P_dew: np.ndarray
+    y_bubble: np.ndarray       # (nT, n) first vapor formed at the bubble point
+    x_dew: np.ndarray          # (nT, n) first liquid formed at the dew point
+    names: list
+    notes: list = field(default_factory=list)
+
+
+def pt_envelope(L, V, z, T_min=None, T_max=None, npts=41, P_low=2e4, P_high=2e6):
+    """P-T diagram at fixed composition z: the bubble curve (a liquid of
+    composition z starts to boil) and the dew curve (a vapor of composition z
+    starts to condense). Without a temperature range, it spans the bubble
+    temperatures at P_low and P_high (lowered if that is beyond the model)."""
+    z = np.asarray(z, float) / np.sum(z)
+    notes = []
+    if T_min is None:
+        T_min = saturation(L, V, z, 0.0, P=P_low).T
+    if T_max is None:
+        Ph = P_high
+        for _ in range(12):
+            try:
+                T_max = saturation(L, V, z, 0.0, P=Ph, guess=T_min + 40).T
+                break
+            except (SolverError, ValueError):
+                Ph *= 0.75
+        if T_max is None:
+            raise SolverError("could not find a temperature range for the P-T diagram")
+    Ts = np.linspace(T_min, T_max, npts)
+    n = len(z)
+    Pb, Pd = np.full(npts, np.nan), np.full(npts, np.nan)
+    yb, xd = np.full((npts, n), np.nan), np.full((npts, n), np.nan)
+    gb = gd = None
+    dew_possible = not np.any((z > 0) & ~V.present)
+    fails = 0
+    for k, T in enumerate(Ts):
+        try:
+            b = saturation(L, V, z, 0.0, T=T, guess=gb)
+            Pb[k], yb[k], gb = b.P, b.y, b.P
+        except (SolverError, ValueError):
+            fails += 1
+            gb = None
+        if dew_possible:
+            try:
+                dw = saturation(L, V, z, 1.0, T=T, guess=gd)
+                Pd[k], xd[k], gd = dw.P, dw.x, dw.P
+            except (SolverError, ValueError):
+                fails += 1
+                gd = None
+    if fails:
+        notes.append(f"{fails} point(s) could not be solved (near a mixture critical "
+                     f"point, or outside the model's range)")
+    if not dew_possible:
+        notes.append("no dew curve: the mixture contains a nonvolatile component")
+    return Envelope(z, Ts, Pb, Pd, yb, xd, L.names, notes)
+
+
+def envelope_properties(L, V, env):
+    """Derived quantities along the bubble curve of a P-T diagram (binary)."""
+    n = len(env.T)
+    X = np.tile(env.z, (n, 1))
+    out = _table(L, V, env.T, env.P_bubble, X, env.y_bubble)
+    out["P_dew"] = env.P_dew.copy()
+    return out
 
 
 # ==========================================================================
@@ -702,6 +862,10 @@ def _solve_vle(system, L, V, T, P, xL, xV, z, beta, sweep, res):
         else:
             point = saturation(L, V, z, beta, T=T, P=P)
         res.data = point
+    elif sweep in ("T", "P") and xL is not None and T is None and P is None:
+        res.data = pt_envelope(L, V, xL)
+        res.notes += res.data.notes
+        return
     elif sweep:
         if sweep == "x":
             res.data = vle_diagram(L, V, T=T, P=P)
@@ -794,6 +958,21 @@ def print_results(system, results):
             for k in list(range(0, len(d.x1), step)) + ([len(d.x1) - 1] if (len(d.x1) - 1) % step else []):
                 v = d.var[k] / 1e5 if d.kind == "Pxy" else d.var[k]
                 print(f"      {d.x1[k]:<12.4f} {d.y1[k]:<12.4f} {v:.4f}")
+            if r.phases is not None and len(names) == 2:
+                tb = diagram_properties(r.phases[0], r.phases[1], d)
+                print(f"      fugacity and activity along the bubble curve:")
+                print(f"      x_{names[0]:<10s} {'gamma1':>8s} {'gamma2':>8s} {'f1 [bar]':>9s} "
+                      f"{'f2 [bar]':>9s} {'K1':>8s} {'K2':>8s} {'GE/RT':>8s}")
+                for k in list(range(0, len(d.x1), step)) + ([len(d.x1) - 1] if (len(d.x1) - 1) % step else []):
+                    print(f"      {tb['x1'][k]:<12.4f} {tb['gamma1'][k]:8.4f} {tb['gamma2'][k]:8.4f} "
+                          f"{tb['f1'][k] / 1e5:9.4f} {tb['f2'][k] / 1e5:9.4f} {tb['K1'][k]:8.4f} "
+                          f"{tb['K2'][k]:8.4f} {tb['GE_RT'][k]:8.4f}")
+        elif isinstance(d, Envelope):
+            print(f"    P-T diagram at composition {_fmt_x(d.z, names)}, {len(d.T)} points")
+            print(f"      {'T [K]':>9s} {'bubble P [bar]':>15s} {'dew P [bar]':>13s}")
+            step = max(1, len(d.T) // 8)
+            for k in list(range(0, len(d.T), step)):
+                print(f"      {d.T[k]:9.2f} {d.P_bubble[k] / 1e5:15.4f} {d.P_dew[k] / 1e5:13.4f}")
         elif isinstance(d, SLECurve):
             print(f"    solid {d.solid}: liquidus at P = {d.P / 1e5:.4f} bar, {len(d.T)} points")
             step = max(1, len(d.T) // 6)

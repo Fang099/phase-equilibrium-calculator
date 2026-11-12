@@ -1,0 +1,25 @@
+id,name,formula,cas,family
+propane,Propane,C3H8,74-98-6,alkane
+n-butane,n-Butane,C4H10,106-97-8,alkane
+n-pentane,n-Pentane,C5H12,109-66-0,alkane
+n-hexane,n-Hexane,C6H14,110-54-3,alkane
+n-heptane,n-Heptane,C7H16,142-82-5,alkane
+n-octane,n-Octane,C8H18,111-65-9,alkane
+cyclohexane,Cyclohexane,C6H12,110-82-7,alkane
+benzene,Benzene,C6H6,71-43-2,aromatic
+toluene,Toluene,C7H8,108-88-3,aromatic
+methanol,Methanol,CH4O,67-56-1,alcohol
+ethanol,Ethanol,C2H6O,64-17-5,alcohol
+1-propanol,1-Propanol,C3H8O,71-23-8,alcohol
+2-propanol,2-Propanol,C3H8O,67-63-0,alcohol
+1-butanol,1-Butanol,C4H10O,71-36-3,alcohol
+water,Water,H2O,7732-18-5,water
+acetone,Acetone,C3H6O,67-64-1,ketone
+2-butanone,2-Butanone,C4H8O,78-93-3,ketone
+ethyl-acetate,Ethyl acetate,C4H8O2,141-78-6,ester
+methyl-acetate,Methyl acetate,C3H6O2,79-20-9,ester
+diethyl-ether,Diethyl ether,C4H10O,60-29-7,ether
+tetrahydrofuran,Tetrahydrofuran,C4H8O,109-99-9,ether
+chloroform,Chloroform,CHCl3,67-66-3,chlorinated
+dichloromethane,Dichloromethane,CH2Cl2,75-09-2,chlorinated
+tetrachloromethane,Tetrachloromethane,CCl4,56-23-5,chlorinated

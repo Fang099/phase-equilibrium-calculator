@@ -8,6 +8,10 @@ Draws the results of equilibrium_solver.py with matplotlib:
     xy diagram               vapor against liquid composition
     complete T-x diagram     vapor-liquid curves, solid-liquid curves and the
                              eutectic together, at one pressure
+    fugacity and activity    fugacity of each component, activity coefficients
+                             and excess Gibbs energy against composition
+    P-T diagram              bubble and dew pressure against temperature at
+                             one composition
     composition chart        liquid and vapor compositions for any number of
                              components (flash, bubble or dew point)
     field profiles           pressure and composition against height or radius,
@@ -45,8 +49,9 @@ import matplotlib.pyplot as plt                        # noqa: E402
 from mpl_toolkits.mplot3d import Axes3D                # noqa: E402,F401
 
 from thermo_models import R, SolutionLiquid, build_system           # noqa: E402
-from equilibrium_solver import (Diagram, SLECurve, VLEPoint, Profile,  # noqa: E402
-                                SolverError, saturation, solve, vle_diagram)
+from equilibrium_solver import (Diagram, Envelope, SLECurve, VLEPoint, Profile,  # noqa: E402
+                                SolverError, diagram_properties, saturation, solve,
+                                vle_diagram)
 
 # --------------------------------------------------------------------------
 # Style: one palette for every figure. The three series colors were checked
@@ -471,6 +476,76 @@ def _style_3d(ax):
 
 
 # --------------------------------------------------------------------------
+# Fugacity and activity along a binary diagram; P-T diagram
+# --------------------------------------------------------------------------
+def plot_fugacity_activity(d, table, model_name=""):
+    """Three panels against liquid composition: the fugacity of each
+    component (with the ideal-solution straight lines for reference), the
+    activity coefficients, and the excess Gibbs energy."""
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4.2))
+    x = table["x1"]
+    n1, n2 = d.names
+    ax = axes[0]
+    f1, f2 = table["f1"] / 1e5, table["f2"] / 1e5
+    ax.plot(x, f1, color=SERIES[0], label=f"f of {n1}")
+    ax.plot(x, f2, color=SERIES[1], label=f"f of {n2}")
+    if d.kind == "Pxy":            # at fixed T the ideal solution is a straight line
+        ax.plot([0, 1], [0, f1[-1]], color=COLORS["muted"], lw=1, label="Ideal solution")
+        ax.plot([0, 1], [f2[0], 0], color=COLORS["muted"], lw=1)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(bottom=0)
+    ax.set_xlabel(f"Liquid mole fraction of {n1}")
+    ax.set_ylabel("Fugacity (bar)")
+    ax.set_title("Fugacity of each component")
+    ax.legend(loc="upper center", fontsize=8.5)
+    ax = axes[1]
+    ax.plot(x, table["gamma1"], color=SERIES[0], label=f"\u03b3 of {n1}")
+    ax.plot(x, table["gamma2"], color=SERIES[1], label=f"\u03b3 of {n2}")
+    ax.axhline(1, color=COLORS["axis"], lw=1)
+    ax.set_xlim(0, 1)
+    ax.set_xlabel(f"Liquid mole fraction of {n1}")
+    ax.set_ylabel("Activity coefficient")
+    ax.set_title("Activity coefficients")
+    ax.legend(loc="upper center", fontsize=8.5)
+    ax = axes[2]
+    ax.plot(x, table["GE_RT"], color=SERIES[2])
+    ax.axhline(0, color=COLORS["axis"], lw=1)
+    ax.set_xlim(0, 1)
+    ax.set_xlabel(f"Liquid mole fraction of {n1}")
+    ax.set_ylabel("G$^E$/RT")
+    ax.set_title("Excess Gibbs energy")
+    fixed = (f"T = {d.fixed:.2f} K" if d.kind == "Pxy" else f"P = {d.fixed / 1e5:.4g} bar")
+    fig.suptitle(f"{n1} / {n2} along the bubble curve, {fixed}"
+                 + (f", {model_name}" if model_name else ""),
+                 x=0.01, ha="left", fontsize=12, fontweight="bold", color=COLORS["ink"])
+    fig.tight_layout()
+    return fig
+
+
+def plot_pt_envelope(env, ax=None):
+    """Bubble and dew pressure against temperature at one composition."""
+    if ax is None:
+        _, ax = plt.subplots(figsize=(7, 4.8))
+    ax.fill_between(env.T, env.P_dew / 1e5, env.P_bubble / 1e5, color=COLORS["liquid"],
+                    alpha=0.10, lw=0, label="Two-phase region")
+    ax.plot(env.T, env.P_bubble / 1e5, color=COLORS["liquid"], label="Bubble curve")
+    ax.plot(env.T, env.P_dew / 1e5, color=COLORS["vapor"], label="Dew curve")
+    ok = np.isfinite(env.P_bubble)
+    if ok.any():
+        k = np.where(ok)[0][len(np.where(ok)[0]) // 3]
+        _label(ax, env.T[k], env.P_bubble[k] / 1e5 * 1.25 + 0.3, "Liquid", ha="right")
+        k2 = np.where(ok)[0][2 * len(np.where(ok)[0]) // 3]
+        if np.isfinite(env.P_dew[k2]):
+            _label(ax, env.T[k2], env.P_dew[k2] / 1e5 * 0.55, "Vapor", ha="left")
+    ax.set_xlabel("Temperature (K)")
+    ax.set_ylabel("Pressure (bar)")
+    comp = ", ".join(f"{n} {v:.2f}" for n, v in zip(env.names, env.z))
+    ax.set_title(f"P-T diagram at fixed composition ({comp})")
+    ax.legend(loc="upper left")
+    return ax
+
+
+# --------------------------------------------------------------------------
 # Choose and draw every relevant figure for a solved system
 # --------------------------------------------------------------------------
 def plot_results(system, results, surfaces=True):
@@ -495,6 +570,11 @@ def plot_results(system, results, surfaces=True):
             figs["xy"] = fig2
             if d.kind == "Txy":
                 txy = d
+            if binary:
+                model = getattr(getattr(L, "activity", None), "name", None) or (
+                    L.eos.model if hasattr(L, "eos") else "ideal solution")
+                figs["fugacity_activity"] = plot_fugacity_activity(
+                    d, diagram_properties(L, V, d), model)
             if surfaces:
                 Ts = _auto_T_range(d, L, V)
                 fig3 = plt.figure(figsize=(8, 6.4))
@@ -526,6 +606,11 @@ def plot_results(system, results, surfaces=True):
                 plot_compositions(d, names, ax)
                 fig.tight_layout()
                 figs["compositions"] = fig
+        elif isinstance(d, Envelope):
+            fig, ax = plt.subplots(figsize=(7, 4.8))
+            plot_pt_envelope(d, ax)
+            fig.tight_layout()
+            figs["pt_diagram"] = fig
         elif isinstance(d, SLECurve):
             sle.append(d)
         elif isinstance(d, dict) and "component" in d:

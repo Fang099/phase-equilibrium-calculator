@@ -123,6 +123,7 @@ VOCAB = {
     ("system", "activity"): ("word", None, "liquid activity model: ideal (default), margules, vanlaar or nrtl"),
     ("system", "phases"): ("word", None, "restrict to one equilibrium: 'L, V' or 'L, S(name)'"),
     ("system", "sweep"): ("word", None, "variable swept to draw a diagram: x, T or P"),
+    ("system", "database"): ("word", None, "builtin: fill properties not given here from the built-in database"),
     # ---- state ----
     ("system", "T"): ("scalar", "temperature", "temperature"),
     ("system", "P"): ("scalar", "pressure", "pressure"),
@@ -231,10 +232,12 @@ class Inputs:
     pairs: dict = field(default_factory=dict)       # frozenset -> {name: value}
     opairs: dict = field(default_factory=dict)      # (i, j) -> {name: value}, ordered
     activity: str = "ideal"
+    database: bool = False
+    db_notes: list = field(default_factory=list)    # what was taken from the database
 
 
 LINE_RE = re.compile(
-    r"^\s*([A-Za-z][\w\-]*)(?:\.([A-Za-z]\w*))?\s*(?:\(([^)]*)\))?\s*=\s*(.*?)\s*$")
+    r"^\s*([A-Za-z0-9][\w\-]*)(?:\.([A-Za-z]\w*))?\s*(?:\(([^)]*)\))?\s*=\s*(.*?)\s*$")
 
 
 def _split_number_unit(text):
@@ -303,6 +306,11 @@ def parse_input(text):
                 if k not in MODEL_ALIASES and raw.lower() not in MODEL_ALIASES:
                     raise ValueError(f"unknown model '{raw}' (use vdW, PR or SRK)")
                 inp.model = MODEL_ALIASES.get(k) or MODEL_ALIASES[raw.lower()]
+            elif qty == "database":
+                k = raw.lower().strip()
+                if k not in ("builtin", "yes", "true", "no", "false", "none"):
+                    raise ValueError("write 'database = builtin'")
+                inp.database = k in ("builtin", "yes", "true")
             elif qty == "activity":
                 k = raw.lower().strip()
                 if k not in ACTIVITY_ALIASES:
@@ -423,6 +431,14 @@ def parse_input(text):
         except ValueError as e:
             errors.append(f"line {lineno}: {target}.{qty}: {e}")
 
+    if inp.database and inp.components:
+        import compound_db
+        try:
+            notes, db_warn = compound_db.apply_to_inputs(inp)
+            inp.db_notes = notes
+            warnings += db_warn
+        except (OSError, ValueError) as e:
+            errors.append(f"the built-in database could not be read: {e}")
     return inp, errors, warnings
 
 
@@ -507,6 +523,9 @@ class Report:
                 if items:
                     out.append(f"    {title}:")
                     out += [f"      - {s}" for s in items]
+        if self.inputs is not None and self.inputs.db_notes:
+            out.append("Taken from the built-in database:")
+            out += [f"  - {w}" for w in self.inputs.db_notes]
         if self.warnings:
             out.append("Input warnings:")
             out += [f"  - {w}" for w in self.warnings]
@@ -652,6 +671,8 @@ def _calc_name(inp, is_sle, solid, has):
         return "Txy diagram at fixed P (bubble and dew curves)"
     if sw == "P" and T:
         return "Pxy diagram at fixed T (bubble and dew curves)"
+    if sw in ("T", "P") and xL:
+        return "P-T diagram at fixed composition (bubble and dew curves)"
     if xL and T:
         return "bubble-point pressure (T, x -> P, y)"
     if xL and P:
