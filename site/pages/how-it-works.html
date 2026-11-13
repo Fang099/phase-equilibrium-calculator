@@ -162,6 +162,10 @@
         <!--full--><p>The solver also checks liquid stability: if the second derivative of the Gibbs energy of mixing is negative anywhere, the model predicts two liquid layers, and the solver finds the three-phase line and inserts it into the diagram.</p><!--/full-->
         <p><code>diagram_properties()</code> then evaluates, at each point, <!--full-->the K-values, relative volatility, activity coefficients, fugacities, fugacity coefficients, \(G^{E}/RT\), the Gibbs energy of mixing and the stability function<!--/full--><!--reduced-->the activity coefficients, K-values and fugacities<!--/reduced-->. Fugacities are computed from the liquid side and from the vapor side; they agree, which is the equilibrium condition itself.</p>
 
+        <h3>3D surfaces</h3>
+        <p>The 3D view needs no new thermodynamics. <code>web_api.surface()</code> runs the same diagram at a list of values of the fixed variable and returns them as layers; the page joins equal liquid compositions across layers into a surface:</p>
+<!--code file="web_api.py" def="surface" from="for v in req[&quot;values&quot;]:" to="layers.append("-->
+
         <h3>Other calculations in the same module</h3>
         <dl class="terms">
           <dt>P–T diagram</dt><dd><code>pt_envelope()</code> holds the composition and steps through temperature, solving a bubble and a dew pressure at each. Each guess is extrapolated from the last two points, using the fact that \(\ln P\) is nearly linear in \(1/T\).</dd>

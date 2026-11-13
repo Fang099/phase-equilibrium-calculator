@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=4aade62043">
+<link rel="stylesheet" href="assets/site.css?v=7eebe5ab85">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -375,32 +375,51 @@
 
         <h3>The diagram and the azeotrope</h3>
         <p><code>vle_diagram()</code> repeats the bubble point across the composition range, each point starting from the previous answer. Each bubble point also gives one point of the dew curve, since the vapor it finds is at its dew point:</p>
-<figure class="code"><figcaption><span class="code-name">vle_diagram</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L331-L344"><code>equilibrium_solver.py</code>, lines 331–344</a></figcaption><pre><code><span class="ln" data-n="331"></span><span class="tk">for</span> x1 <span class="tk">in</span> xs:
-<span class="ln" data-n="332"></span>    x = np.array([x1, <span class="tn">1</span> - x1])
-<span class="ln" data-n="333"></span>    <span class="tk">if</span> <span class="tk">not</span> np.any((x &gt; <span class="tn">0</span>) &amp; V.present):
-<span class="ln" data-n="334"></span>        <span class="tk">continue</span>                             <span class="tc"># nothing volatile in the liquid</span>
-<span class="ln" data-n="335"></span>    <span class="tk">try</span>:
-<span class="ln" data-n="336"></span>        pt = saturation(L, V, x, <span class="tn">0.0</span>, T=T, P=P, guess=guess)
-<span class="ln" data-n="337"></span>    <span class="tk">except</span> (SolverError, ValueError):
-<span class="ln" data-n="338"></span>        fails += <span class="tn">1</span>
-<span class="ln" data-n="339"></span>        guess = <span class="tk">None</span>
-<span class="ln" data-n="340"></span>        <span class="tk">continue</span>
-<span class="ln" data-n="341"></span>    guess = pt.P <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span> <span class="tk">else</span> pt.T
-<span class="ln" data-n="342"></span>    out_x.append(x1)
-<span class="ln" data-n="343"></span>    out_y.append(pt.y[<span class="tn">0</span>])
-<span class="ln" data-n="344"></span>    out_v.append(pt.P <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span> <span class="tk">else</span> pt.T)</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">vle_diagram</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L335-L348"><code>equilibrium_solver.py</code>, lines 335–348</a></figcaption><pre><code><span class="ln" data-n="335"></span><span class="tk">for</span> x1 <span class="tk">in</span> xs:
+<span class="ln" data-n="336"></span>    x = np.array([x1, <span class="tn">1</span> - x1])
+<span class="ln" data-n="337"></span>    <span class="tk">if</span> <span class="tk">not</span> np.any((x &gt; <span class="tn">0</span>) &amp; V.present):
+<span class="ln" data-n="338"></span>        <span class="tk">continue</span>                             <span class="tc"># nothing volatile in the liquid</span>
+<span class="ln" data-n="339"></span>    <span class="tk">try</span>:
+<span class="ln" data-n="340"></span>        pt = saturation(L, V, x, <span class="tn">0.0</span>, T=T, P=P, guess=guess)
+<span class="ln" data-n="341"></span>    <span class="tk">except</span> (SolverError, ValueError):
+<span class="ln" data-n="342"></span>        fails += <span class="tn">1</span>
+<span class="ln" data-n="343"></span>        guess = <span class="tk">None</span>
+<span class="ln" data-n="344"></span>        <span class="tk">continue</span>
+<span class="ln" data-n="345"></span>    guess = pt.P <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span> <span class="tk">else</span> pt.T
+<span class="ln" data-n="346"></span>    out_x.append(x1)
+<span class="ln" data-n="347"></span>    out_y.append(pt.y[<span class="tn">0</span>])
+<span class="ln" data-n="348"></span>    out_v.append(pt.P <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span> <span class="tk">else</span> pt.T)</code></pre></figure>
         <p>An azeotrope is where \(y_1 - x_1\) changes sign between two neighboring points. The exact composition is found with Brent's method on that difference:</p>
-<figure class="code"><figcaption><span class="code-name">find_azeotrope</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L306-L314"><code>equilibrium_solver.py</code>, lines 306–314</a></figcaption><pre><code><span class="ln" data-n="306"></span><span class="tk">def</span> <span class="tf">find_azeotrope</span>(L, V, x_lo, x_hi, T=<span class="tk">None</span>, P=<span class="tk">None</span>):
+<figure class="code"><figcaption><span class="code-name">find_azeotrope</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L306-L318"><code>equilibrium_solver.py</code>, lines 306–318</a></figcaption><pre><code><span class="ln" data-n="306"></span><span class="tk">def</span> <span class="tf">find_azeotrope</span>(L, V, x_lo, x_hi, T=<span class="tk">None</span>, P=<span class="tk">None</span>, guess=<span class="tk">None</span>):
 <span class="ln" data-n="307"></span>    <span class="ts">"""Binary azeotrope between x_lo and x_hi, where y1 - x1 changes sign.</span>
-<span class="ln" data-n="308"></span><span class="ts">    Returns (x1, P or T)."""</span>
-<span class="ln" data-n="309"></span>    <span class="tk">def</span> <span class="tf">g</span>(x1):
-<span class="ln" data-n="310"></span>        pt = saturation(L, V, [x1, <span class="tn">1</span> - x1], <span class="tn">0.0</span>, T=T, P=P)
-<span class="ln" data-n="311"></span>        <span class="tk">return</span> pt.y[<span class="tn">0</span>] - x1
-<span class="ln" data-n="312"></span>    xa = brentq(g, x_lo, x_hi, xtol=<span class="tn">1e-10</span>)
-<span class="ln" data-n="313"></span>    pt = saturation(L, V, [xa, <span class="tn">1</span> - xa], <span class="tn">0.0</span>, T=T, P=P)
-<span class="ln" data-n="314"></span>    <span class="tk">return</span> xa, (pt.P <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span> <span class="tk">else</span> pt.T)</code></pre></figure>
+<span class="ln" data-n="308"></span><span class="ts">    Returns (x1, P or T). guess: the unknown P or T near there, if known;</span>
+<span class="ln" data-n="309"></span><span class="ts">    each step then starts from the previous one."""</span>
+<span class="ln" data-n="310"></span>    last = [guess]
+<span class="ln" data-n="311"></span>
+<span class="ln" data-n="312"></span>    <span class="tk">def</span> <span class="tf">g</span>(x1):
+<span class="ln" data-n="313"></span>        pt = saturation(L, V, [x1, <span class="tn">1</span> - x1], <span class="tn">0.0</span>, T=T, P=P, guess=last[<span class="tn">0</span>])
+<span class="ln" data-n="314"></span>        last[<span class="tn">0</span>] = pt.P <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span> <span class="tk">else</span> pt.T
+<span class="ln" data-n="315"></span>        <span class="tk">return</span> pt.y[<span class="tn">0</span>] - x1
+<span class="ln" data-n="316"></span>    xa = brentq(g, x_lo, x_hi, xtol=<span class="tn">1e-10</span>)
+<span class="ln" data-n="317"></span>    pt = saturation(L, V, [xa, <span class="tn">1</span> - xa], <span class="tn">0.0</span>, T=T, P=P, guess=last[<span class="tn">0</span>])
+<span class="ln" data-n="318"></span>    <span class="tk">return</span> xa, (pt.P <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span> <span class="tk">else</span> pt.T)</code></pre></figure>
         
         <p><code>diagram_properties()</code> then evaluates, at each point, the activity coefficients, K-values and fugacities. Fugacities are computed from the liquid side and from the vapor side; they agree, which is the equilibrium condition itself.</p>
+
+        <h3>3D surfaces</h3>
+        <p>The 3D view needs no new thermodynamics. <code>web_api.surface()</code> runs the same diagram at a list of values of the fixed variable and returns them as layers; the page joins equal liquid compositions across layers into a surface:</p>
+<figure class="code"><figcaption><span class="code-name">surface</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L333-L344"><code>web_api.py</code>, lines 333–344</a></figcaption><pre><code><span class="ln" data-n="333"></span><span class="tk">for</span> v <span class="tk">in</span> req[<span class="ts">"values"</span>]:
+<span class="ln" data-n="334"></span>    r = {k: val <span class="tk">for</span> k, val <span class="tk">in</span> req.items() <span class="tk">if</span> k <span class="tk">not</span> <span class="tk">in</span> (<span class="ts">"values"</span>, <span class="ts">"keep"</span>, <span class="ts">"compare"</span>)}
+<span class="ln" data-n="335"></span>    r[hold] = float(v)
+<span class="ln" data-n="336"></span>    <span class="tk">try</span>:
+<span class="ln" data-n="337"></span>        o = _solve(r)
+<span class="ln" data-n="338"></span>    <span class="tk">except</span> Exception:
+<span class="ln" data-n="339"></span>        o = {<span class="ts">"ok"</span>: <span class="tk">False</span>}
+<span class="ln" data-n="340"></span>    <span class="tk">if</span> <span class="tk">not</span> o.get(<span class="ts">"ok"</span>):
+<span class="ln" data-n="341"></span>        failed += <span class="tn">1</span>
+<span class="ln" data-n="342"></span>        <span class="tk">continue</span>
+<span class="ln" data-n="343"></span>    cols = o[<span class="ts">"columns"</span>] <span class="tk">if</span> <span class="tk">not</span> keep <span class="tk">else</span> {k: o[<span class="ts">"columns"</span>][k] <span class="tk">for</span> k <span class="tk">in</span> keep <span class="tk">if</span> k <span class="tk">in</span> o[<span class="ts">"columns"</span>]}
+<span class="ln" data-n="344"></span>    layers.append({<span class="ts">"value"</span>: float(v), <span class="ts">"columns"</span>: cols, <span class="ts">"azeotrope"</span>: o.get(<span class="ts">"azeotrope"</span>)})</code></pre></figure>
 
         <h3>Other calculations in the same module</h3>
         <dl class="terms">
@@ -417,10 +436,10 @@
 <span class="ln" data-n="495"></span>        <span class="tk">return</span> <span class="tv">self</span>.strength * (pos - <span class="tv">self</span>.reference)
 <span class="ln" data-n="496"></span>    <span class="tk">return</span> -<span class="tn">0.5</span> * <span class="tv">self</span>.strength ** <span class="tn">2</span> * (pos ** <span class="tn">2</span> - <span class="tv">self</span>.reference ** <span class="tn">2</span>)</code></pre></figure>
         <p><code>column_profile()</code> marches along height or radius. At each position it solves for the pressure and composition that put every compound's fugacity on its target:</p>
-<figure class="code"><figcaption><span class="code-name">_solve_at</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L794-L797"><code>equilibrium_solver.py</code>, lines 794–797</a></figcaption><pre><code><span class="ln" data-n="794"></span><span class="tk">def</span> <span class="tf">_solve_at</span>(phase, T, idx, c, n, pos, u0, M, fld):
-<span class="ln" data-n="795"></span>    <span class="ts">"""At one position, solve  ln f_i(T, P, x) = c_i - M_i Phi(pos)/RT  for</span>
-<span class="ln" data-n="796"></span><span class="ts">    ln P and the free mole fractions of the components present (idx)."""</span>
-<span class="ln" data-n="797"></span>    target = c - M[idx] * fld.potential(pos) / (R * T)</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">_solve_at</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L799-L802"><code>equilibrium_solver.py</code>, lines 799–802</a></figcaption><pre><code><span class="ln" data-n="799"></span><span class="tk">def</span> <span class="tf">_solve_at</span>(phase, T, idx, c, n, pos, u0, M, fld):
+<span class="ln" data-n="800"></span>    <span class="ts">"""At one position, solve  ln f_i(T, P, x) = c_i - M_i Phi(pos)/RT  for</span>
+<span class="ln" data-n="801"></span><span class="ts">    ln P and the free mole fractions of the components present (idx)."""</span>
+<span class="ln" data-n="802"></span>    target = c - M[idx] * fld.potential(pos) / (R * T)</code></pre></figure>
         <p>and switches phase where the fluid reaches saturation.</p>
       </section>
 
@@ -518,9 +537,9 @@
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=4aade62043"></script>
-<script src="assets/charts.js?v=4aade62043"></script>
-<script src="assets/data.js?v=4aade62043"></script>
+<script src="assets/edition.js?v=7eebe5ab85"></script>
+<script src="assets/charts.js?v=7eebe5ab85"></script>
+<script src="assets/data.js?v=7eebe5ab85"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, W = D.walkthrough, $ = function (id) { return document.getElementById(id); };

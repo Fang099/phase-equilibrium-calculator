@@ -319,9 +319,40 @@ def compute(req):
     return out
 
 
+def surface(req):
+    """The same diagram at several values of the variable held fixed (req
+    'values': temperatures in K for hold = 'T', pressures in bar for 'P'):
+    the layers of a 3D surface, e.g. Txy diagrams stacked along pressure.
+    Layers that cannot be solved are left out."""
+    t0 = time.time()
+    hold = req.get("hold", "T")
+    if hold not in ("T", "P"):
+        raise ValueError("a surface stacks Pxy or Txy diagrams: hold must be 'T' or 'P'")
+    keep = req.get("keep")
+    layers, failed = [], 0
+    for v in req["values"]:
+        r = {k: val for k, val in req.items() if k not in ("values", "keep", "compare")}
+        r[hold] = float(v)
+        try:
+            o = _solve(r)
+        except Exception:
+            o = {"ok": False}
+        if not o.get("ok"):
+            failed += 1
+            continue
+        cols = o["columns"] if not keep else {k: o["columns"][k] for k in keep if k in o["columns"]}
+        layers.append({"value": float(v), "columns": cols, "azeotrope": o.get("azeotrope")})
+    out = {"ok": bool(layers), "hold": hold, "layers": layers, "failed": failed,
+           "ms": round(1000 * (time.time() - t0))}
+    if not layers:
+        out["error"] = "No layer of the surface could be calculated in this range."
+    return out
+
+
 def handle(message):
     """JSON in, JSON out: {"op": "ping"} | {"op": "catalog"} |
-    {"op": "pair", "a":, "b":} | {"op": "compute", "request": {...}}."""
+    {"op": "pair", "a":, "b":} | {"op": "compute", "request": {...}} |
+    {"op": "surface", "request": {..., "values": [...]}}."""
     msg = json.loads(message) if isinstance(message, str) else message
     op = msg.get("op")
     try:
@@ -333,6 +364,8 @@ def handle(message):
             res = pair_defaults(msg["a"], msg["b"])
         elif op == "compute":
             res = compute(msg["request"])
+        elif op == "surface":
+            res = surface(msg["request"])
         else:
             res = {"ok": False, "error": f"unknown operation '{op}'"}
     except Exception as e:
@@ -417,6 +450,16 @@ if __name__ == "__main__":
                  "params": {"A12": 1.0, "A21": -1.0}})
     report("invalid parameters give a readable error, not a crash",
            not r["ok"] and "same sign" in r["error"], r.get("error", ""))
+
+    # 3D: each layer of a surface is the ordinary diagram at that pressure
+    sv = surface({"components": ["ethanol", "water"], "model": "nrtl", "hold": "P",
+                  "values": [0.5, 1.01325, 2.0], "npts": 21})
+    one = compute({"components": ["ethanol", "water"], "model": "nrtl", "hold": "P",
+                   "P": 1.01325, "npts": 21})
+    report("surface layers equal the single diagrams", sv["ok"] and len(sv["layers"]) == 3
+           and sv["layers"][1]["columns"]["T"] == one["columns"]["T"]
+           and sv["layers"][0]["columns"]["T"][-1] < sv["layers"][2]["columns"]["T"][-1],
+           f"{sv['ms']} ms")
 
     # database van Laar: A_ij(T) = a + b/T, against the NRTL fit it came from
     pdv = pair_defaults("ethanol", "water")["vanlaar"]

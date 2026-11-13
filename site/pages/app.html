@@ -38,7 +38,10 @@
 
   <div class="workspace">
     <section class="panel">
-      <div class="presets seg" id="presets" role="group" aria-label="Diagram"></div>
+      <div class="toprow">
+        <div class="presets seg" id="presets" role="group" aria-label="Diagram"></div>
+        <div class="seg" id="view" role="group" aria-label="View"></div>
+      </div>
       <div class="axes">
         <div class="field">
           <label for="axis-y">Plot</label>
@@ -61,6 +64,7 @@
       <ul class="legend" id="legend" style="margin-top:0.8rem"></ul>
       <div class="chart-card">
         <div class="chart" id="chart"></div>
+        <p class="chart-hint" id="chart-hint" hidden></p>
         <div class="overlay" id="overlay" role="status" aria-live="polite">
           <div>
             <div class="spinner" id="spinner"></div>

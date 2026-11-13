@@ -303,14 +303,18 @@ class Diagram:
     unstable: Optional[tuple] = None    # (x_lo, x_hi) unstable liquid, if no line was found
 
 
-def find_azeotrope(L, V, x_lo, x_hi, T=None, P=None):
+def find_azeotrope(L, V, x_lo, x_hi, T=None, P=None, guess=None):
     """Binary azeotrope between x_lo and x_hi, where y1 - x1 changes sign.
-    Returns (x1, P or T)."""
+    Returns (x1, P or T). guess: the unknown P or T near there, if known;
+    each step then starts from the previous one."""
+    last = [guess]
+
     def g(x1):
-        pt = saturation(L, V, [x1, 1 - x1], 0.0, T=T, P=P)
+        pt = saturation(L, V, [x1, 1 - x1], 0.0, T=T, P=P, guess=last[0])
+        last[0] = pt.P if P is None else pt.T
         return pt.y[0] - x1
     xa = brentq(g, x_lo, x_hi, xtol=1e-10)
-    pt = saturation(L, V, [xa, 1 - xa], 0.0, T=T, P=P)
+    pt = saturation(L, V, [xa, 1 - xa], 0.0, T=T, P=P, guess=last[0])
     return xa, (pt.P if P is None else pt.T)
 
 
@@ -364,7 +368,8 @@ def vle_diagram(L, V, T=None, P=None, npts=61, x_min=0.0, spacing="even"):
                 continue                         # the three-phase line, not an azeotrope
             if diff[k] * diff[k + 1] < 0:
                 try:
-                    d.azeotrope = find_azeotrope(L, V, d.x1[k], d.x1[k + 1], T=T, P=P)
+                    d.azeotrope = find_azeotrope(L, V, d.x1[k], d.x1[k + 1], T=T, P=P,
+                                                 guess=float(d.var[k]))
                     xa, va = d.azeotrope
                     unit = f"{va / 1e5:.4f} bar" if P is None else f"{va:.3f} K"
                     d.notes.append(f"azeotrope at x_{names[0]} = {xa:.4f}, {unit}")

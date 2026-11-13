@@ -95,6 +95,7 @@
        regions: [{x, y, text, anchor, minW}], points: [{x, y, color, text, dx, dy, anchor, minW}],
        tip: function (series, point) -> html,  aria }                                   */
   PEC.drawChart = function (container, cfg) {
+    container.__surface = null;                 // leave 3D mode, if it was on
     var T = tooltip();
     function render() {
       var W = Math.max(280, container.clientWidth);
@@ -214,6 +215,243 @@
       hit.addEventListener("pointerdown", move);
       hit.addEventListener("pointerleave", hide);
     }
+    render();
+    if (container.__ro) container.__ro.disconnect();
+    var last = container.clientWidth;
+    container.__ro = new ResizeObserver(function () {
+      if (Math.abs(container.clientWidth - last) > 4) { last = container.clientWidth; render(); }
+    });
+    container.__ro.observe(container);
+  };
+
+  /* 3D surface, drawn in SVG with the painter's algorithm and rotated by dragging.
+     cfg = { surfaces: [{ name, color, grid: [[ [x, y, z] | null ]] }]   (grid rows: layers in y)
+             lines:    [{ color, width, pts: [[x, y, z] | null] }]       (e.g. the current slice)
+             x, y, z:  { title, domain, log }                            (z is vertical)
+             aria }                                                                     */
+  PEC.drawSurface = function (container, cfg) {
+    var view = container.__view || (container.__view = { yaw: -0.85, pitch: 0.38 });
+    var css = getComputedStyle(document.documentElement);
+    function rgb(name) {
+      var h = css.getPropertyValue(name).trim();
+      if (h.length === 4) h = "#" + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
+      var n = parseInt(h.slice(1), 16);
+      return isFinite(n) ? [(n >> 16) & 255, (n >> 8) & 255, n & 255] : [120, 120, 120];
+    }
+    function lg(v) { return Math.log(v) / Math.LN10; }
+    function nrm(v, ax) {
+      var d = ax.domain;
+      if (ax.log) return 2 * (lg(v) - lg(d[0])) / (lg(d[1]) - lg(d[0])) - 1;
+      return 2 * (v - d[0]) / (d[1] - d[0]) - 1;
+    }
+    function N(p) { return p ? [nrm(p[0], cfg.x), nrm(p[1], cfg.y), nrm(p[2], cfg.z)] : null; }
+    var surf = cfg.surfaces.map(function (s) {
+      return { s: s, base: rgb(s.color), g: s.grid.map(function (row) { return row.map(N); }) };
+    });
+    var lines = (cfg.lines || []).map(function (l) { return { l: l, pts: l.pts.map(N) }; });
+    var light = (function (v) { var m = Math.hypot(v[0], v[1], v[2]); return v.map(function (c) { return c / m; }); })([-0.5, -0.7, 0.9]);
+
+    function ticksFor(ax) {
+      if (!ax.log) {
+        var t = niceTicks(ax.domain[0], ax.domain[1], 5);
+        return t.ticks.filter(function (v) { return v >= ax.domain[0] - 1e-12 && v <= ax.domain[1] + 1e-12; })
+          .map(function (v) { return [v, PEC.fmt(v, decimals(t.step))]; });
+      }
+      var out = [];
+      for (var e = Math.floor(lg(ax.domain[0])); e <= Math.ceil(lg(ax.domain[1])); e++)
+        [1, 2, 5].forEach(function (m) {
+          var v = m * Math.pow(10, e);
+          if (v >= ax.domain[0] * 0.999 && v <= ax.domain[1] * 1.001) out.push([v, PEC.sig(v, 2)]);
+        });
+      return out;
+    }
+
+    function render() {
+      var W = Math.max(280, container.clientWidth);
+      var H = Math.round(Math.min(600, Math.max(340, W * 0.72)));
+      var cy = Math.cos(view.yaw), sy = Math.sin(view.yaw), cp = Math.cos(view.pitch), sp = Math.sin(view.pitch);
+      var sc = Math.min(W * 0.245, H * 0.3), ox = W / 2, oy = H / 2 - sc * 0.04;
+      function pr(q) {                      // -> [screen x, screen y, depth (larger: farther)]
+        var a = q[0] * cy - q[1] * sy, d = q[0] * sy + q[1] * cy;
+        return [ox + sc * a, oy - sc * (q[2] * cp + d * sp), d * cp - q[2] * sp];
+      }
+      container.innerHTML = "";
+      /* surfaces go on a canvas with a depth buffer (correct hiding even where the
+         two sides of a two-phase lens nearly touch); text goes on an SVG above it */
+      var dpr = view.fast ? 1 : Math.min(2, window.devicePixelRatio || 1);   // coarser while dragging
+      var cw = Math.round(W * dpr), ch = Math.round(H * dpr);
+      var cv = document.createElement("canvas");
+      cv.width = cw; cv.height = ch;
+      cv.style.cssText = "position:absolute;left:0;top:0;width:" + W + "px;height:" + H + "px";
+      container.appendChild(cv);
+      var svg = el("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": cfg.aria || "" }, container);
+      svg.style.cssText = "position:relative;cursor:grab";
+      var ctx = cv.getContext("2d"), img = ctx.createImageData(cw, ch), px = img.data;
+      var zb = new Float32Array(cw * ch).fill(Infinity), ZB = zb, PX = px;   // ZB, PX: the buffers being drawn into
+      function S(q) { var p = pr(q); return [p[0] * dpr, p[1] * dpr, p[2]]; }
+
+      function tri(a, b, c, col) {                 // flat-shaded, depth-tested triangle
+        var x0 = Math.max(0, Math.floor(Math.min(a[0], b[0], c[0]))), x1 = Math.min(cw - 1, Math.ceil(Math.max(a[0], b[0], c[0])));
+        var y0 = Math.max(0, Math.floor(Math.min(a[1], b[1], c[1]))), y1 = Math.min(ch - 1, Math.ceil(Math.max(a[1], b[1], c[1])));
+        var den = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]);
+        if (Math.abs(den) < 1e-9) return;
+        for (var y = y0; y <= y1; y++) {
+          var yc = y + 0.5;
+          for (var x = x0; x <= x1; x++) {
+            var xc = x + 0.5;
+            var w0 = ((b[1] - c[1]) * (xc - c[0]) + (c[0] - b[0]) * (yc - c[1])) / den;
+            var w1 = ((c[1] - a[1]) * (xc - c[0]) + (a[0] - c[0]) * (yc - c[1])) / den;
+            var w2 = 1 - w0 - w1;
+            if (w0 < -1e-6 || w1 < -1e-6 || w2 < -1e-6) continue;
+            var z = w0 * a[2] + w1 * b[2] + w2 * c[2], k = y * cw + x;
+            if (z < ZB[k]) { ZB[k] = z; k *= 4; PX[k] = col[0]; PX[k + 1] = col[1]; PX[k + 2] = col[2]; PX[k + 3] = 255; }
+          }
+        }
+      }
+      function seg(a, b, col, width, alpha, tol, hidden) {  // hidden parts: alpha 'hidden' (or not drawn)
+        var n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.7)), r = width * dpr / 2;
+        for (var s = 0; s <= n; s++) {
+          var t = s / n, x = a[0] + (b[0] - a[0]) * t, y = a[1] + (b[1] - a[1]) * t, z = a[2] + (b[2] - a[2]) * t;
+          var cx0 = Math.round(x), cy0 = Math.round(y);
+          if (cx0 < 0 || cy0 < 0 || cx0 >= cw || cy0 >= ch) continue;
+          var al = z > ZB[cy0 * cw + cx0] + tol ? (hidden || 0) : alpha;
+          if (!al) continue;
+          for (var yy = Math.floor(y - r); yy <= Math.ceil(y + r); yy++)
+            for (var xx = Math.floor(x - r); xx <= Math.ceil(x + r); xx++) {
+              if (xx < 0 || yy < 0 || xx >= cw || yy >= ch || (xx + 0.5 - x) * (xx + 0.5 - x) + (yy + 0.5 - y) * (yy + 0.5 - y) > r * r) continue;
+              var k = (yy * cw + xx) * 4;
+              if (PX[k + 3] === 0) { PX[k] = col[0]; PX[k + 1] = col[1]; PX[k + 2] = col[2]; PX[k + 3] = Math.round(255 * al); }
+              else {                                      // blend over what is below
+                PX[k] += (col[0] - PX[k]) * al; PX[k + 1] += (col[1] - PX[k + 1]) * al; PX[k + 2] += (col[2] - PX[k + 2]) * al;
+                PX[k + 3] = Math.max(PX[k + 3], Math.round(255 * al));
+              }
+            }
+        }
+      }
+
+      /* each surface into its own depth buffer, with its mesh lines */
+      var bufs = [];
+      surf.forEach(function (Sf) {
+        ZB = new Float32Array(cw * ch).fill(Infinity); PX = new Uint8ClampedArray(cw * ch * 4);
+        var g = Sf.g;
+        for (var i = 0; i + 1 < g.length; i++)
+          for (var j = 0; j + 1 < g[i].length; j++) {
+            var q = [g[i][j], g[i][j + 1], g[i + 1][j + 1], g[i + 1][j]];
+            if (!q[0] || !q[1] || !q[2] || !q[3]) continue;
+            var u = [q[2][0] - q[0][0], q[2][1] - q[0][1], q[2][2] - q[0][2]],
+                v = [q[3][0] - q[1][0], q[3][1] - q[1][1], q[3][2] - q[1][2]];
+            var n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+            var m = Math.hypot(n[0], n[1], n[2]) || 1;
+            var sh = 0.62 + 0.38 * Math.abs((n[0] * light[0] + n[1] * light[1] + n[2] * light[2]) / m);
+            var col = Sf.base.map(function (c) { return Math.round(c * sh); });
+            var P = q.map(S);
+            tri(P[0], P[1], P[2], col); tri(P[0], P[2], P[3], col);
+          }
+        var dark = Sf.base.map(function (c) { return Math.round(c * 0.45); });
+        for (var i = 0; i < g.length; i++)
+          for (var j = 0; j < g[i].length; j++) {
+            if (g[i][j] && j + 1 < g[i].length && g[i][j + 1] && (i % 1 === 0)) seg(S(g[i][j]), S(g[i][j + 1]), dark, 0.6, 0.35, 0.012);
+            if (g[i][j] && i + 1 < g.length && g[i + 1][j] && j % 3 === 0) seg(S(g[i][j]), S(g[i + 1][j]), dark, 0.6, 0.35, 0.012);
+          }
+        bufs.push({ zb: ZB, px: PX });
+      });
+      /* composite: at each pixel the surfaces' front fragments, far to near, the nearer
+         ones see-through, so a surface behind another still shows */
+      var NA = 0.62, FA = 0.94, nb = bufs.length, fr = [];
+      for (var q = 0, Np = cw * ch; q < Np; q++) {
+        var nf = 0;
+        for (var b = 0; b < nb; b++) if (bufs[b].zb[q] < Infinity) fr[nf++] = b;
+        if (!nf) continue;
+        if (nf === 2 && bufs[fr[0]].zb[q] < bufs[fr[1]].zb[q]) { var t0 = fr[0]; fr[0] = fr[1]; fr[1] = t0; }
+        else if (nf > 2) fr.length = nf, fr.sort(function (u, v) { return bufs[v].zb[q] - bufs[u].zb[q]; });
+        var r = 0, g2 = 0, bl = 0, A = 0, o = q * 4;
+        for (var f = 0; f < nf; f++) {
+          // a surface lying almost on the one behind it is drawn solid (no muddy mix)
+          var close = f > 0 && bufs[fr[f - 1]].zb[q] - bufs[fr[f]].zb[q] < 0.04;
+          var B = bufs[fr[f]].px, al = (f === 0 ? FA : close ? 1 : NA) * B[o + 3] / 255;
+          r = B[o] * al + r * (1 - al); g2 = B[o + 1] * al + g2 * (1 - al); bl = B[o + 2] * al + bl * (1 - al);
+          A = al + A * (1 - al);
+          if (bufs[fr[f]].zb[q] < zb[q]) zb[q] = bufs[fr[f]].zb[q];
+        }
+        px[o] = r / A; px[o + 1] = g2 / A; px[o + 2] = bl / A; px[o + 3] = Math.round(255 * A);
+      }
+      ZB = zb; PX = px;
+      /* the box and the floor grid, then the lines on the surface */
+      var C = [], k;
+      for (k = 0; k < 8; k++) C.push([k & 1 ? 1 : -1, k & 2 ? 1 : -1, k & 4 ? 1 : -1]);
+      var E = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
+      var cAxis = rgb("--axis"), cHair = rgb("--hair");
+      [cfg.x, cfg.y].forEach(function (ax, which) {
+        ticksFor(ax).forEach(function (t) {
+          var u = nrm(t[0], ax);
+          seg(S(which ? [-1, u, -1] : [u, -1, -1]), S(which ? [1, u, -1] : [u, 1, -1]), cHair, 1, 1, 0.01);
+        });
+      });
+      E.forEach(function (e) { seg(S(C[e[0]]), S(C[e[1]]), cAxis, 1, 1, 0.01); });
+      /* the current diagram and the azeotrope line, on the surface */
+      lines.forEach(function (Ln) {
+        var col = rgb(Ln.l.color);
+        for (var i = 0; i + 1 < Ln.pts.length; i++)
+          if (Ln.pts[i] && Ln.pts[i + 1]) seg(S(Ln.pts[i]), S(Ln.pts[i + 1]), col, Ln.l.width || 2.5, 1, 0.03, 0.45);
+      });
+      ctx.putImageData(img, 0, 0);
+
+      /* labels on the edges nearest the viewer */
+      var ctr = pr([0, 0, 0]);
+      function label(q, text, cls, push) {
+        var p = pr(q), dx = p[0] - ctr[0], dy = p[1] - ctr[1], m = Math.hypot(dx, dy) || 1;
+        var x = p[0] + dx / m * push, y = p[1] + dy / m * push;
+        var t = el("text", { x: x, y: y + 4, "text-anchor": Math.abs(dx / m) < 0.3 ? "middle" : dx > 0 ? "start" : "end", class: cls }, svg);
+        t.textContent = text;
+        var bb = t.getBBox ? t.getBBox() : null;          // keep it inside the picture
+        if (bb && bb.width) {
+          if (bb.x < 2) t.setAttribute("x", x + 2 - bb.x);
+          else if (bb.x + bb.width > W - 2) t.setAttribute("x", x - (bb.x + bb.width - W + 2));
+        }
+      }
+      var yEdge = pr([0, -1, -1])[2] < pr([0, 1, -1])[2] ? -1 : 1;
+      var xEdge = pr([-1, 0, -1])[2] < pr([1, 0, -1])[2] ? -1 : 1;
+      ticksFor(cfg.x).forEach(function (t) { label([nrm(t[0], cfg.x), yEdge, -1], t[1], "tick-3d", 12); });
+      ticksFor(cfg.y).forEach(function (t) { label([xEdge, nrm(t[0], cfg.y), -1], t[1], "tick-3d", 12); });
+      var zc = [[-1, -1], [1, -1], [-1, 1], [1, 1]].reduce(function (best, c) {
+        return pr([c[0], c[1], 0])[0] < pr([best[0], best[1], 0])[0] ? c : best; });
+      ticksFor(cfg.z).forEach(function (t) {          // the lowest one would sit on the floor labels
+        if (nrm(t[0], cfg.z) > -0.97) label([zc[0], zc[1], nrm(t[0], cfg.z)], t[1], "tick-3d", 10); });
+      label([0, yEdge, -1], cfg.x.title, "axis-title", 40);
+      label([xEdge, 0, -1], cfg.y.title, "axis-title", 46);
+      var zt = pr([zc[0], zc[1], 1.16]);
+      var tz = el("text", { x: zt[0], y: zt[1], "text-anchor": "middle", class: "axis-title" }, svg); tz.textContent = cfg.z.title;
+    }
+
+    /* drag to rotate, double-click to reset; listeners live on the container */
+    if (!container.__drag) {
+      container.__drag = true;
+      var start = null, raf = 0;
+      container.addEventListener("pointerdown", function (e) {
+        if (!container.__surface) return;
+        start = { x: e.clientX, y: e.clientY, yaw: container.__view.yaw, pitch: container.__view.pitch };
+        container.setPointerCapture(e.pointerId);
+      });
+      container.addEventListener("pointermove", function (e) {
+        if (!start || !container.__surface) return;
+        var v = container.__view;
+        v.fast = true;
+        v.yaw = start.yaw + (e.clientX - start.x) * 0.01;
+        v.pitch = Math.max(-0.15, Math.min(1.45, start.pitch + (e.clientY - start.y) * 0.01));
+        if (!raf) raf = requestAnimationFrame(function () { raf = 0; if (container.__surface) container.__surface(); });
+      });
+      ["pointerup", "pointercancel"].forEach(function (t) {
+        container.addEventListener(t, function () {
+          start = null;
+          if (container.__view.fast) { container.__view.fast = false; if (container.__surface) container.__surface(); }
+        });
+      });
+      container.addEventListener("dblclick", function () {
+        if (!container.__surface) return;
+        container.__view.yaw = -0.85; container.__view.pitch = 0.38; container.__surface();
+      });
+    }
+    container.__surface = render;
     render();
     if (container.__ro) container.__ro.disconnect();
     var last = container.clientWidth;

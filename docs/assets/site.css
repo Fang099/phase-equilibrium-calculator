@@ -445,3 +445,8 @@ figure.code .ln::before {
 /* sections with code use the full column for the code, the usual measure for text */
 main.doc > section:has(figure.code) { max-width: 58rem; }
 main.doc > section:has(figure.code) > :not(figure.code):not(.katex-display):not(.table-wrap) { max-width: 72ch; }
+.chart .tick-3d { fill: var(--muted); font-size: 11.5px; }
+.chart.is-3d { touch-action: pan-y; user-select: none; }
+.chart-hint { font: 0.8rem var(--sans); color: var(--muted); margin: 0.9rem 0 0; }
+.toprow { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 0.5rem 1rem; margin-bottom: 0.8rem; }
+.toprow .presets { margin-bottom: 0; }

@@ -77,13 +77,15 @@
     SOURCE_LABEL.nrtl_infinite_dilution = "infinite-dilution activity coefficients from the ChemSep interaction data";
   var DEF = ED["default"] || { a: "ethanol", b: "water", model: "nrtl" };
 
-  var state = { a: DEF.a, b: DEF.b, model: DEF.model, compare: "", x: "xy", y: "T", hold: "P", T: 350, P: 1.01325, x1: 0.5, params: {} };
+  var state = { a: DEF.a, b: DEF.b, model: DEF.model, compare: "", x: "xy", y: "T", hold: "P", T: 350, P: 1.01325, x1: 0.5, view: "2d", params: {} };
+  var LAYERS = 15, LAYER_PTS = 31;                 // 3D surface: diagrams stacked along the fixed variable
+  var surfaceCache = { key: null, res: null };
   var catalog = null, pair = null, last = null, engine, busy = false, dirty = false, timer = null;
 
   /* ------------------------------------------------------------ URL state */
   function readHash() {
     var h = new URLSearchParams(location.hash.slice(1));
-    ["a", "b", "model", "compare", "x", "y", "hold"].forEach(function (k) { if (h.get(k) != null) state[k] = h.get(k); });
+    ["a", "b", "model", "compare", "x", "y", "hold", "view"].forEach(function (k) { if (h.get(k) != null) state[k] = h.get(k); });
     ["T", "P", "x1"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) state[k] = +h.get(k); });
     var p = {};
     ["kij", "A12", "A21", "tdep", "dg12", "dg21", "alpha"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) p[k] = +h.get(k); });
@@ -95,6 +97,7 @@
     ["a", "b", "model", "y", "x", "hold"].forEach(function (k) { h.set(k, state[k]); });
     h.set(state.hold === "x" ? "x1" : state.hold, state[state.hold === "x" ? "x1" : state.hold]);
     if (state.compare) h.set("compare", state.compare);
+    if (state.view === "3d") h.set("view", "3d");
     activeParams().forEach(function (k) { if (state.params[k] !== defaults()[k]) h.set(k, state.params[k]); });
     history.replaceState(null, "", "#" + h.toString());
   }
@@ -105,6 +108,8 @@
   function nameB() { return comp(state.b).name; }
   function lower(s) { return s.toLowerCase(); }
   function isComp(x) { return x === "xy" || x === "x1" || x === "y1"; }
+  /* a surface stacks Pxy or Txy-type diagrams along the fixed T or P */
+  function can3d() { return (state.hold === "T" || state.hold === "P") && isComp(state.x); }
   function activeParams() {
     if (EOS.indexOf(state.model) >= 0) return ["kij"];
     if (state.model === "margules") return ["A12", "A21"];
@@ -277,6 +282,11 @@
     seg($("presets"), PRESETS.map(function (p, i) { return [String(i), p[0]]; }),
       String(PRESETS.findIndex(function (p) { return p[1] === state.y && p[2] === state.x; })),
       function (i) { var p = PRESETS[+i]; state.y = p[1]; state.x = p[2]; if (p[3]) state.hold = p[3]; drawAxes(); schedule(0); });
+    if (!can3d()) state.view = "2d";
+    seg($("view"), [["2d", "Diagram"], ["3d", "3D surface"]], state.view,
+      function (v) { state.view = v; drawAxes(); schedule(0); }, function (v) { return v === "3d" && !can3d(); });
+    var b3 = $("view").children[1];
+    if (b3 && b3.disabled) b3.title = "3D needs a composition axis and a fixed temperature or pressure";
     seg($("hold"), [["T", "Temperature"], ["P", "Pressure"], ["x", "Composition"]], state.hold,
       function (h) { state.hold = h; drawAxes(); schedule(0); }, function (h) { return !holdAllowed(h); });
     var r = $("hold-range"), n = $("hold-value"), u = $("hold-unit");
@@ -351,7 +361,7 @@
     var p = {};
     activeParams().forEach(function (k) { p[k] = state.params[k]; });
     var req = { components: [state.a, state.b], model: state.model, params: p, hold: state.hold,
-      npts: state.hold === "x" ? 31 : 41, compare: state.compare || null };
+      npts: state.hold === "x" ? 61 : 81, compare: state.compare || null };
     if (state.hold === "T") req.T = state.T; else if (state.hold === "P") req.P = state.P; else req.x1 = state.x1;
     return req;
   }
@@ -361,11 +371,42 @@
     writeHash();
     $("timing").textContent = "Calculating…"; $("timing").className = "busy";
     var req = request(), view = { x: state.x, y: state.y, hold: state.hold };
+    if (state.view === "3d" && can3d()) req.compare = null;
     engine.call({ op: "compute", request: req }).then(function (res) {
-      busy = false;
-      if (dirty) { run(); if (!res.ok) return; }
-      show(res, req, view);
+      if (!(state.view === "3d" && can3d()) || !res.ok) {
+        busy = false;
+        if (dirty) { run(); if (!res.ok) return; }
+        show(res, req, view);
+        return;
+      }
+      /* 3D: the layers depend on everything except the fixed value, so they are cached */
+      var sreq = surfaceRequest(req), key = JSON.stringify(sreq);
+      function done(sres) {
+        busy = false;
+        if (dirty) { run(); return; }
+        show(res, req, view, sres);
+      }
+      if (surfaceCache.key === key) { done(surfaceCache.res); return; }
+      $("timing").textContent = "Calculating " + LAYERS + " diagrams for the surface…";
+      overlay("Calculating the surface", LAYERS + " diagrams of " + LAYER_PTS + " points each. This takes a few seconds.", false);
+      engine.call({ op: "surface", request: sreq }).then(function (sres) {
+        if (sres.ok) { surfaceCache.key = key; surfaceCache.res = sres; }
+        done(sres);
+      });
     });
+  }
+
+  function surfaceRequest(req) {
+    var lo, hi, vals = [], k, r = {};
+    Object.keys(req).forEach(function (k2) { if (k2 !== "T" && k2 !== "P" && k2 !== "compare") r[k2] = req[k2]; });
+    if (state.hold === "T") { lo = pair.ranges.T[0]; hi = pair.ranges.T[1]; }
+    else { lo = Math.log10(pair.ranges.P[0]); hi = Math.log10(pair.ranges.P[1]); }
+    for (k = 0; k < LAYERS; k++) {
+      var u = lo + (hi - lo) * k / (LAYERS - 1);
+      vals.push(state.hold === "T" ? +u.toFixed(2) : +Math.pow(10, u).toPrecision(5));
+    }
+    r.values = vals; r.npts = LAYER_PTS;
+    return r;
   }
 
   /* ------------------------------------------------------------ drawing */
@@ -374,7 +415,7 @@
     $("spinner").style.display = isError ? "none" : "";
     $("overlay-title").textContent = title; $("overlay-text").textContent = text || "";
   }
-  function show(res, req, view) {
+  function show(res, req, view, sres) {
     $("input-text").textContent = res.input_text || "";
     $("report-text").textContent = res.report || "";
     if (!res.ok) {
@@ -385,11 +426,18 @@
     }
     $("overlay").hidden = true;
     last = { res: res, req: req, view: view };
-    plot(res, view);
+    var is3d = !!sres;
+    $("chart").classList.toggle("is-3d", is3d);
+    $("chart-hint").hidden = !is3d;
+    if (is3d && !sres.ok) { overlay("The surface could not be calculated", sres.error || "", true); }
+    else if (is3d) plot3d(res, view, sres);
+    else plot(res, view);
     $("about-plot").href = "concepts.html#" + aboutAnchor(view);
     $("route").textContent = res.route.charAt(0).toUpperCase() + res.route.slice(1);
     $("timing").className = "";
-    $("timing").textContent = res.columns.x1.length + " points · " + res.ms + " ms · " +
+    $("timing").textContent = (is3d && sres.ok
+      ? sres.layers.length + " diagrams × " + LAYER_PTS + " points · " + sres.ms + " ms"
+      : res.columns.x1.length + " points · " + res.ms + " ms") + " · " +
       (engine.local ? "local Python engine" : "Python running in your browser");
     drawFacts(res);
     var notes = (res.notes || []).filter(function (n) { return n.indexOf("azeotrope at") !== 0; });
@@ -449,6 +497,55 @@
       add(nm, Y === "P" || Y === "T" ? (X === "y1" ? "--vapor" : "--liquid") : "--liquid", pts(xc, cols[SINGLE[Y]]));
     }
     return out;
+  }
+  /* 3D: each layer is a diagram at one value of the fixed variable; the surfaces join
+     the same curve across layers, matched by liquid composition */
+  function plot3d(res, view, sres) {
+    var hold = res.hold, X = view.x, Y = view.y, layers = sres.layers.slice().sort(function (a, b) { return a.value - b.value; });
+    var base = layers.reduce(function (b, l) { return l.columns.x1.length > b.columns.x1.length ? l : b; }, layers[0]);
+    var canon = base.columns.x1.filter(function (v) { return v != null; });
+    var first = seriesFor(base.columns, view, hold, "", false);
+    var grids = first.map(function () { return []; }), zs = [];
+    layers.forEach(function (L) {
+      var ser = seriesFor(L.columns, view, hold, "", false), x1 = L.columns.x1;
+      first.forEach(function (_, j) {
+        grids[j].push(canon.map(function (xc) {
+          var i = -1;
+          for (var m = 0; m < x1.length; m++) if (x1[m] != null && Math.abs(x1[m] - xc) < 1e-6) { i = m; break; }
+          var p = i >= 0 && ser[j] ? ser[j].pts[i] : null;
+          if (!p) return null;
+          zs.push(p[1]);
+          return [p[0], L.value, p[1]];
+        }));
+      });
+    });
+    var fixed = hold === "T" ? res.fixed.T : res.fixed.P;
+    var slice = seriesFor(res.columns, view, hold, "", false);
+    var lines = slice.map(function (s) {
+      return { color: "--ink", width: 2.5, pts: s.pts.map(function (p) { if (!p) return null; zs.push(p[1]); return [p[0], fixed, p[1]]; }) };
+    });
+    var items = first.map(function (s) { return { name: s.name, color: s.color }; });
+    items.push({ name: "Diagram at " + (hold === "T" ? PEC.fmt(fixed, 1) + " K" : PEC.sig(fixed, 4) + " bar") + " (slider)", color: "--ink" });
+    if (Y === "T" || Y === "P" || Y === "y1") {
+      var az = layers.filter(function (l) { return l.azeotrope; }).map(function (l) {
+        var a = l.azeotrope; return [a.x1, l.value, Y === "y1" ? a.x1 : (a.P != null ? a.P : a.T)]; });
+      if (az.length > 1) { lines.push({ color: "--third", width: 2.5, pts: az }); items.push({ name: "Azeotrope", color: "--third" }); }
+    }
+    var opts = (Y === "gamma" || Y === "K") ? { include: 1, pad: 0.02 } : { pad: 0.02 };
+    var vals = layers.map(function (l) { return l.value; });
+    PEC.legend("legend", items);
+    PEC.drawSurface($("chart"), {
+      surfaces: first.map(function (s, j) { return { name: s.name, color: s.color, grid: grids[j] }; }),
+      nested: !!first.lens,
+      lines: lines,
+      x: { title: X === "xy" ? "x, y of " + lower(nameA()) : axisTitle(X), domain: [0, 1] },
+      y: { title: hold === "T" ? "Temperature (K)" : "Pressure (bar)", domain: [Math.min.apply(null, vals), Math.max.apply(null, vals)], log: hold === "P" },
+      z: { title: axisTitle(Y), domain: (Y === "y1") ? [0, 1] : PEC.niceDomain(zs, opts) },
+      aria: "3D surface of " + axisTitle(Y) + " against " + axisTitle(X) + " and " + (hold === "T" ? "temperature" : "pressure")
+    });
+    $("chart-hint").textContent = "Third axis: the fixed " + (hold === "T" ? "temperature, " + PEC.fmt(vals[0], 0) + " to " + PEC.fmt(vals[vals.length - 1], 0) + " K"
+      : "pressure, " + PEC.sig(vals[0], 3) + " to " + PEC.sig(vals[vals.length - 1], 3) + " bar") +
+      ". Drag to rotate, double-click to reset." + (sres.failed ? " " + sres.failed + " of the diagrams could not be solved and are left out." : "");
   }
   function lensArea(series) {
     var a = series[0].pts.filter(Boolean), b = series[1].pts.filter(Boolean);
