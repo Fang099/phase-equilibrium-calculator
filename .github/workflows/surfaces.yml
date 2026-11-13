@@ -1,0 +1,48 @@
+# Rebuilds the website and precomputes the 3D surfaces whenever the code, the
+# data or the page sources change on main, then commits the result to docs/.
+# The calculator page then loads those surfaces instead of computing them.
+name: Rebuild site and precompute surfaces
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*.py"
+      - "data/**"
+      - "site/**"
+      - "scripts/**"
+  workflow_dispatch:          # "Run workflow" button on the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: surfaces
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install numpy scipy matplotlib
+      - name: Rebuild the website (docs/)
+        run: python scripts/build_site.py
+      - name: Precompute the 3D surfaces (only missing or outdated ones)
+        run: python scripts/precompute_surfaces.py
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --cached --quiet; then
+            echo "nothing changed"
+          else
+            git commit -m "Rebuild site and precompute surfaces (automatic)"
+            git push
+          fi

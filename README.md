@@ -120,11 +120,12 @@ examples/                  input files, one per demo case
 site/                      page sources and the shared layout of the website
 docs/                      the built website (GitHub Pages serves this folder)
 scripts/build_site.py      rebuilds docs/: pages, numbers, charts, images, and the copy of the code the browser runs
+scripts/precompute_surfaces.py   solves the 3D surfaces in advance into docs/surfaces/
 scripts/build_compound_db.py   regenerates data/compounds.json from the source tables
 scripts/dev_server.py      local preview of the website with a local calculator engine
 ```
 
-After changing any Python module or page, run `python scripts/build_site.py`. No number on the site is typed by hand.
+After changing any Python module or page, run `python scripts/build_site.py`, then `python scripts/precompute_surfaces.py` to bring the precomputed 3D surfaces (`docs/surfaces/`) up to date. No number on the site is typed by hand. On GitHub, the workflow `.github/workflows/surfaces.yml` runs both automatically on every push to `main` that changes the code, the data or the pages, and commits the result.
 
 The first version of the project (before the calculator and database) is tagged `v0.1`.
 

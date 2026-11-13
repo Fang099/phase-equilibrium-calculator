@@ -425,11 +425,21 @@
         show(res, req, view, sres);
       }
       if (surfaceCache.key === key) { done(surfaceCache.res); return; }
-      $("timing").textContent = "Calculating " + LAYERS + " diagrams for the surface…";
-      overlay("Calculating the surface", LAYERS + " diagrams of " + LAYER_PTS + " points each. This takes a few seconds.", false);
-      engine.call({ op: "surface", request: sreq }).then(function (sres) {
-        if (sres.ok) { surfaceCache.key = key; surfaceCache.res = sres; }
-        done(sres);
+      sourceVersion.then(function (ver) {
+        var kept = ver && storeGet(key, ver);
+        if (kept) { kept.source = "remembered"; surfaceCache.key = key; surfaceCache.res = kept; done(kept); return; }
+        precomputed(sreq).then(function (pre) {
+          if (pre) { surfaceCache.key = key; surfaceCache.res = pre; done(pre); return; }
+          $("timing").textContent = "Calculating " + LAYERS + " diagrams for the surface…";
+          overlay("Calculating the surface", LAYERS + " diagrams of " + LAYER_PTS + " points each. This takes a few seconds, once: this browser remembers the result.", false);
+          engine.call({ op: "surface", request: sreq }).then(function (sres) {
+            if (sres.ok) {
+              surfaceCache.key = key; surfaceCache.res = sres;
+              if (ver) storePut(key, ver, sres);
+            }
+            done(sres);
+          });
+        });
       });
     });
   }
@@ -444,7 +454,65 @@
       vals.push(state.hold === "T" ? +u.toFixed(2) : +Math.pow(10, u).toPrecision(5));
     }
     r.values = vals; r.npts = LAYER_PTS;
+    /* only the columns the 3D plots use, to keep the result small */
+    var cols = ["x1", "y1", "T", "P"], need = { gamma: ["gamma1", "gamma2"], lngamma: ["gamma1", "gamma2"], K: ["K1", "K2"],
+      f: ["f1", "f2"], phiL: ["phiL1", "phiL2"], phiV: ["phiV1", "phiV2"], alpha: ["alpha"], GE: ["GE_RT"], Gmix: ["Gmix_RT"], stab: ["stability"] };
+    Y_OPTS.forEach(function (o) { (need[o[0]] || []).forEach(function (c) { if (cols.indexOf(c) < 0) cols.push(c); }); });
+    r.keep = cols;
     return r;
+  }
+
+  /* Surfaces are slow to compute in the browser, so the page looks in three places
+     first: this visit's last surface, surfaces this browser computed before, and the
+     precomputed files in surfaces/ (scripts/precompute_surfaces.py, for the database
+     parameters). All must belong to the current version of the Python code. */
+  var sourceVersion = fetch("py/manifest.json", { cache: "no-cache" }).then(function (r) { return r.json(); })
+    .then(function (m) { return m.source || null; }).catch(function () { return null; });
+  var surfaceIndex = sourceVersion.then(function (v) {
+    if (!v) return null;
+    return fetch("surfaces/index.json", { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (ix) { return ix && ix.version === v && ix.layers === LAYERS && ix.points === LAYER_PTS ? ix : null; })
+      .catch(function () { return null; });
+  });
+  function sameNumbers(a, b, tol) {
+    var ka = Object.keys(a || {}), kb = Object.keys(b || {});
+    if (ka.length !== kb.length) return false;
+    return ka.every(function (k) { var x = +a[k], y = +b[k]; return isFinite(x) && isFinite(y) && Math.abs(x - y) <= tol * Math.max(1, Math.abs(x)); });
+  }
+  function precomputed(sreq) {
+    return surfaceIndex.then(function (ix) {
+      if (!ix) return null;
+      var key = [sreq.components[0], sreq.components[1], sreq.model, sreq.hold].join("~");
+      if (ix.keys.indexOf(key) < 0) return null;
+      return fetch("surfaces/" + encodeURIComponent(key) + ".json").then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (f) {
+          if (!f || f.version !== ix.version || !f.result || !f.result.ok) return null;
+          var q = f.request;
+          var ok = q.model === sreq.model && q.hold === sreq.hold && q.npts === sreq.npts &&
+            q.components.join() === sreq.components.join() && sameNumbers(q.params, sreq.params, 1e-9) &&
+            sameNumbers(q.values, sreq.values, 1e-6) && sreq.keep.every(function (c) { return q.keep.indexOf(c) >= 0; });
+          if (ok) f.result.source = "precomputed";
+          return ok ? f.result : null;
+        });
+    }).catch(function () { return null; });
+  }
+  var STORE = "pec-surface:";
+  function storeGet(key, version) {
+    try {
+      var v = localStorage.getItem(STORE + key);
+      if (!v) return null;
+      v = JSON.parse(v);
+      return v.version === version ? v.res : null;
+    } catch (e) { return null; }
+  }
+  function storePut(key, version, res) {
+    var item = JSON.stringify({ version: version, res: res });
+    try { localStorage.setItem(STORE + key, item); return; } catch (e) { /* full: make room */ }
+    try {
+      Object.keys(localStorage).filter(function (k) { return k.indexOf(STORE) === 0; })
+        .forEach(function (k) { localStorage.removeItem(k); });
+      localStorage.setItem(STORE + key, item);
+    } catch (e) { /* storage unavailable: nothing is remembered */ }
   }
 
   /* ------------------------------------------------------------ drawing */
@@ -476,7 +544,8 @@
     $("route").textContent = res.route.charAt(0).toUpperCase() + res.route.slice(1);
     $("timing").className = "";
     $("timing").textContent = (is3d && sres.ok
-      ? sres.layers.length + " diagrams × " + LAYER_PTS + " points · " + sres.ms + " ms"
+      ? sres.layers.length + " diagrams × " + LAYER_PTS + " points · " +
+        (sres.source === "precomputed" ? "precomputed" : sres.source === "remembered" ? "remembered from an earlier visit" : sres.ms + " ms")
       : (isField ? res.columns.position.length : res.columns.x1.length) + " points · " + res.ms + " ms") + " · " +
       (engine.local ? "local Python engine" : "Python running in your browser");
     if (isField) drawFieldFacts(res); else drawFacts(res);

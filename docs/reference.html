@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=ea3804945a">
+<link rel="stylesheet" href="assets/site.css?v=cf38ebaa57">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -286,6 +286,11 @@ python scripts/build_site.py</code></pre>
 <pre><code>python scripts/build_site.py           # everything
 python scripts/build_site.py --pages   # only the pages, after editing text</code></pre>
         <p>The full run copies the Python modules to <code>docs/py/</code> for the calculator, recomputes every number and chart on the pages, redraws the gallery images, and renders the pages. Run it after any change to the code so the site stays in step.</p>
+        <p>The 3D surfaces take several seconds each in the browser, so the ones with the database parameters are computed in advance:</p>
+<pre><code>python scripts/precompute_surfaces.py           # only missing or outdated surfaces
+python scripts/precompute_surfaces.py --force   # all of them again</code></pre>
+        <p>It solves every surface the calculator offers (each ordered pair of compounds, each model with database parameters, at fixed temperature and at fixed pressure) and writes them to <code>docs/surfaces/</code>. Each file carries a fingerprint of the Python code and the database; the page uses a file only when the fingerprint matches the code it is running, and otherwise computes the surface itself. A surface computed in the browser (after moving a slider, say) is remembered by that browser for the next visit.</p>
+        <p>None of this has to be run by hand: the GitHub workflow <code>.github/workflows/surfaces.yml</code> runs both scripts whenever the code, the data or the page sources change on the main branch, and commits the result.</p>
       </section>
 
       <!-- ============================================================ -->
@@ -324,9 +329,9 @@ python scripts/build_site.py --pages   # only the pages, after editing text</cod
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=ea3804945a"></script>
-<script src="assets/charts.js?v=ea3804945a"></script>
-<script src="assets/data.js?v=ea3804945a"></script>
+<script src="assets/edition.js?v=cf38ebaa57"></script>
+<script src="assets/charts.js?v=cf38ebaa57"></script>
+<script src="assets/data.js?v=cf38ebaa57"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, db = D.database, fmt = PEC.fmt, $ = function (id) { return document.getElementById(id); };

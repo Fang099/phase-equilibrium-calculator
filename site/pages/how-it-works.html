@@ -201,6 +201,7 @@
         <ul>
           <!--full--><li><b>No SciPy needed.</b> The solver uses only two SciPy routines, <code>brentq</code> and <code>fsolve</code>. <code>numerics.py</code> has plain-Python versions of both, used automatically when SciPy is absent. SciPy would be by far the largest download, so the calculator starts sooner without it. The test suite passes with either.</li><!--/full-->
           <!--reduced--><li><b>A small download.</b> The two root finders the solver needs, Brent's method and a Newton solver for two unknowns, are written out in <code>numerics.py</code>, so the browser loads only Python and NumPy.</li><!--/reduced-->
+          <li><b>Surfaces computed in advance.</b> A 3D surface is fifteen diagrams. Those with the database parameters are solved once by <code>scripts/precompute_surfaces.py</code> and loaded as files; others are computed in the browser once and remembered there.</li>
           <li><b>Fast inner loops.</b> The cubic is solved in closed form, and the mixing rules are evaluated once per fugacity call.</li>
         </ul>
         <p>For use without an internet connection, run <code>python scripts/dev_server.py</code> and open <code>http://localhost:8000/</code>. The page detects the local server and sends its requests there, to the same <code>web_api.handle()</code> running in ordinary Python.</p>

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=ea3804945a">
+<link rel="stylesheet" href="assets/site.css?v=cf38ebaa57">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -465,6 +465,7 @@
         <ul>
           
           <li><b>A small download.</b> The two root finders the solver needs, Brent's method and a Newton solver for two unknowns, are written out in <code>numerics.py</code>, so the browser loads only Python and NumPy.</li>
+          <li><b>Surfaces computed in advance.</b> A 3D surface is fifteen diagrams. Those with the database parameters are solved once by <code>scripts/precompute_surfaces.py</code> and loaded as files; others are computed in the browser once and remembered there.</li>
           <li><b>Fast inner loops.</b> The cubic is solved in closed form, and the mixing rules are evaluated once per fugacity call.</li>
         </ul>
         <p>For use without an internet connection, run <code>python scripts/dev_server.py</code> and open <code>http://localhost:8000/</code>. The page detects the local server and sends its requests there, to the same <code>web_api.handle()</code> running in ordinary Python.</p>
@@ -539,9 +540,9 @@
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=ea3804945a"></script>
-<script src="assets/charts.js?v=ea3804945a"></script>
-<script src="assets/data.js?v=ea3804945a"></script>
+<script src="assets/edition.js?v=cf38ebaa57"></script>
+<script src="assets/charts.js?v=cf38ebaa57"></script>
+<script src="assets/data.js?v=cf38ebaa57"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, W = D.walkthrough, $ = function (id) { return document.getElementById(id); };

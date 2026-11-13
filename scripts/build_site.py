@@ -288,8 +288,11 @@ for f in WEB_FILES:
         shutil.copyfile(os.path.join(ROOT, f), os.path.join(py_dir, f))
     with open(os.path.join(py_dir, f), "rb") as fh:
         digest.update(fh.read())
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+from precompute_surfaces import fingerprint                        # noqa: E402
 with open(os.path.join(py_dir, "manifest.json"), "w") as fh:
-    json.dump({"version": digest.hexdigest()[:12], "files": WEB_FILES}, fh)
+    # "source": the fingerprint the precomputed surfaces (docs/surfaces) must carry
+    json.dump({"version": digest.hexdigest()[:12], "source": fingerprint(), "files": WEB_FILES}, fh)
 print(f"copied {len(WEB_FILES)} files to docs/py/ (version {digest.hexdigest()[:12]})")
 
 
