@@ -157,7 +157,8 @@
         segs.forEach(function (sg) {
           if (sg.length < 2) return;
           el("path", { d: "M" + sg.map(function (p) { return X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1); }).join("L"),
-            "class": "series-line", stroke: "var(" + s.color + ")", "stroke-width": s.width || 2, opacity: s.opacity || 1 }, plot);
+            "class": "series-line", stroke: "var(" + s.color + ")", "stroke-width": s.width || 2, opacity: s.opacity || 1,
+            "stroke-dasharray": s.dash || "none" }, plot);
         });
       });
       (cfg.regions || []).forEach(function (r) {

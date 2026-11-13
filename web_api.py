@@ -234,8 +234,20 @@ def _profile(req, text, out):
     fin = lambda v: float(v) if np.isfinite(v) else None
     out["reference"] = {"phase": point.phase, "beta": fin(point.beta),
                         "x1": fin(point.x[0]), "y1": fin(point.y[0])}
-    out["contacts"] = [{"position": float(c["position"]), "P": float(c["P"]) / 1e5}
+    out["contacts"] = [{"position": float(c["position"]), "P": float(c["P"]) / 1e5,
+                        "x_liquid": float(c["x_liquid"][0]), "x_vapor": float(c["x_vapor"][0])}
                        for c in prof.extra.get("contacts", [])]
+    # saturation pressure of the local fluid (bubble P of a liquid, dew P of a
+    # vapor) at every third point: where the pressure line meets it, the
+    # other phase appears
+    T = float(req["T"])
+    psat = [None] * len(prof.position)
+    for i in list(range(0, len(prof.position), 3)) + [len(prof.position) - 1]:
+        try:
+            psat[i] = es.saturation(L, V, prof.x[i], 0.0 if prof.phase[i] == "liquid" else 1.0, T=T).P / 1e5
+        except Exception:
+            pass
+    out["columns"]["P_sat"] = [None if v is None else float(f"{v:.7g}") for v in psat]
     out["notes"] = [n for n in prof.notes if not n.startswith("single phase")]
     out["ok"] = True
     return out

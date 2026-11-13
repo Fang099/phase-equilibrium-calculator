@@ -612,18 +612,36 @@
       if (!cur || cur.phase !== ph) { cur = { phase: ph, pts: [] }; runs.push(cur); }
       cur.pts.push(F.g ? [v, pos, i] : [pos, v, i]);
     }
+    /* join the two phases at each contact: the pressure is continuous there,
+       the composition and density jump */
+    (res.contacts || []).forEach(function (ct, j) {
+      var a = runs[j], b = runs[j + 1], p = ct.position * F.k;
+      function val(ph) { return Y === "P" ? ct.P : Y === "x1" ? (ph === "vapor" ? ct.x_vapor : ct.x_liquid) : null; }
+      [[a, "end"], [b, "start"]].forEach(function (rr) {
+        var r = rr[0]; if (!r) return;
+        var v = val(r.phase); if (v == null) return;
+        var pt = F.g ? [v, p, null] : [p, v, null];
+        if (rr[1] === "end") r.pts.push(pt); else r.pts.unshift(pt);
+      });
+    });
     var names = { liquid: "Liquid", vapor: "Vapor" };
     runs.forEach(function (r) {
       cfg.series.push({ name: names[r.phase] || r.phase, color: r.phase === "vapor" ? "--vapor" : "--liquid", pts: r.pts, width: 2.5 });
     });
     var posD = [c.position[0] * F.k, c.position[n - 1] * F.k];
-    var qs = []; runs.forEach(function (r) { r.pts.forEach(function (p) { qs.push(F.g ? p[0] : p[1]); }); });
+    if (Y === "P" && c.P_sat) {                    // the pressure at which the local fluid would split
+      var sp = [];
+      c.P_sat.forEach(function (v, i) { if (v != null) sp.push(F.g ? [v, c.position[i] * F.k, i] : [c.position[i] * F.k, v, i]); });
+      if (sp.length > 1) cfg.series.push({ name: "Saturation pressure of the local fluid", color: "--muted", width: 1.5, dash: "5 4", pts: sp });
+    }
+    var qs = []; cfg.series.forEach(function (r) { r.pts.forEach(function (p) { qs.push(F.g ? p[0] : p[1]); }); });
     var qD = PEC.niceDomain(qs, Y === "x1" ? { pad: 0.08 } : {});
     if (F.g) { cfg.xDomain = qD; cfg.yDomain = posD; cfg.xTitle = qTitle; cfg.yTitle = F.title; }
     else { cfg.xDomain = posD; cfg.yDomain = qD; cfg.xTitle = F.title; cfg.yTitle = qTitle; }
     var items = [];
     if (runs.some(function (r) { return r.phase !== "vapor"; })) items.push({ name: "Liquid", color: "--liquid" });
     if (runs.some(function (r) { return r.phase === "vapor"; })) items.push({ name: "Vapor", color: "--vapor" });
+    if (Y === "P" && cfg.series.some(function (s) { return s.dash; })) items.push({ name: "Bubble P of the local liquid / dew P of the local vapor", color: "--muted" });
     /* phase bands along the field direction */
     if (state.shade) {
       var bands = [], b0 = null;
@@ -650,12 +668,54 @@
     });
     cfg.tip = function (s, p) {
       var i = p[2];
+      if (i == null) return "";
+      if (s.dash) return "<b>" + PEC.sig(c.P_sat[i], 5) + " bar</b><br><span class='dim'>" + (c.phase[i] === "vapor" ? "dew" : "bubble") + " pressure of the fluid here</span>";
       return "<b>" + (F.g ? PEC.sig(c.position[i], 4) + " m" : PEC.sig(c.position[i] * 100, 4) + " cm") + "</b> · " + c.phase[i] +
         "<br><span class='dim'>" + PEC.sig(c.P[i], 5) + " bar · x " + PEC.fmt(c.x1[i], 4) +
         (c.rho[i] != null ? " · " + PEC.sig(c.rho[i], 4) + " kg/m³" : "") + "</span>";
     };
     PEC.legend("legend", items);
     PEC.drawChart($("chart"), cfg);
+    $("chart-hint").hidden = false;
+    $("chart-hint").textContent = fieldCaption(res, F, Y);
+  }
+  /* what the profile means, with this case's numbers */
+  function fieldCaption(res, F, Y) {
+    var c = res.columns, n = c.position.length, along = F.g ? "height" : "radius", a = lower(nameA());
+    function grad(phase) {                       // pressure change per 10 m or per cm, within one phase
+      var idx = []; for (var i = 0; i < n; i++) if (c.phase[i] === phase && c.P[i] != null) idx.push(i);
+      if (idx.length < 2) return null;
+      var i0 = idx[0], i1 = idx[idx.length - 1];
+      return (c.P[i1] - c.P[i0]) / ((c.position[i1] - c.position[i0]) * F.k) * (F.g ? 10 : 1);
+    }
+    var unit = F.g ? " bar per 10 m" : " bar per cm", parts = [];
+    var gl = grad("liquid"), gv = grad("vapor");
+    if (Y === "P") {
+      var txt = F.g ? "Each point is the equilibrium state at that height, with T uniform. Pressure falls with height by ρg per metre, so the dense liquid's pressure drops steeply"
+                    : "Each point is the equilibrium state at that radius, with T uniform. Pressure rises outward by ρω²r per metre, steeply in the dense liquid";
+      if (gl != null) parts.push("liquid " + PEC.sig(gl, 3) + unit);
+      if (gv != null) parts.push("vapor " + PEC.sig(gv, 3) + unit);
+      return txt + (parts.length ? " (" + parts.join("; ") + ")" : "") + ", while the dilute vapor's pressure hardly changes. " +
+        "The dashed line is the pressure at which the local fluid would start to change phase. Where the two meet, the second phase appears: the gas–liquid contact.";
+    }
+    function span(phase, col, d) {                 // first and last value within one phase
+      var v = []; for (var i = 0; i < n; i++) if (c.phase[i] === phase && c[col][i] != null) v.push(c[col][i]);
+      return v.length > 1 ? phase + " " + PEC.fmt(v[0], d) + " → " + PEC.fmt(v[v.length - 1], d) : null;
+    }
+    if (Y === "x1") {
+      ["liquid", "vapor"].forEach(function (ph) { var t = span(ph, "x1", 5); if (t) parts.push(t); });
+      var within = parts.length && (res.contacts || []).length ? " Within each phase the change is small (" + parts.join("; ") + ", from " + (F.g ? "bottom to top" : "axis side to rim") +
+        "), so next to the jump at the contact those lines look " + (F.g ? "vertical" : "flat") + "." : "";
+      return xCaption() + within;
+    }
+    function xCaption() { return "Composition of the phase present at each " + along + ". In a field, ln f + MΦ/RT is the same everywhere for each compound. In the vapor this sends the heavier molecules " +
+      (F.g ? "down" : "toward the rim") + "; in the liquid what counts is whether a compound is denser than the mixture around it (its molar mass over the volume it takes up), so a heavy but bulky molecule can move the other way. " +
+      "At a contact the composition jumps from the liquid's to the vapor's, as across a tie line of the phase diagram."; }
+    var liq = [], vap = [];
+    for (var k = 0; k < n; k++) if (c.rho[k] != null) (c.phase[k] === "vapor" ? vap : liq).push(c.rho[k]);
+    var jump = liq.length && vap.length ? " At the gas–liquid contact it jumps: the liquid here is about " +
+      PEC.sig(Math.min.apply(null, liq) / Math.max.apply(null, vap), 2) + " times denser than the vapor." : "";
+    return "Density of the phase present at each " + along + ". It changes slowly within a phase, through compression and the shift in composition." + jump;
   }
   function drawFieldFacts(res) {
     var c = res.columns, n = c.position.length, F = fieldPos(res), out = [], unit = F.g ? " m" : " cm";

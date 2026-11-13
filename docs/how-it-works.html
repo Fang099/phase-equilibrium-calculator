@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=7188ae72d5">
+<link rel="stylesheet" href="assets/site.css?v=f489d2a1e7">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -82,34 +82,34 @@
         </ol>
         <p>Supporting files: <code>compound_db.py</code> and <code>data/compounds.json</code> (the property database), and <code>numerics.py</code> (the root finders).</p>
         <p>The whole chain fits in a few lines. This is the start of the function the calculator calls for a diagram:</p>
-<figure class="code"><figcaption><span class="code-name">web_api._solve</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L263-L290"><code>web_api.py</code>, lines 263–290</a></figcaption><pre><code><span class="ln" data-n="263"></span><span class="tk">def</span> <span class="tf">_solve</span>(req):
-<span class="ln" data-n="264"></span>    text = build_input(req)
-<span class="ln" data-n="265"></span>    rep = check_input(text)
-<span class="ln" data-n="266"></span>    out = {<span class="ts">"input_text"</span>: text, <span class="ts">"report"</span>: str(rep), <span class="ts">"status"</span>: rep.status}
-<span class="ln" data-n="267"></span>    <span class="tk">if</span> rep.status != <span class="ts">"SUFFICIENT"</span>:
-<span class="ln" data-n="268"></span>        out[<span class="ts">"ok"</span>] = <span class="tk">False</span>
-<span class="ln" data-n="269"></span>        out[<span class="ts">"error"</span>] = <span class="ts">"The checker did not accept this input: "</span> + rep.status
-<span class="ln" data-n="270"></span>        <span class="tk">return</span> out
-<span class="ln" data-n="271"></span>    <span class="tk">if</span> req.get(<span class="ts">"hold"</span>) == <span class="ts">"field"</span>:
-<span class="ln" data-n="272"></span>        <span class="tk">return</span> _profile(req, text, out)
-<span class="ln" data-n="273"></span>    system = build_system(text)
-<span class="ln" data-n="274"></span>    eq = next(e <span class="tk">for</span> e <span class="tk">in</span> system.equilibria <span class="tk">if</span> e.phase_names[<span class="tn">1</span>] == <span class="ts">"V"</span>)
-<span class="ln" data-n="275"></span>    L, V = eq.phases
-<span class="ln" data-n="276"></span>    npts = int(req.get(<span class="ts">"npts"</span>, <span class="tn">41</span>))
-<span class="ln" data-n="277"></span>    hold = req.get(<span class="ts">"hold"</span>, <span class="ts">"T"</span>)
-<span class="ln" data-n="278"></span>    notes = []
-<span class="ln" data-n="279"></span>    out.update(route=eq.route, calculation=eq.calculation, names=list(system.names),
-<span class="ln" data-n="280"></span>               hold=hold, azeotrope=<span class="tk">None</span>, three_phase=<span class="tk">None</span>)
-<span class="ln" data-n="281"></span>    <span class="tk">if</span> hold <span class="tk">in</span> (<span class="ts">"T"</span>, <span class="ts">"P"</span>):
-<span class="ln" data-n="282"></span>        d = (es.vle_diagram(L, V, T=float(req[<span class="ts">"T"</span>]), npts=npts, spacing=<span class="ts">"ends"</span>) <span class="tk">if</span> hold == <span class="ts">"T"</span>
-<span class="ln" data-n="283"></span>             <span class="tk">else</span> es.vle_diagram(L, V, P=float(req[<span class="ts">"P"</span>]) * <span class="tn">1e5</span>, npts=npts, spacing=<span class="ts">"ends"</span>))
-<span class="ln" data-n="284"></span>        notes += d.notes
-<span class="ln" data-n="285"></span>        <span class="tk">if</span> len(d.x1) &lt; <span class="tn">2</span>:
-<span class="ln" data-n="286"></span>            out[<span class="ts">"ok"</span>] = <span class="tk">False</span>
-<span class="ln" data-n="287"></span>            out[<span class="ts">"error"</span>] = (<span class="ts">"No vapor-liquid equilibrium could be solved at this condition "</span>
-<span class="ln" data-n="288"></span>                            <span class="ts">"with this model. Try a lower temperature or pressure."</span>)
-<span class="ln" data-n="289"></span>            <span class="tk">return</span> out
-<span class="ln" data-n="290"></span>        out[<span class="ts">"columns"</span>] = _columns(es.diagram_properties(L, V, d))</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">web_api._solve</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L275-L302"><code>web_api.py</code>, lines 275–302</a></figcaption><pre><code><span class="ln" data-n="275"></span><span class="tk">def</span> <span class="tf">_solve</span>(req):
+<span class="ln" data-n="276"></span>    text = build_input(req)
+<span class="ln" data-n="277"></span>    rep = check_input(text)
+<span class="ln" data-n="278"></span>    out = {<span class="ts">"input_text"</span>: text, <span class="ts">"report"</span>: str(rep), <span class="ts">"status"</span>: rep.status}
+<span class="ln" data-n="279"></span>    <span class="tk">if</span> rep.status != <span class="ts">"SUFFICIENT"</span>:
+<span class="ln" data-n="280"></span>        out[<span class="ts">"ok"</span>] = <span class="tk">False</span>
+<span class="ln" data-n="281"></span>        out[<span class="ts">"error"</span>] = <span class="ts">"The checker did not accept this input: "</span> + rep.status
+<span class="ln" data-n="282"></span>        <span class="tk">return</span> out
+<span class="ln" data-n="283"></span>    <span class="tk">if</span> req.get(<span class="ts">"hold"</span>) == <span class="ts">"field"</span>:
+<span class="ln" data-n="284"></span>        <span class="tk">return</span> _profile(req, text, out)
+<span class="ln" data-n="285"></span>    system = build_system(text)
+<span class="ln" data-n="286"></span>    eq = next(e <span class="tk">for</span> e <span class="tk">in</span> system.equilibria <span class="tk">if</span> e.phase_names[<span class="tn">1</span>] == <span class="ts">"V"</span>)
+<span class="ln" data-n="287"></span>    L, V = eq.phases
+<span class="ln" data-n="288"></span>    npts = int(req.get(<span class="ts">"npts"</span>, <span class="tn">41</span>))
+<span class="ln" data-n="289"></span>    hold = req.get(<span class="ts">"hold"</span>, <span class="ts">"T"</span>)
+<span class="ln" data-n="290"></span>    notes = []
+<span class="ln" data-n="291"></span>    out.update(route=eq.route, calculation=eq.calculation, names=list(system.names),
+<span class="ln" data-n="292"></span>               hold=hold, azeotrope=<span class="tk">None</span>, three_phase=<span class="tk">None</span>)
+<span class="ln" data-n="293"></span>    <span class="tk">if</span> hold <span class="tk">in</span> (<span class="ts">"T"</span>, <span class="ts">"P"</span>):
+<span class="ln" data-n="294"></span>        d = (es.vle_diagram(L, V, T=float(req[<span class="ts">"T"</span>]), npts=npts, spacing=<span class="ts">"ends"</span>) <span class="tk">if</span> hold == <span class="ts">"T"</span>
+<span class="ln" data-n="295"></span>             <span class="tk">else</span> es.vle_diagram(L, V, P=float(req[<span class="ts">"P"</span>]) * <span class="tn">1e5</span>, npts=npts, spacing=<span class="ts">"ends"</span>))
+<span class="ln" data-n="296"></span>        notes += d.notes
+<span class="ln" data-n="297"></span>        <span class="tk">if</span> len(d.x1) &lt; <span class="tn">2</span>:
+<span class="ln" data-n="298"></span>            out[<span class="ts">"ok"</span>] = <span class="tk">False</span>
+<span class="ln" data-n="299"></span>            out[<span class="ts">"error"</span>] = (<span class="ts">"No vapor-liquid equilibrium could be solved at this condition "</span>
+<span class="ln" data-n="300"></span>                            <span class="ts">"with this model. Try a lower temperature or pressure."</span>)
+<span class="ln" data-n="301"></span>            <span class="tk">return</span> out
+<span class="ln" data-n="302"></span>        out[<span class="ts">"columns"</span>] = _columns(es.diagram_properties(L, V, d))</code></pre></figure>
         <p>Text in, text checked, phase objects built, diagram solved, properties tabulated. The rest of this page follows one request through these lines: <b>ethanol and water, van Laar model, a Txy diagram at 1.01325 bar</b>. All code shown is the current source, with its line numbers; each heading links to the file on GitHub.</p>
       </section>
 
@@ -410,18 +410,18 @@
 
         <h3>3D surfaces</h3>
         <p>The 3D view needs no new thermodynamics. <code>web_api.surface()</code> runs the same diagram at a list of values of the fixed variable and returns them as layers; the page joins equal liquid compositions across layers into a surface:</p>
-<figure class="code"><figcaption><span class="code-name">surface</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L401-L412"><code>web_api.py</code>, lines 401–412</a></figcaption><pre><code><span class="ln" data-n="401"></span><span class="tk">for</span> v <span class="tk">in</span> req[<span class="ts">"values"</span>]:
-<span class="ln" data-n="402"></span>    r = {k: val <span class="tk">for</span> k, val <span class="tk">in</span> req.items() <span class="tk">if</span> k <span class="tk">not</span> <span class="tk">in</span> (<span class="ts">"values"</span>, <span class="ts">"keep"</span>, <span class="ts">"compare"</span>)}
-<span class="ln" data-n="403"></span>    r[hold] = float(v)
-<span class="ln" data-n="404"></span>    <span class="tk">try</span>:
-<span class="ln" data-n="405"></span>        o = _solve(r)
-<span class="ln" data-n="406"></span>    <span class="tk">except</span> Exception:
-<span class="ln" data-n="407"></span>        o = {<span class="ts">"ok"</span>: <span class="tk">False</span>}
-<span class="ln" data-n="408"></span>    <span class="tk">if</span> <span class="tk">not</span> o.get(<span class="ts">"ok"</span>):
-<span class="ln" data-n="409"></span>        failed += <span class="tn">1</span>
-<span class="ln" data-n="410"></span>        <span class="tk">continue</span>
-<span class="ln" data-n="411"></span>    cols = o[<span class="ts">"columns"</span>] <span class="tk">if</span> <span class="tk">not</span> keep <span class="tk">else</span> {k: o[<span class="ts">"columns"</span>][k] <span class="tk">for</span> k <span class="tk">in</span> keep <span class="tk">if</span> k <span class="tk">in</span> o[<span class="ts">"columns"</span>]}
-<span class="ln" data-n="412"></span>    layers.append({<span class="ts">"value"</span>: float(v), <span class="ts">"columns"</span>: cols, <span class="ts">"azeotrope"</span>: o.get(<span class="ts">"azeotrope"</span>)})</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">surface</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L413-L424"><code>web_api.py</code>, lines 413–424</a></figcaption><pre><code><span class="ln" data-n="413"></span><span class="tk">for</span> v <span class="tk">in</span> req[<span class="ts">"values"</span>]:
+<span class="ln" data-n="414"></span>    r = {k: val <span class="tk">for</span> k, val <span class="tk">in</span> req.items() <span class="tk">if</span> k <span class="tk">not</span> <span class="tk">in</span> (<span class="ts">"values"</span>, <span class="ts">"keep"</span>, <span class="ts">"compare"</span>)}
+<span class="ln" data-n="415"></span>    r[hold] = float(v)
+<span class="ln" data-n="416"></span>    <span class="tk">try</span>:
+<span class="ln" data-n="417"></span>        o = _solve(r)
+<span class="ln" data-n="418"></span>    <span class="tk">except</span> Exception:
+<span class="ln" data-n="419"></span>        o = {<span class="ts">"ok"</span>: <span class="tk">False</span>}
+<span class="ln" data-n="420"></span>    <span class="tk">if</span> <span class="tk">not</span> o.get(<span class="ts">"ok"</span>):
+<span class="ln" data-n="421"></span>        failed += <span class="tn">1</span>
+<span class="ln" data-n="422"></span>        <span class="tk">continue</span>
+<span class="ln" data-n="423"></span>    cols = o[<span class="ts">"columns"</span>] <span class="tk">if</span> <span class="tk">not</span> keep <span class="tk">else</span> {k: o[<span class="ts">"columns"</span>][k] <span class="tk">for</span> k <span class="tk">in</span> keep <span class="tk">if</span> k <span class="tk">in</span> o[<span class="ts">"columns"</span>]}
+<span class="ln" data-n="424"></span>    layers.append({<span class="ts">"value"</span>: float(v), <span class="ts">"columns"</span>: cols, <span class="ts">"azeotrope"</span>: o.get(<span class="ts">"azeotrope"</span>)})</code></pre></figure>
 
         <h3>Other calculations in the same module</h3>
         <dl class="terms">
@@ -543,9 +543,9 @@
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=7188ae72d5"></script>
-<script src="assets/charts.js?v=7188ae72d5"></script>
-<script src="assets/data.js?v=7188ae72d5"></script>
+<script src="assets/edition.js?v=f489d2a1e7"></script>
+<script src="assets/charts.js?v=f489d2a1e7"></script>
+<script src="assets/data.js?v=f489d2a1e7"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, W = D.walkthrough, $ = function (id) { return document.getElementById(id); };
