@@ -484,7 +484,7 @@
       if (!ix) return null;
       var key = [sreq.components[0], sreq.components[1], sreq.model, sreq.hold].join("~");
       if (ix.keys.indexOf(key) < 0) return null;
-      return fetch("surfaces/" + encodeURIComponent(key) + ".json").then(function (r) { return r.ok ? r.json() : null; })
+      return fetch("surfaces/" + encodeURIComponent(key) + ".json?v=" + ix.version).then(function (r) { return r.ok ? r.json() : null; })
         .then(function (f) {
           if (!f || f.version !== ix.version || !f.result || !f.result.ok) return null;
           var q = f.request;
