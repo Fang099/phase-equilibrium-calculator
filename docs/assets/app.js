@@ -330,7 +330,25 @@
       n.value = state.x1; n.step = 0.01; u.textContent = "mole fraction of " + lower(nameA());
     }
   }
+  /* the settings column: scrolls on its own beside the plot (a sheet at the bottom
+     on small screens), and can be hidden to give the plot more room */
+  function bindControls() {
+    var shell = $("main"), KEY = "pec-controls-hidden";
+    function set(hidden) {
+      shell.classList.toggle("controls-hidden", hidden);
+      $("toggle-controls").textContent = hidden ? "Show" : "Hide";
+      $("toggle-controls").setAttribute("aria-expanded", String(!hidden));
+      $("show-controls").hidden = !hidden;
+      try { localStorage.setItem(KEY, hidden ? "1" : "0"); } catch (e) { /* not remembered */ }
+    }
+    var start = false;
+    try { start = localStorage.getItem(KEY) === "1"; } catch (e) { /* default: shown */ }
+    set(start);
+    $("toggle-controls").addEventListener("click", function () { set(!shell.classList.contains("controls-hidden")); });
+    $("show-controls").addEventListener("click", function () { set(false); });
+  }
   function bindAxes() {
+    bindControls();
     $("shade").addEventListener("change", function () {          // a redraw, not a new calculation
       state.shade = this.checked; writeHash();
       if (last) show(last.res, last.req, last.view, last.sres);

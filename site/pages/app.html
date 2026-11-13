@@ -2,7 +2,11 @@
 <h1 class="sr-only">Vapor–liquid equilibrium calculator</h1>
 
 <div class="app-shell" id="main">
-  <aside aria-label="System">
+  <aside aria-label="Settings" id="controls">
+    <div class="aside-head">
+      <span>Settings</span>
+      <button type="button" class="linkbtn" id="toggle-controls" aria-controls="controls" aria-expanded="true">Hide</button>
+    </div>
     <section class="panel">
       <h2>Mixture</h2>
       <div class="field">
@@ -45,6 +49,7 @@
 
   <div class="workspace">
     <section class="panel">
+      <button type="button" class="linkbtn show-controls" id="show-controls" hidden>Show settings</button>
       <div class="toprow">
         <div class="presets seg" id="presets" role="group" aria-label="Diagram"></div>
         <div class="viewopts">

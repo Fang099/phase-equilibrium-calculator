@@ -455,3 +455,35 @@ main.doc > section:has(figure.code) > :not(figure.code):not(.katex-display):not(
 .viewopts label.check input { margin: 0; accent-color: var(--liquid); }
 .viewopts label.check:has(input:disabled) { opacity: 0.5; cursor: default; }
 [hidden] { display: none !important; }
+
+/* ---------------- settings column: scrolls on its own, can be hidden ---------------- */
+.aside-head { display: flex; align-items: center; justify-content: space-between; padding: 0 0.2rem 0.6rem; font: 600 0.82rem var(--sans); color: var(--muted); }
+.linkbtn { font: 500 0.82rem var(--sans); color: var(--link); background: none; border: 0; padding: 0.2rem 0.3rem; cursor: pointer; border-radius: 4px; }
+.linkbtn:hover { text-decoration: underline; }
+.show-controls { margin: -0.3rem 0 0.6rem -0.3rem; }
+@media (min-width: 1001px) {
+  .app-shell > aside {
+    position: sticky; top: calc(3.4rem + 1rem); align-self: start;
+    max-height: calc(100vh - 3.4rem - 2rem); overflow-y: auto; overscroll-behavior: contain;
+    padding-right: 6px; margin-right: -6px; scrollbar-width: thin; scrollbar-color: var(--axis) transparent;
+  }
+  .app-shell.controls-hidden { grid-template-columns: minmax(0, 1fr); }
+  .app-shell.controls-hidden > aside { display: none; }
+}
+@media (max-width: 1000px) {
+  /* a sheet at the bottom of the screen, so the plot above stays in view */
+  .app-shell { padding-bottom: 56vh; }
+  .app-shell > aside {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; max-height: 52vh; overflow-y: auto; overscroll-behavior: contain;
+    background: var(--page); border-top: 1px solid var(--axis); border-radius: 14px 14px 0 0;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18); padding: 0 12px 16px;
+  }
+  .aside-head { position: sticky; top: 0; z-index: 1; background: var(--page); padding: 0.7rem 0.3rem 0.6rem; margin: 0 -0.2rem; }
+  .app-shell.controls-hidden { padding-bottom: 4rem; }
+  .app-shell.controls-hidden > aside { max-height: 3rem; overflow: hidden; }
+  /* the plot first, its own choices underneath, so it shows above the sheet */
+  .workspace > .panel:first-child { display: flex; flex-direction: column; }
+  .workspace > .panel:first-child > #legend { order: -2; margin-top: 0 !important; margin-bottom: 0.4rem; }
+  .workspace > .panel:first-child > .chart-card { order: -1; margin-bottom: 0.8rem; }
+  .show-controls { display: none; }
+}

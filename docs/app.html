@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="assets/site.css?v=ace55ab4d7">
+<link rel="stylesheet" href="assets/site.css?v=54c548673b">
 </head>
 <body class="app">
 <a class="skip" href="#main">Skip to content</a>
@@ -34,7 +34,11 @@
 <h1 class="sr-only">Vapor–liquid equilibrium calculator</h1>
 
 <div class="app-shell" id="main">
-  <aside aria-label="System">
+  <aside aria-label="Settings" id="controls">
+    <div class="aside-head">
+      <span>Settings</span>
+      <button type="button" class="linkbtn" id="toggle-controls" aria-controls="controls" aria-expanded="true">Hide</button>
+    </div>
     <section class="panel">
       <h2>Mixture</h2>
       <div class="field">
@@ -77,6 +81,7 @@
 
   <div class="workspace">
     <section class="panel">
+      <button type="button" class="linkbtn show-controls" id="show-controls" hidden>Show settings</button>
       <div class="toprow">
         <div class="presets seg" id="presets" role="group" aria-label="Diagram"></div>
         <div class="viewopts">
@@ -153,9 +158,9 @@
   </div>
 </footer>
 
-<script src="assets/edition.js?v=ace55ab4d7"></script>
-<script src="assets/charts.js?v=ace55ab4d7"></script>
-<script src="assets/app.js?v=ace55ab4d7"></script>
+<script src="assets/edition.js?v=54c548673b"></script>
+<script src="assets/charts.js?v=54c548673b"></script>
+<script src="assets/app.js?v=54c548673b"></script>
 
 </body>
 </html>
