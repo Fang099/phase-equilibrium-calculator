@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=3a6099abe2">
+<link rel="stylesheet" href="assets/site.css?v=55158ea290">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -52,7 +52,7 @@
         
         <li><a href="#pt">The P–T diagram</a></li>
         <li><a href="#phase-rule">What you may choose</a></li>
-        <li><a href="#beyond">Solids and fields</a></li>
+        <li><a href="#beyond">Solids and fields</a></li><li><a href="#derivation">The derivation, step by step</a></li><li><a href="#equations">Equation explorer</a></li>
       </ol>
     </nav>
 
@@ -72,7 +72,7 @@
           
           <li><a href="#pt">The P–T diagram</a></li>
           <li><a href="#phase-rule">What you may choose</a></li>
-          <li><a href="#beyond">Solids and fields</a></li>
+          <li><a href="#beyond">Solids and fields</a></li><li><a href="#derivation">The derivation, step by step</a></li><li><a href="#equations">Equation explorer</a></li>
         </ol>
       </details>
 
@@ -285,6 +285,98 @@
         <p>In the calculator, choose Gravity or Centrifuge under "External field" and set the field, the size of the system and the state (temperature, pressure and overall composition) at the bottom of the column or at the inner radius. The plot then shows pressure, composition or density along the height or radius, coloured by phase. Where the pressure falls to the saturation pressure of the local fluid, a second phase appears: a gas cap above a liquid, for example. On the activity route the liquid's molar volume is needed for this and is estimated with the Rackett equation.</p>
         <p class="note"><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;field=gravity&amp;fy=P&amp;z1=0.4&amp;T=320&amp;P=25&amp;g=9.80665&amp;H=500">A 500 m column with a gas cap in the calculator</a> · <a href="examples.html">Worked examples</a></p>
       </section>
+
+      <!-- ============================================================ -->
+      <section id="derivation">
+        <h2>The derivation, step by step</h2>
+        <p>Every calculation in the program rests on the same chain of general results. None of them assumes a model; the models (an equation of state, an activity model, Antoine constants) only supply the functions at the end. Here is the chain in order.</p>
+
+        <h3>1. The fundamental equation</h3>
+        <p>For one homogeneous phase, the internal energy as a function of its natural variables contains all thermodynamic information:</p>
+        \[ U = U(S, V, n_1, \dots, n_c), \qquad dU = T\,dS - P\,dV + \sum_i \mu_i\,dn_i \]
+        <p>with \(T \equiv (\partial U/\partial S)_{V,n}\), \(P \equiv -(\partial U/\partial V)_{S,n}\) and \(\mu_i \equiv (\partial U/\partial n_i)_{S,V,n_{j\ne i}}\). \(U\) is homogeneous of degree one in \(S\), \(V\) and the \(n_i\), so Euler's theorem gives \(U = TS - PV + \sum_i \mu_i n_i\). Differentiating that and subtracting \(dU\) gives the <b>Gibbs–Duhem equation</b>:</p>
+        \[ S\,dT - V\,dP + \sum_i n_i\,d\mu_i = 0 . \]
+
+        <h3>2. Legendre transforms: the Helmholtz and Gibbs forms</h3>
+        <p>Entropy cannot be set in a laboratory; temperature can. Subtracting \(TS\) swaps \(S\) for \(T\) as a variable:</p>
+        \[ A = U - TS, \qquad dA = -S\,dT - P\,dV + \sum_i \mu_i\,dn_i \]
+        \[ G = A + PV, \qquad dG = -S\,dT + V\,dP + \sum_i \mu_i\,dn_i \]
+        <p>The chemical potential is the same quantity in every form:</p>
+        \[ \mu_i = \left(\frac{\partial A}{\partial n_i}\right)_{T,V,n_{j\ne i}} = \left(\frac{\partial G}{\partial n_i}\right)_{T,P,n_{j\ne i}} . \]
+        <p>An equation of state gives \(P(T, V, n)\), the natural variables of \(A\); an activity model gives \(G^{E}(T, P, x)\), in the variables of \(G\). Both lead to \(\mu_i\), which is all the equilibrium condition needs.</p>
+
+        <h3>3. The equilibrium condition</h3>
+        <p>For a closed system at fixed \(T\) and total \(V\), equilibrium is the minimum of \(A\). Take two phases \(\alpha\) and \(\beta\) and move volume and matter between them, \(\delta V^{\alpha} = -\delta V^{\beta}\), \(\delta n_i^{\alpha} = -\delta n_i^{\beta}\):</p>
+        \[ \delta A = -\left(P^{\alpha} - P^{\beta}\right)\delta V^{\alpha} + \sum_i \left(\mu_i^{\alpha} - \mu_i^{\beta}\right)\delta n_i^{\alpha} = 0 \]
+        <p>for every independent variation, so</p>
+        \[ P^{\alpha} = P^{\beta}, \qquad \mu_i^{\alpha} = \mu_i^{\beta} \quad (i = 1 \dots c), \]
+        <p>with \(T^{\alpha} = T^{\beta}\) from the same argument applied to \(U\) and entropy exchange. The second variation must be positive for the state to be stable; for a binary liquid this is \(\left(\partial^2 G/\partial x_1^2\right)_{T,P} > 0\), which the program uses to detect liquids that split.</p>
+
+        <h3>4. Counting what can be chosen: the phase rule</h3>
+        <p>Each of \(\pi\) phases has \(T\), \(P\) and \(c - 1\) independent mole fractions: \(\pi(c + 1)\) variables. Step 3 links them by \((\pi - 1)(c + 2)\) equations. The difference is</p>
+        \[ F = \pi(c + 1) - (\pi - 1)(c + 2) = c + 2 - \pi \quad \left[\,+\,m \text{ in a field}\,\right]. \]
+        <p>When the overall feed composition is known instead (a flash), Duhem's theorem gives two variables (\(+m\) in a field) whatever the number of phases and compounds. The input checker applies these counts before anything is solved.</p>
+
+        <h3>5. From chemical potential to fugacity</h3>
+        <p>From \(dG\), at constant temperature and composition \((\partial \mu_i/\partial P)_{T,n} = \bar V_i\). For an ideal gas \(\bar V_i = RT/P\), so \(d\mu_i^{\mathrm{ig}} = RT\,d\ln(y_i P)\). The fugacity keeps that form for any fluid:</p>
+        \[ d\mu_i = RT\,d\ln \hat f_i \quad (T \text{ constant}), \qquad \lim_{P \to 0} \frac{\hat f_i}{y_i P} = 1 . \]
+        <p>Integrating between two phases at the same temperature, step 3 becomes</p>
+        \[ \mu_i^{\alpha} = \mu_i^{\beta} \iff \hat f_i^{\,\alpha} = \hat f_i^{\,\beta}, \]
+        <p>the form the solver uses: fugacities are finite where chemical potentials are not (\(\mu_i \to -\infty\) as \(x_i \to 0\)), and they have pressure units.</p>
+
+        <h3>6. Fugacity from an equation of state, through \(A\)</h3>
+        <p>The residual Helmholtz energy is the real fluid minus an ideal gas at the same \(T\), \(V\) and \(n\). Because \(P = -(\partial A/\partial V)_{T,n}\) and the ideal gas has \(P = nRT/V\),</p>
+        \[ A^{\mathrm{res}}(T, V, n) = -\int_{\infty}^{V} \left(P - \frac{nRT}{V'}\right) dV' . \]
+        <p>Its derivative with respect to \(n_i\) is \(\mu_i - \mu_i^{\mathrm{ig}}\) at the same \(T\) and \(V\). The fugacity coefficient compares with the ideal gas at the same \(T\) and <i>P</i>; moving the ideal gas from volume \(V\) to pressure \(P\) costs \(-RT\ln Z\), with \(Z = PV/nRT\). Hence</p>
+        \[ \ln\hat\varphi_i = \frac{1}{RT}\left(\frac{\partial A^{\mathrm{res}}}{\partial n_i}\right)_{T,V,n_{j\ne i}} - \ln Z, \qquad P = \frac{nRT}{V} - \left(\frac{\partial A^{\mathrm{res}}}{\partial V}\right)_{T,n}, \qquad \hat f_i = x_i\,\hat\varphi_i\,P . \]
+        <p>These two derivatives are what <code>CubicEOS.ln_phi_TV</code> and <code>CubicEOS.pressure</code> compute, exactly, for any cubic equation of state.</p>
+
+        <h3>7. Fugacity from an activity model, through \(G\)</h3>
+        <p>The excess Gibbs energy is the real mixture minus an ideal solution at the same \(T\), \(P\) and composition. For the ideal solution \(\mu_i^{\mathrm{id}} = \mu_i^{\mathrm{pure}} + RT\ln x_i\). Defining \(RT\ln\gamma_i = \mu_i - \mu_i^{\mathrm{id}}\) and differentiating \(nG^{E}\) as in step 2,</p>
+        \[ \ln\gamma_i = \left(\frac{\partial\,(nG^{E}/RT)}{\partial n_i}\right)_{T,P,n_{j\ne i}}, \qquad \hat f_i^{\,L} = x_i\,\gamma_i\,f_i^{L}, \qquad \sum_i x_i\,d\ln\gamma_i = 0 \;\; (T, P \text{ constant}). \]
+        <p>The last relation is the Gibbs–Duhem equation of step 1 applied to the excess part: the activity coefficients of a mixture are not independent.</p>
+
+        <h3>8. The pure-liquid fugacity</h3>
+        <p>For the pure liquid, \((\partial\ln f_i/\partial P)_T = V_i/RT\). Start at the vapor pressure, where liquid and vapor have the same fugacity \(\varphi_i^{\mathrm{sat}}P_i^{\mathrm{sat}}\), and integrate:</p>
+        \[ f_i^{L}(T, P) = \varphi_i^{\mathrm{sat}}\,P_i^{\mathrm{sat}}\exp\int_{P_i^{\mathrm{sat}}}^{P}\frac{V_i^{L}}{RT}\,dP \;\approx\; P_i^{\mathrm{sat}}\exp\frac{V_i^{L}\,(P - P_i^{\mathrm{sat}})}{RT}, \]
+        <p>with the saturated vapor taken as ideal (\(\varphi_i^{\mathrm{sat}} = 1\)) and the liquid as incompressible. The exponential is the Poynting factor.</p>
+
+        <h3>9. Vapor pressure from a latent heat</h3>
+        <p>Along the coexistence curve of a pure compound \(\mu^{L} = \mu^{V}\), so \(d\mu^{L} = d\mu^{V}\); with \(d\mu = -s\,dT + v\,dP\) this gives the Clapeyron equation. Neglecting the liquid volume and treating the vapor as ideal, then integrating from the normal boiling point:</p>
+        \[ \frac{dP^{\mathrm{sat}}}{dT} = \frac{\Delta H_{\mathrm{vap}}}{T\,\Delta v} \;\;\Rightarrow\;\; \ln\frac{P^{\mathrm{sat}}}{P_0} = -\frac{\Delta H_{\mathrm{vap}}}{R}\left(\frac1T - \frac1{T_b}\right) . \]
+
+        <h3>10. A pure solid</h3>
+        <p>The Gibbs–Helmholtz relation, \(\left[\partial(\Delta\mu/T)/\partial T\right]_P = -\Delta H/T^2\), integrated from the melting point (where \(\Delta\mu = 0\)) for melting gives</p>
+        \[ \ln\frac{f_i^{S}}{f_i^{L}} = -\frac{\Delta H_{\mathrm{fus}}}{R}\left(\frac1T - \frac1{T_m}\right) + \frac{\Delta C_{p}}{R}\left(\frac{T_m}{T} - 1 - \ln\frac{T_m}{T}\right) . \]
+
+        <h3>11. The working equations</h3>
+        <p>Equal fugacities, step 5, written with step 6 for both phases or with step 7 for the liquid:</p>
+        \[ x_i\,\hat\varphi_i^{L} = y_i\,\hat\varphi_i^{V} \qquad\text{or}\qquad x_i\,\gamma_i\,f_i^{L} = y_i\,\hat\varphi_i^{V}P, \qquad K_i \equiv \frac{y_i}{x_i} . \]
+        <p>A material balance on a feed \(z_i\) of which a fraction \(\beta\) is vapor, \(z_i = (1-\beta)x_i + \beta y_i\), with \(y_i = K_i x_i\) and \(\sum_i (y_i - x_i) = 0\), gives the Rachford–Rice equation:</p>
+        \[ \sum_i \frac{z_i\,(K_i - 1)}{1 + \beta\,(K_i - 1)} = 0 \qquad (\beta = 0: \text{bubble point}, \;\; \beta = 1: \text{dew point}). \]
+
+        <h3>12. In an external field</h3>
+        <p>In a field, each mole of \(i\) also carries potential energy \(M_i\Phi\), and the fundamental equation gains a term, \(dU = T\,dS - P\,dV + \sum_i \mu_i\,dn_i + \Phi\,dm\) with \(m = \sum_i M_i n_i\). Dividing the system into small cells at different \(\Phi\) and repeating step 3 for matter moved between cells:</p>
+        \[ \delta A = \sum_{\text{cells}} \sum_i \left(\mu_i + M_i\Phi\right)\delta n_i = 0 \;\;\Rightarrow\;\; \mu_i + M_i\Phi = \text{const} \;\;\Rightarrow\;\; \ln\hat f_i + \frac{M_i\,\Phi}{RT} = \text{const}. \]
+        <p>Putting \(d\mu_i = -M_i\,d\Phi\) into the Gibbs–Duhem equation at constant temperature, \(v\,dP = \sum_i x_i\,d\mu_i = -M\,d\Phi\), gives hydrostatics:</p>
+        \[ dP = -\rho\,d\Phi, \qquad \Phi = g z \;\Rightarrow\; \frac{dP}{dz} = -\rho g, \qquad \Phi = -\tfrac12\omega^2 r^2 \;\Rightarrow\; \frac{dP}{dr} = \rho\,\omega^2 r . \]
+        <p>At one position, two phases share the same \(\Phi\), so it cancels between them: the field leaves the local phase diagram unchanged and changes how the state varies from place to place.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="equations">
+        <h2>Equation explorer</h2>
+        <p>Every equation the program uses, with where it comes from, where the code uses it, and what it gets wrong. Choose one:</p>
+        <div class="eqx">
+          <div class="eqx-pick">
+            <label for="eqx-select" class="sr-only">Equation</label>
+            <select id="eqx-select"></select>
+            <button type="button" class="linkbtn" id="eqx-prev" aria-label="Previous equation">← Previous</button>
+            <button type="button" class="linkbtn" id="eqx-next" aria-label="Next equation">Next →</button>
+          </div>
+          <article class="eqx-card" id="eqx-card" aria-live="polite"></article>
+        </div>
+      </section>
     </main>
   </div>
 </div>
@@ -299,9 +391,9 @@
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=3a6099abe2"></script>
-<script src="assets/charts.js?v=3a6099abe2"></script>
-<script src="assets/data.js?v=3a6099abe2"></script>
+<script src="assets/edition.js?v=55158ea290"></script>
+<script src="assets/charts.js?v=55158ea290"></script>
+<script src="assets/data.js?v=55158ea290"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, zip = PEC.zip, $ = function (id) { return document.getElementById(id); };
@@ -379,6 +471,34 @@
     fy: function (v) { return "P = " + PEC.fmt(v, 3) + " bar"; }
   });
 
+})();
+</script>
+<script>
+/* Equation explorer: each equation with its origin, where the code uses it and its limits */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var ED = window.PEC_EDITION || {};
+  var EQ = [{"g": "Foundations", "n": "Fundamental equation (Helmholtz form)", "tex": "dA = -S\\,dT - P\\,dV + \\sum_i \\mu_i\\,dn_i \\;\\;[\\,+\\,\\Phi\\,dm\\,]", "says": "Every property of a phase follows from A(T, V, n) by differentiation; the bracket is the potential-energy term in a field.", "frm": "First and second laws combined into dU = T dS − P dV + Σ μ dn, then the Legendre transform A = U − TS (see step 2 of the derivation).", "code": "The starting point of every model in thermo_models.py; the input checker prints it for each input.", "probs": "Exact, but only for phases in internal equilibrium and large enough that surfaces (interfacial tension) do not matter. Says nothing about how fast equilibrium is reached.", "full": false}, {"g": "Foundations", "n": "Gibbs–Duhem equation", "tex": "S\\,dT - V\\,dP + \\sum_i n_i\\,d\\mu_i = 0, \\qquad \\sum_i x_i\\,d\\ln\\gamma_i = 0 \\;\\;(T, P\\ \\text{fixed})", "says": "The chemical potentials of a phase cannot all change independently.", "frm": "Euler's theorem for the homogeneous function U(S, V, n), subtracted from dU.", "code": "Built into every activity model (ln γ comes from one Gᴱ function); used to derive hydrostatics, dP = −ρ dΦ; checked in the tests of thermo_models.py.", "probs": "Exact. Data or models that violate it are thermodynamically inconsistent.", "full": false}, {"g": "Foundations", "n": "Equilibrium condition", "tex": "T^{\\alpha} = T^{\\beta}, \\quad P^{\\alpha} = P^{\\beta}, \\quad \\mu_i^{\\alpha} = \\mu_i^{\\beta} \\;\\;\\Longleftrightarrow\\;\\; \\hat f_i^{\\,\\alpha} = \\hat f_i^{\\,\\beta}", "says": "Coexisting phases share temperature, pressure and each compound's chemical potential (equivalently, fugacity).", "frm": "Minimum of A at fixed T and V (step 3 of the derivation); fugacity from dμ = RT d ln f (step 5).", "code": "Every solver routine: K_values, saturation, flash_TP, sle_temperature and the field march all solve equal fugacities.", "probs": "Necessary, not sufficient: a solution can be unstable (a liquid that would split), so stability is checked separately. Ignores interfaces.", "full": false}, {"g": "Foundations", "n": "Phase rule and Duhem's theorem", "tex": "F = c + 2 - \\pi\\;[\\,+\\,m\\,], \\qquad F_{\\text{feed known}} = 2\\;[\\,+\\,m\\,]", "says": "How many variables can be chosen before the state is fixed.", "frm": "Counting variables (T, P, compositions of each phase) and the equations of the equilibrium condition (step 4).", "code": "input_checker.evaluate: decides SUFFICIENT, INSUFFICIENT, OVERSPECIFIED; the calculator's 'Diagram at fixed' control is the same count.", "probs": "Counts only intensive variables, assumes no reactions and no other constraints (such as an azeotrope condition, which removes one degree of freedom).", "full": false}, {"g": "Fugacity and equilibrium", "n": "Fugacity coefficient from the residual Helmholtz energy", "tex": "\\ln\\hat\\varphi_i = \\frac{1}{RT}\\left(\\frac{\\partial A^{\\mathrm{res}}}{\\partial n_i}\\right)_{T,V,n_{j\\ne i}} - \\ln Z, \\qquad \\hat f_i = x_i\\,\\hat\\varphi_i\\,P", "says": "How far a compound in a real fluid escapes more or less readily than in an ideal gas at the same T and P.", "frm": "Step 6 of the derivation: A^res = −∫(P − nRT/V) dV, then differentiation and the change from (T, V) to (T, P).", "code": "thermo_models.CubicEOS.ln_phi_TV (analytic derivatives), tested against numerical derivatives of helmholtz_res.", "probs": "Exact for whatever equation of state is used: its accuracy is that of the equation of state.", "full": false}, {"g": "Fugacity and equilibrium", "n": "Activity coefficients from the excess Gibbs energy", "tex": "\\ln\\gamma_i = \\left(\\frac{\\partial\\,(nG^{E}/RT)}{\\partial n_i}\\right)_{T,P,n_{j\\ne i}}, \\qquad \\hat f_i^{\\,L} = x_i\\,\\gamma_i\\,f_i^{L}", "says": "The liquid's departure from an ideal solution, compound by compound.", "frm": "Step 7 of the derivation: RT ln γᵢ = μᵢ − μᵢ(ideal solution).", "code": "The ln_gamma method of each activity model in thermo_models.py; SolutionLiquid.ln_f adds ln x + ln γ + ln f^L.", "probs": "Exact definition; the accuracy is that of the Gᴱ model. The reference (pure liquid at the same T, P) does not exist for a compound above its critical temperature.", "full": false}, {"g": "Fugacity and equilibrium", "n": "Modified Raoult's law", "tex": "x_i\\,\\gamma_i\\,P_i^{\\mathrm{sat}} = y_i\\,P", "says": "The working equation of the activity route: liquid fugacity on the left, ideal-gas vapor fugacity on the right.", "frm": "Equal fugacities with f̂ᵢᴸ = xᵢγᵢfᵢᴸ, fᵢᴸ ≈ Pᵢˢᵃᵗ (Poynting factor near 1) and an ideal-gas vapor.", "code": "SolutionLiquid.ln_f with IdealGasPhase.ln_f; every Pxy and Txy diagram with Ideal, van Laar or NRTL.", "probs": "Low to moderate pressures only (ideal vapor, no vapor association, as with acetic acid). Not valid above a compound's critical temperature. With γ = 1 it becomes Raoult's law.", "full": false}, {"g": "Fugacity and equilibrium", "n": "Pure-liquid fugacity and the Poynting factor", "tex": "f_i^{L} = \\varphi_i^{\\mathrm{sat}}P_i^{\\mathrm{sat}}\\exp\\!\\int_{P_i^{\\mathrm{sat}}}^{P}\\frac{V_i^{L}}{RT}\\,dP \\;\\approx\\; P_i^{\\mathrm{sat}}\\exp\\frac{V_i^{L}(P - P_i^{\\mathrm{sat}})}{RT}", "says": "The fugacity of the pure liquid at the system pressure.", "frm": "(∂ ln f/∂P)_T = V/RT integrated from the vapor pressure (step 8).", "code": "SolutionLiquid.ln_f0, when a liquid molar volume is given (always in a field, from the input or the Rackett estimate).", "probs": "Takes φˢᵃᵗ = 1 (ideal saturated vapor) and an incompressible liquid. The correction is tiny at low pressure but matters in a field or centrifuge.", "full": false}, {"g": "Equations of state", "n": "van der Waals equation", "tex": "P = \\frac{RT}{v - b} - \\frac{a}{v^{2}}, \\qquad a = \\frac{27}{64}\\frac{R^{2}T_c^{2}}{P_c}, \\quad b = \\frac{1}{8}\\frac{RT_c}{P_c}", "says": "Excluded volume b and constant attraction a: the first equation that predicts both liquid and vapor and a critical point.", "frm": "J. D. van der Waals, thesis, 1873. a and b follow from the critical-point conditions (∂P/∂v = ∂²P/∂v² = 0).", "code": "thermo_models.CubicEOS with model 'vdW' (δ₁ = δ₂ = 0, no α(T)).", "probs": "Quantitatively poor: critical compressibility 0.375 (real fluids about 0.27), vapor pressures far off (about 75% too high for propane at 300 K), poor liquid densities. Kept for teaching and comparison.", "full": false}, {"g": "Equations of state", "n": "Peng–Robinson equation", "tex": "P = \\frac{RT}{v - b} - \\frac{a\\,\\alpha(T)}{v(v + b) + b(v - b)}, \\qquad \\alpha = \\left[1 + m\\left(1 - \\sqrt{T/T_c}\\right)\\right]^{2}", "says": "A cubic with a temperature-dependent attraction tuned to vapor pressures through the acentric factor.", "frm": "D.-Y. Peng and D. B. Robinson, Ind. Eng. Chem. Fundam. 15 (1976) 59. m = 0.37464 + 1.54226ω − 0.26992ω² (1978 form above ω = 0.49); a = 0.45724 R²Tc²/Pc, b = 0.07780 RTc/Pc.", "code": "thermo_models.CubicEOS with model 'PR' (δ₁,₂ = 1 ± √2).", "probs": "Vapor pressures within about 1%, but liquid densities typically 5 to 15% off; poor for strongly polar or hydrogen-bonding mixtures (alcohols, water) with simple mixing rules. Fails near the critical point of mixtures in the solver (trivial solutions).", "full": false}, {"g": "Equations of state", "n": "Soave–Redlich–Kwong equation", "tex": "P = \\frac{RT}{v - b} - \\frac{a\\,\\alpha(T)}{v(v + b)}, \\qquad m = 0.480 + 1.574\\,\\omega - 0.176\\,\\omega^{2}", "says": "Redlich–Kwong with Soave's temperature-dependent attraction.", "frm": "G. Soave, Chem. Eng. Sci. 27 (1972) 1197.", "code": "thermo_models.CubicEOS with model 'SRK' (δ₁ = 1, δ₂ = 0).", "probs": "Similar to Peng–Robinson for vapor pressures; liquid densities worse.", "full": true}, {"g": "Equations of state", "n": "Generic cubic as a residual Helmholtz energy", "tex": "\\frac{A^{\\mathrm{res}}}{nRT} = -\\ln\\!\\left(1 - \\frac{b}{v}\\right) - \\frac{a}{bRT(\\delta_1 - \\delta_2)}\\ln\\frac{v + \\delta_1 b}{v + \\delta_2 b}", "says": "All the cubics in one function; pressure and fugacity coefficients are its derivatives.", "frm": "Integrating the cubic pressure equation as in step 6 of the derivation.", "code": "thermo_models.CubicEOS.helmholtz_res, pressure and ln_phi_TV.", "probs": "Inherits the limits of the cubic form; the vdW limit (δ₁ = δ₂) is handled separately because the logarithm becomes b/v.", "full": false}, {"g": "Equations of state", "n": "Mixing rules", "tex": "a_{\\mathrm{mix}} = \\sum_i\\sum_j x_i x_j \\sqrt{a_i a_j}\\,(1 - k_{ij}), \\qquad b_{\\mathrm{mix}} = \\sum_i x_i b_i", "says": "Turns pure-compound constants into mixture constants; k₁₂ corrects the unlike attraction.", "frm": "van der Waals one-fluid theory; k₁₂ values for Peng–Robinson from the ChemSep library.", "code": "thermo_models.CubicEOS.a_matrix and mix.", "probs": "Good for similar non-polar molecules (hydrocarbons); poor for polar or associating mixtures, where a cubic with these rules cannot reproduce strong non-ideality or azeotropes reliably.", "full": false}, {"g": "Activity models", "n": "van Laar equation", "tex": "\\ln\\gamma_1 = A_{12}\\left(\\frac{A_{21}x_2}{A_{12}x_1 + A_{21}x_2}\\right)^{2}, \\qquad \\ln\\gamma_2 = A_{21}\\left(\\frac{A_{12}x_1}{A_{12}x_1 + A_{21}x_2}\\right)^{2}", "says": "Two parameters, each the logarithm of an infinite-dilution activity coefficient (A₁₂ = ln γ₁^∞ at x₁ → 0).", "frm": "J. J. van Laar, Z. Phys. Chem. 72 (1910) 723, derived from the van der Waals equation; the same form is used empirically.", "code": "thermo_models.VanLaar.ln_gamma.", "probs": "Both parameters must have the same sign, so no mixture with positive and negative deviations together. Binary only in this form. Often poor for strongly asymmetric or associating mixtures; poor at predicting two liquid phases.", "full": false}, {"g": "Activity models", "n": "van Laar temperature dependence", "tex": "A_{ij}(T) = a_{ij} + \\frac{b_{ij}}{T}", "says": "How the van Laar parameters change with temperature.", "frm": "van Laar's derivation gives A ∝ 1/T (constant excess energy); a constant is added. The four constants are regressed in this project (scripts/fit_vanlaar.py) from the DECHEMA NRTL parameters over the range between the two boiling points.", "code": "Written into the input as A(i, j) = a + b/T, evaluated by input_checker.TFunction at each temperature.", "probs": "Only as good as the NRTL fit it came from, and only between the fitted temperatures; extrapolation is flagged. Root-mean-square error in ln γ up to about 0.13 for methanol–hydrocarbon pairs.", "full": false}, {"g": "Activity models", "n": "NRTL equation", "tex": "\\frac{G^{E}}{RT} = \\sum_i x_i\\frac{\\sum_j \\tau_{ji}G_{ji}x_j}{\\sum_k G_{ki}x_k}, \\qquad \\tau_{ij} = \\frac{\\Delta g_{ij}}{RT}, \\quad G_{ij} = e^{-\\alpha_{ij}\\tau_{ij}}", "says": "Local composition: the neighbors of a molecule differ from the bulk, weighted by Boltzmann-like factors.", "frm": "H. Renon and J. M. Prausnitz, AIChE J. 14 (1968) 135. Parameters: DECHEMA Vapor–Liquid Equilibrium Data Collection, via the ChemSep library.", "code": "thermo_models.NRTL.ln_gamma (any number of compounds).", "probs": "Three correlated parameters (Δg₁₂, Δg₂₁, α): different sets fit the same data. α is semi-empirical. Parameters fitted to 1 atm data may not hold far from that temperature range.", "full": false}, {"g": "Activity models", "n": "Margules equation", "tex": "\\frac{G^{E}}{RT} = x_1x_2\\,(A_{21}x_1 + A_{12}x_2)", "says": "The simplest two-parameter polynomial in composition.", "frm": "M. Margules, 1895.", "code": "thermo_models.Margules.ln_gamma.", "probs": "Suits molecules of similar size; parameters here are matched to NRTL at infinite dilution, not fitted to data.", "full": true}, {"g": "Pure-compound data", "n": "Antoine equation", "tex": "\\log_{10}P^{\\mathrm{sat}} = A - \\frac{B}{T + C}", "says": "Vapor pressure as a function of temperature.", "frm": "C. Antoine, 1888 (an empirical refinement of Clausius–Clapeyron). Constants: Poling, Prausnitz, O'Connell, The Properties of Gases and Liquids, 5th ed., Appendix A.", "code": "thermo_models.ln_psat and input_checker.psat.", "probs": "Purely empirical: valid only in the fitted temperature range (the calculator warns when it extrapolates). Wrong near the critical point.", "full": false}, {"g": "Pure-compound data", "n": "Clausius–Clapeyron (from a boiling point and latent heat)", "tex": "\\ln\\frac{P^{\\mathrm{sat}}}{P_0} = -\\frac{\\Delta H_{\\mathrm{vap}}}{R}\\left(\\frac1T - \\frac1{T_b}\\right)", "says": "A vapor pressure when only Tb and ΔHvap are known.", "frm": "Clapeyron equation with an ideal-gas vapor, negligible liquid volume and constant ΔHvap (step 9).", "code": "thermo_models.ln_psat when an input gives Tb and dHvap instead of Antoine constants (command-line program).", "probs": "ΔHvap falls with temperature, so errors grow away from Tb; not valid near the critical point.", "full": false}, {"g": "Pure-compound data", "n": "Rackett equation (Yamada–Gunn)", "tex": "V^{L} = \\frac{RT_c}{P_c}\\,Z_{RA}^{\\left[1 + (1 - T_r)^{2/7}\\right]}, \\qquad Z_{RA} = 0.29056 - 0.08775\\,\\omega", "says": "Saturated liquid molar volume from Tc, Pc and ω.", "frm": "H. G. Rackett, J. Chem. Eng. Data 15 (1970) 514; T. Yamada and R. D. Gunn, J. Chem. Eng. Data 18 (1973) 234.", "code": "web_api.rackett_VL: liquid volumes in a field on the activity route.", "probs": "An estimate: a few percent for non-polar liquids, about 15% too large for water at 350 K (hydrogen bonding).", "full": false}, {"g": "Pure-compound data", "n": "Solid–liquid fugacity ratio", "tex": "\\ln\\frac{f_i^{S}}{f_i^{L}} = -\\frac{\\Delta H_{\\mathrm{fus}}}{R}\\left(\\frac1T - \\frac1{T_m}\\right) + \\frac{\\Delta C_p}{R}\\left(\\frac{T_m}{T} - 1 - \\ln\\frac{T_m}{T}\\right)", "says": "How much less the pure solid escapes than the (subcooled) pure liquid below the melting point.", "frm": "Gibbs–Helmholtz relation integrated from the melting point (step 10).", "code": "thermo_models.PureSolidPhase.ln_ratio: freezing curves and eutectics (command-line program).", "probs": "Assumes a pure solid (no solid solutions) and constant ΔCp; uses Tm in place of the triple point.", "full": false}, {"g": "Solver", "n": "K-values and the Rachford–Rice equation", "tex": "K_i = \\frac{y_i}{x_i} = \\frac{\\hat\\varphi_i^{L}}{\\hat\\varphi_i^{V}}, \\qquad \\sum_i \\frac{z_i\\,(K_i - 1)}{1 + \\beta\\,(K_i - 1)} = 0", "says": "The material balance of a feed split into liquid and vapor; β = 0 is a bubble point, β = 1 a dew point.", "frm": "Equal fugacities written as K-values plus a mole balance (step 11).", "code": "equilibrium_solver.K_values, _rr_residual, saturation, flash_TP.", "probs": "Exact. Numerically, successive substitution converges slowly near critical points and can fall into the trivial solution x = y with an equation of state; the solver detects and rejects that.", "full": false}, {"g": "Solver", "n": "Wilson's K-value estimate", "tex": "K_i \\approx \\frac{P_{c,i}}{P}\\exp\\!\\left[5.373\\,(1 + \\omega_i)\\left(1 - \\frac{T_{c,i}}{T}\\right)\\right]", "says": "A first guess for K-values from critical constants alone.", "frm": "G. M. Wilson, 1968: a corresponding-states vapor-pressure estimate with Raoult's law.", "code": "equilibrium_solver.initial_K (equation-of-state route only).", "probs": "Only a starting point: it ignores composition and non-ideality; the iterations then correct it.", "full": false}, {"g": "Solver", "n": "Azeotrope condition", "tex": "y_1 = x_1 \\;\\;\\Longleftrightarrow\\;\\; K_1 = K_2 = 1 \\;\\;\\Longleftrightarrow\\;\\; \\frac{\\gamma_1 P_1^{\\mathrm{sat}}}{\\gamma_2 P_2^{\\mathrm{sat}}} = 1 \\;(\\text{activity route})", "says": "Where the vapor has the same composition as the liquid; distillation cannot pass it.", "frm": "From the K-value definition and modified Raoult's law.", "code": "equilibrium_solver.vle_diagram (sign change of y₁ − x₁) and find_azeotrope (Brent's method).", "probs": "Found only where y₁ − x₁ changes sign between two grid points; a tangent (just touching) azeotrope would be missed.", "full": false}, {"g": "Fields", "n": "Equilibrium in a field", "tex": "\\mu_i + M_i\\Phi = \\text{const} \\;\\;\\Longleftrightarrow\\;\\; \\ln\\hat f_i + \\frac{M_i\\,\\Phi}{RT} = \\text{const}", "says": "In a gravity or centrifugal field each compound's chemical potential plus its potential energy is uniform.", "frm": "The fundamental equation with the Φ dm term, minimized over cells at different Φ (step 12).", "code": "equilibrium_solver._solve_at and column_profile.", "probs": "Assumes the whole system is isothermal and at equilibrium (no convection, diffusion or temperature gradients). Real columns rarely reach it.", "full": false}, {"g": "Fields", "n": "Field potentials", "tex": "\\Phi_{\\text{gravity}} = g\\,z, \\qquad \\Phi_{\\text{centrifuge}} = -\\tfrac12\\,\\omega^{2}r^{2}", "says": "Potential energy per unit mass along height or radius.", "frm": "Uniform gravitational field; rotating frame for a centrifuge (centrifugal potential).", "code": "thermo_models.Field.potential.", "probs": "Uniform g only (fine for any column on Earth); a rigidly rotating fluid in the centrifuge.", "full": false}, {"g": "Fields", "n": "Hydrostatic pressure", "tex": "dP = -\\rho\\,d\\Phi \\;\\;\\Rightarrow\\;\\; \\frac{dP}{dz} = -\\rho g, \\qquad \\frac{dP}{dr} = \\rho\\,\\omega^{2}r", "says": "How pressure changes along the field.", "frm": "Gibbs–Duhem at constant T with dμᵢ = −Mᵢ dΦ (step 12); not imposed separately, it follows from the field condition.", "code": "Not coded on its own: it is a test (equilibrium_solver.py checks the computed pressure against ∫ρg dz).", "probs": "Exact under the same assumptions as the field condition.", "full": false}].filter(function (e) { return !(e.full && ED.models); });
+  var sel = $("eqx-select"), card = $("eqx-card"), groups = [];
+  EQ.forEach(function (e) { if (groups.indexOf(e.g) < 0) groups.push(e.g); });
+  sel.innerHTML = groups.map(function (g) {
+    return "<optgroup label='" + g + "'>" + EQ.map(function (e, i) { return e.g === g ? "<option value='" + i + "'>" + e.n + "</option>" : ""; }).join("") + "</optgroup>";
+  }).join("");
+  function esc(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+  function show(i) {
+    var e = EQ[i]; sel.value = String(i);
+    card.innerHTML = "<p class='eqx-group'>" + esc(e.g) + "</p><h3>" + esc(e.n) + "</h3>" +
+      "<div class='eqx-math'>\\[" + e.tex + "\\]</div>" +
+      "<p>" + esc(e.says) + "</p>" +
+      "<dl class='eqx-dl'><dt>Where it comes from</dt><dd>" + esc(e.frm) + "</dd>" +
+      "<dt>Where the code uses it</dt><dd>" + esc(e.code) + "</dd>" +
+      "<dt>Assumptions and problems</dt><dd>" + esc(e.probs) + "</dd></dl>";
+    PEC.typeset(card);
+  }
+  sel.addEventListener("change", function () { show(+sel.value); });
+  $("eqx-prev").addEventListener("click", function () { show((+sel.value + EQ.length - 1) % EQ.length); });
+  $("eqx-next").addEventListener("click", function () { show((+sel.value + 1) % EQ.length); });
+  show(0);
 })();
 </script>
 </body>

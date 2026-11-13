@@ -487,3 +487,15 @@ main.doc > section:has(figure.code) > :not(figure.code):not(.katex-display):not(
   .workspace > .panel:first-child > .chart-card { order: -1; margin-bottom: 0.8rem; }
   .show-controls { display: none; }
 }
+
+/* ---------------- equation explorer (Concepts) ---------------- */
+.eqx-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; margin: 0.4rem 0 0.9rem; font-family: var(--sans); }
+.eqx-pick select { flex: 1 1 18rem; max-width: 30rem; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--axis); border-radius: 6px; padding: 0.45rem 0.6rem; }
+.eqx-card { background: var(--surface); border: 1px solid var(--hair); border-radius: 10px; padding: 1rem 1.2rem 0.6rem; min-height: 18rem; }
+.eqx-card h3 { margin: 0 0 0.3rem; }
+.eqx-group { font: 600 0.78rem var(--sans); color: var(--muted); margin: 0 0 0.2rem; text-transform: none; }
+.eqx-math { overflow-x: auto; }
+.eqx-dl { display: grid; grid-template-columns: minmax(9rem, 12rem) 1fr; gap: 0.5rem 1rem; margin: 0.8rem 0 0.6rem; }
+.eqx-dl dt { font: 600 0.85rem var(--sans); color: var(--ink-2); }
+.eqx-dl dd { margin: 0; }
+@media (max-width: 640px) { .eqx-dl { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; } .eqx-dl dd { margin-bottom: 0.5rem; } }
