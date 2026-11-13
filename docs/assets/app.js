@@ -77,7 +77,7 @@
     SOURCE_LABEL.nrtl_infinite_dilution = "infinite-dilution activity coefficients from the ChemSep interaction data";
   var DEF = ED["default"] || { a: "ethanol", b: "water", model: "nrtl" };
 
-  var state = { a: DEF.a, b: DEF.b, model: DEF.model, compare: "", x: "xy", y: "T", hold: "P", T: 350, P: 1.01325, x1: 0.5, view: "2d", params: {} };
+  var state = { a: DEF.a, b: DEF.b, model: DEF.model, compare: "", x: "xy", y: "T", hold: "P", T: 350, P: 1.01325, x1: 0.5, view: "2d", shade: true, params: {} };
   var LAYERS = 15, LAYER_PTS = 31;                 // 3D surface: diagrams stacked along the fixed variable
   var surfaceCache = { key: null, res: null };
   var catalog = null, pair = null, last = null, engine, busy = false, dirty = false, timer = null;
@@ -87,6 +87,7 @@
     var h = new URLSearchParams(location.hash.slice(1));
     ["a", "b", "model", "compare", "x", "y", "hold", "view"].forEach(function (k) { if (h.get(k) != null) state[k] = h.get(k); });
     ["T", "P", "x1"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) state[k] = +h.get(k); });
+    if (h.get("shade") === "0") state.shade = false;
     var p = {};
     ["kij", "A12", "A21", "tdep", "dg12", "dg21", "alpha"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) p[k] = +h.get(k); });
     p.__hasT = h.get("T") != null;
@@ -98,6 +99,7 @@
     h.set(state.hold === "x" ? "x1" : state.hold, state[state.hold === "x" ? "x1" : state.hold]);
     if (state.compare) h.set("compare", state.compare);
     if (state.view === "3d") h.set("view", "3d");
+    if (!state.shade) h.set("shade", "0");
     activeParams().forEach(function (k) { if (state.params[k] !== defaults()[k]) h.set(k, state.params[k]); });
     history.replaceState(null, "", "#" + h.toString());
   }
@@ -109,6 +111,11 @@
   function lower(s) { return s.toLowerCase(); }
   function isComp(x) { return x === "xy" || x === "x1" || x === "y1"; }
   /* a surface stacks Pxy or Txy-type diagrams along the fixed T or P */
+  /* liquid, vapor and two-phase regions exist on diagrams of T or P */
+  function canShade() {
+    return (isComp(state.x) && state.x !== "y1" && (state.y === "T" || state.y === "P")) ||
+      (state.hold === "x" && ((state.x === "T" && state.y === "P") || (state.x === "P" && state.y === "T")));
+  }
   function can3d() { return (state.hold === "T" || state.hold === "P") && isComp(state.x); }
   function activeParams() {
     if (EOS.indexOf(state.model) >= 0) return ["kij"];
@@ -285,6 +292,9 @@
     if (!can3d()) state.view = "2d";
     seg($("view"), [["2d", "Diagram"], ["3d", "3D surface"]], state.view,
       function (v) { state.view = v; drawAxes(); schedule(0); }, function (v) { return v === "3d" && !can3d(); });
+    var sh = $("shade");
+    sh.checked = state.shade; sh.disabled = !canShade();
+    sh.parentNode.title = sh.disabled ? "Phase regions are shaded on temperature and pressure diagrams" : "";
     var b3 = $("view").children[1];
     if (b3 && b3.disabled) b3.title = "3D needs a composition axis and a fixed temperature or pressure";
     seg($("hold"), [["T", "Temperature"], ["P", "Pressure"], ["x", "Composition"]], state.hold,
@@ -302,6 +312,10 @@
     }
   }
   function bindAxes() {
+    $("shade").addEventListener("change", function () {          // a redraw, not a new calculation
+      state.shade = this.checked; writeHash();
+      if (last) show(last.res, last.req, last.view, last.sres);
+    });
     /* choosing the same variable for both axes moves the other axis to a sensible partner */
     $("axis-y").addEventListener("change", function () {
       state.y = this.value;
@@ -425,7 +439,7 @@
       return;
     }
     $("overlay").hidden = true;
-    last = { res: res, req: req, view: view };
+    last = { res: res, req: req, view: view, sres: sres };
     var is3d = !!sres;
     $("chart").classList.toggle("is-3d", is3d);
     $("chart-hint").hidden = !is3d;
@@ -532,6 +546,23 @@
       if (az.length > 1) { lines.push({ color: "--third", width: 2.5, pts: az }); items.push({ name: "Azeotrope", color: "--third" }); }
     }
     var opts = (Y === "gamma" || Y === "K") ? { include: 1, pad: 0.02 } : { pad: 0.02 };
+    var zD = (Y === "y1") ? [0, 1] : PEC.niceDomain(zs, opts), planes = [];
+    if (state.shade && first.lens && slice.length > 1) {
+      /* the phase regions on the plane of the slider's diagram */
+      var Bp = slice[0].pts, Dp = slice[1].pts, liqHigh = Y === "P";
+      var zL = liqHigh ? zD[1] : zD[0], zV = liqHigh ? zD[0] : zD[1], qL = [], qV = [], q2 = [];
+      var P3 = function (p, z) { return [p[0], fixed, z == null ? p[1] : z]; };
+      for (var i = 0; i + 1 < Bp.length; i++) {
+        var b0 = Bp[i], b1 = Bp[i + 1], d0 = Dp[i], d1 = Dp[i + 1];
+        if (b0 && b1) qL.push([P3(b0), P3(b1), P3(b1, zL), P3(b0, zL)]);
+        if (d0 && d1) qV.push([P3(d0), P3(d1), P3(d1, zV), P3(d0, zV)]);
+        if (b0 && b1 && d0 && d1) q2.push([P3(b0), P3(d0), P3(d1), P3(b1)]);
+      }
+      planes = [{ color: "--liquid", alpha: 0.3, quads: qL }, { color: "--vapor", alpha: 0.3, quads: qV },
+                { color: "--muted", alpha: 0.35, quads: q2 }];
+      items.push({ name: "Liquid", color: "--liquid", area: true }, { name: "Vapor", color: "--vapor", area: true },
+        { name: "Liquid + vapor", color: "--muted", area: true });
+    }
     var vals = layers.map(function (l) { return l.value; });
     PEC.legend("legend", items);
     PEC.drawSurface($("chart"), {
@@ -540,7 +571,8 @@
       lines: lines,
       x: { title: X === "xy" ? "x, y of " + lower(nameA()) : axisTitle(X), domain: [0, 1] },
       y: { title: hold === "T" ? "Temperature (K)" : "Pressure (bar)", domain: [Math.min.apply(null, vals), Math.max.apply(null, vals)], log: hold === "P" },
-      z: { title: axisTitle(Y), domain: (Y === "y1") ? [0, 1] : PEC.niceDomain(zs, opts) },
+      z: { title: axisTitle(Y), domain: zD },
+      planes: planes,
       aria: "3D surface of " + axisTitle(Y) + " against " + axisTitle(X) + " and " + (hold === "T" ? "temperature" : "pressure")
     });
     $("chart-hint").textContent = "Third axis: the fixed " + (hold === "T" ? "temperature, " + PEC.fmt(vals[0], 0) + " to " + PEC.fmt(vals[vals.length - 1], 0) + " K"
@@ -568,10 +600,7 @@
       items.push({ name: "Ideal solution, f = x · f of the pure liquid", color: "--muted" });
     }
     series.forEach(function (s) { cfg.series.push(s); items.push({ name: s.name, color: s.color }); });
-    if (series.lens) {
-      cfg.areas.push({ color: "--liquid", poly: lensArea(series) });
-      items.push({ name: "Two-phase region", color: "--liquid", area: true });
-    }
+    var shading = series.lens && state.shade;
     if (res.compare) items.push({ name: MODEL_SHORT[res.compare.model] + " for comparison", color: "--muted" });
     if (isComp(X)) cfg.xDomain = [0, 1];
     if (Y === "y1" && isComp(X)) { cfg.yDomain = [0, 1]; cfg.diagonal = true; cfg.ratio = 0.7; }
@@ -598,8 +627,52 @@
       return "<b>" + val + unit + "</b><br><span class='dim'>x " + PEC.fmt(c.x1[i], 3) + " · y " + PEC.fmt(c.y1[i], 3) +
         "<br>" + PEC.fmt(c.T[i], 2) + " K · " + PEC.sig(c.P[i], 4) + " bar</span>";
     };
+    if (shading) {
+      /* the same domains drawChart would choose, so the regions can reach the edges */
+      var allX = [], allY = [];
+      cfg.series.forEach(function (s) { s.pts.forEach(function (p) { if (p) { allX.push(p[0]); allY.push(p[1]); } }); });
+      cfg.xDomain = cfg.xDomain || PEC.niceDomain(allX, { pad: 0.02 });
+      cfg.yDomain = cfg.yDomain || PEC.niceDomain(allY, cfg.yOpts);
+      var rg = phaseRegions(series, X, Y, cfg.xDomain, cfg.yDomain);
+      cfg.areas = rg.areas.concat(cfg.areas);
+      cfg.regions = (cfg.regions || []).concat(rg.labels);
+      items.push({ name: "Liquid", color: "--liquid", area: true }, { name: "Vapor", color: "--vapor", area: true },
+        { name: "Liquid + vapor", color: "--muted", area: true });
+    }
     PEC.legend("legend", items);
     PEC.drawChart($("chart"), cfg);
+  }
+  /* liquid, vapor and two-phase regions bounded by the bubble and dew curves.
+     The liquid lies at low T or high P; the vapor at high T or low P. */
+  function phaseRegions(series, X, Y, xD, yD) {
+    var B = series[0].pts.filter(Boolean), D = series[1].pts.filter(Boolean), out = { areas: [], labels: [] };
+    if (B.length < 2 || D.length < 2) return out;
+    var alongX = !(X === "P" && Y === "T");                   // regions reach the top/bottom edge
+    var liqHigh = alongX ? Y === "P" : true;                    // liquid toward high P
+    function toEdge(pts, high) {
+      var a = pts[0], b = pts[pts.length - 1];
+      if (alongX) { var e = high ? yD[1] : yD[0]; return pts.concat([[b[0], e], [a[0], e]]); }
+      var ex = high ? xD[1] : xD[0];
+      return pts.concat([[ex, b[1]], [ex, a[1]]]);
+    }
+    out.areas.push({ color: "--liquid", opacity: 0.13, poly: toEdge(B, liqHigh) });
+    out.areas.push({ color: "--vapor", opacity: 0.13, poly: toEdge(D, !liqHigh) });
+    out.areas.push({ color: "--muted", opacity: 0.16, poly: lensArea(series) });
+    if (!alongX) return out;
+    var bx = B.map(function (p) { return p[0]; }), by = B.map(function (p) { return p[1]; }),
+        dx = D.map(function (p) { return p[0]; }), dy = D.map(function (p) { return p[1]; });
+    var best = null;
+    for (var k = 1; k < 20; k++) {                              // where the two-phase band is widest
+      var xm = xD[0] + (xD[1] - xD[0]) * k / 20, b = PEC.interp(bx, by, xm), d = PEC.interp(dx, dy, xm);
+      if (b == null || d == null) continue;
+      if (!best || Math.abs(d - b) > best.gap) best = { x: xm, b: b, d: d, gap: Math.abs(d - b) };
+    }
+    if (!best) return out;
+    var lE = liqHigh ? yD[1] : yD[0], vE = liqHigh ? yD[0] : yD[1], span = Math.abs(yD[1] - yD[0]);
+    if (Math.abs(lE - best.b) > 0.08 * span) out.labels.push({ x: best.x, y: (best.b + lE) / 2, text: "Liquid", minW: 300 });
+    if (Math.abs(vE - best.d) > 0.08 * span) out.labels.push({ x: best.x, y: (best.d + vE) / 2, text: "Vapor", minW: 300 });
+    if (best.gap > 0.07 * span) out.labels.push({ x: best.x, y: (best.b + best.d) / 2, text: "Liquid + vapor", minW: 300 });
+    return out;
   }
   function drawFacts(res) {
     var c = res.columns, n = c.x1.length, out = [], a = lower(nameA()), b = lower(nameB());

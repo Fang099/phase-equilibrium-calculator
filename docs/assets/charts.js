@@ -367,8 +367,8 @@
         var r = 0, g2 = 0, bl = 0, A = 0, o = q * 4;
         for (var f = 0; f < nf; f++) {
           // a surface lying almost on the one behind it is drawn solid (no muddy mix)
-          var close = f > 0 && bufs[fr[f - 1]].zb[q] - bufs[fr[f]].zb[q] < 0.04;
-          var B = bufs[fr[f]].px, al = (f === 0 ? FA : close ? 1 : NA) * B[o + 3] / 255;
+          var gap = f > 0 ? bufs[fr[f - 1]].zb[q] - bufs[fr[f]].zb[q] : 0, tg = Math.min(1, gap / 0.08);
+          var B = bufs[fr[f]].px, al = (f === 0 ? FA : 1 - (1 - NA) * tg) * B[o + 3] / 255;
           r = B[o] * al + r * (1 - al); g2 = B[o + 1] * al + g2 * (1 - al); bl = B[o + 2] * al + bl * (1 - al);
           A = al + A * (1 - al);
           if (bufs[fr[f]].zb[q] < zb[q]) zb[q] = bufs[fr[f]].zb[q];
@@ -376,6 +376,36 @@
         px[o] = r / A; px[o + 1] = g2 / A; px[o + 2] = bl / A; px[o + 3] = Math.round(255 * A);
       }
       ZB = zb; PX = px;
+      /* see-through planes (e.g. phase regions on one diagram), hidden behind nearer surfaces */
+      (cfg.planes || []).forEach(function (pl) {
+        var col = rgb(pl.color), al = pl.alpha || 0.3, mask = new Uint8Array(cw * ch);
+        function cover(a, b, c) {
+          var x0 = Math.max(0, Math.floor(Math.min(a[0], b[0], c[0]))), x1 = Math.min(cw - 1, Math.ceil(Math.max(a[0], b[0], c[0])));
+          var y0 = Math.max(0, Math.floor(Math.min(a[1], b[1], c[1]))), y1 = Math.min(ch - 1, Math.ceil(Math.max(a[1], b[1], c[1])));
+          var den = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]);
+          if (Math.abs(den) < 1e-9) return;
+          for (var y = y0; y <= y1; y++)
+            for (var x = x0; x <= x1; x++) {
+              var xc = x + 0.5, yc = y + 0.5;
+              var w0 = ((b[1] - c[1]) * (xc - c[0]) + (c[0] - b[0]) * (yc - c[1])) / den;
+              var w1 = ((c[1] - a[1]) * (xc - c[0]) + (a[0] - c[0]) * (yc - c[1])) / den;
+              var w2 = 1 - w0 - w1;
+              if (w0 < -1e-6 || w1 < -1e-6 || w2 < -1e-6) continue;
+              var k = y * cw + x;
+              if (w0 * a[2] + w1 * b[2] + w2 * c[2] <= zb[k] + 0.01) mask[k] = 1;
+            }
+        }
+        pl.quads.forEach(function (q) {
+          var P = q.map(function (p) { return S(N(p)); });
+          cover(P[0], P[1], P[2]); cover(P[0], P[2], P[3]);
+        });
+        for (var k = 0, n = cw * ch; k < n; k++) {
+          if (!mask[k]) continue;
+          var o = k * 4;
+          if (px[o + 3] === 0) { px[o] = col[0]; px[o + 1] = col[1]; px[o + 2] = col[2]; px[o + 3] = Math.round(255 * al); }
+          else { px[o] += (col[0] - px[o]) * al; px[o + 1] += (col[1] - px[o + 1]) * al; px[o + 2] += (col[2] - px[o + 2]) * al; }
+        }
+      });
       /* the box and the floor grid, then the lines on the surface */
       var C = [], k;
       for (k = 0; k < 8; k++) C.push([k & 1 ? 1 : -1, k & 2 ? 1 : -1, k & 4 ? 1 : -1]);

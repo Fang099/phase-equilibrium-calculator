@@ -450,3 +450,7 @@ main.doc > section:has(figure.code) > :not(figure.code):not(.katex-display):not(
 .chart-hint { font: 0.8rem var(--sans); color: var(--muted); margin: 0.9rem 0 0; }
 .toprow { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 0.5rem 1rem; margin-bottom: 0.8rem; }
 .toprow .presets { margin-bottom: 0; }
+.viewopts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+.viewopts label.check { display: flex; align-items: center; gap: 0.4rem; font: 0.86rem var(--sans); color: var(--ink-2); cursor: pointer; }
+.viewopts label.check input { margin: 0; accent-color: var(--liquid); }
+.viewopts label.check:has(input:disabled) { opacity: 0.5; cursor: default; }
