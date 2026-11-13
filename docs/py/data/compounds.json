@@ -7,7 +7,7 @@
    "thermo": "2bb466e98439c2395a004e7095d07f9b97a5a0f0 2026-07-12"
   },
   "sources": {
-   "psrk4": "Horstmann, S., Jab\u0142oniec, A., Krafczyk, J., Fischer, K., Gmehling, J. PSRK group contribution equation of state: comprehensive revision and extension IV, including critical constants and alpha-function parameters for 1000 components. Fluid Phase Equilibria 227 (2005) 157-164. Read from the chemicals library data files.",
+   "psrk4": "Horstmann, S., Jabłoniec, A., Krafczyk, J., Fischer, K., Gmehling, J. PSRK group contribution equation of state: comprehensive revision and extension IV, including critical constants and alpha-function parameters for 1000 components. Fluid Phase Equilibria 227 (2005) 157-164. Read from the chemicals library data files.",
    "poling": "Poling, B. E., Prausnitz, J. M., O'Connell, J. P. The Properties of Gases and Liquids, 5th ed., McGraw-Hill, 2001, Appendix A. Read from the chemicals library data files, which store log10(P/Pa) = A - B/(T/K + C).",
    "chemsep_nrtl": "ChemSep interaction parameter data, file 'DECHEMA NRTL at P = 1 atm' (copyright 2008 H. Kooijman and R. Taylor, Artistic License 2.0). The file gives A12 and A21 in cal/mol with tau_ij = A_ij / RT; read from the thermo library data files and converted to J/mol.",
    "chemsep_pr": "ChemSep interaction parameter data, file 'DECHEMA Peng-Robinson Parameters' (copyright 2009 H. Kooijman and R. Taylor, Artistic License 2.0). Read from the thermo library data files.",
@@ -105,49 +105,6 @@
    }
   },
   {
-   "id": "n-pentane",
-   "name": "n-Pentane",
-   "formula": "C5H12",
-   "cas": "109-66-0",
-   "family": "alkane",
-   "M": {
-    "value": 72.151,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 469.7,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 3369056.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.251,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 8.97786,
-    "B": 1064.84,
-    "C": -41.136,
-    "Tmin": 228.71,
-    "Tmax": 330.75,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 309.21,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
    "id": "n-hexane",
    "name": "n-Hexane",
    "formula": "C6H14",
@@ -186,135 +143,6 @@
    },
    "Tb": {
     "value": 341.87,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
-   "id": "n-heptane",
-   "name": "n-Heptane",
-   "formula": "C7H16",
-   "cas": "142-82-5",
-   "family": "alkane",
-   "M": {
-    "value": 100.205,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 540.3,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 2733748.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.3457,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 9.02023,
-    "B": 1263.909,
-    "C": -56.718,
-    "Tmin": 277.71,
-    "Tmax": 396.53,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 371.55,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
-   "id": "n-octane",
-   "name": "n-Octane",
-   "formula": "C8H18",
-   "cas": "111-65-9",
-   "family": "alkane",
-   "M": {
-    "value": 114.232,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 568.8,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 2494622.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.394,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 9.05075,
-    "B": 1356.36,
-    "C": -63.515,
-    "Tmin": 299.42,
-    "Tmax": 425.23,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 398.83,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
-   "id": "cyclohexane",
-   "name": "Cyclohexane",
-   "formula": "C6H12",
-   "cas": "110-82-7",
-   "family": "alkane",
-   "M": {
-    "value": 84.162,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 553.8,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 4080358.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.213,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 8.93002,
-    "B": 1182.774,
-    "C": -52.532,
-    "Tmin": 282.11,
-    "Tmax": 378.46,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 353.93,
     "unit": "K",
     "source": "derived"
    }
@@ -492,135 +320,6 @@
    }
   },
   {
-   "id": "1-propanol",
-   "name": "1-Propanol",
-   "formula": "C3H8O",
-   "cas": "71-23-8",
-   "family": "alcohol",
-   "M": {
-    "value": 60.096,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 536.7,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 5167575.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.624,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 9.99991,
-    "B": 1512.94,
-    "C": -67.343,
-    "Tmin": 293.19,
-    "Tmax": 389.32,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 370.28,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
-   "id": "2-propanol",
-   "name": "2-Propanol",
-   "formula": "C3H8O",
-   "cas": "67-63-0",
-   "family": "alcohol",
-   "M": {
-    "value": 60.096,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 508.3,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 4762275.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.665,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 10.24268,
-    "B": 1580.92,
-    "C": -53.54,
-    "Tmin": 281.28,
-    "Tmax": 373.46,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 355.42,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
-   "id": "1-butanol",
-   "name": "1-Butanol",
-   "formula": "C4H10O",
-   "cas": "71-36-3",
-   "family": "alcohol",
-   "M": {
-    "value": 74.123,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 562.9,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 4417770.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.59,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 9.6493,
-    "B": 1395.14,
-    "C": -90.411,
-    "Tmin": 310.18,
-    "Tmax": 411.26,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 390.86,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
    "id": "water",
    "name": "Water",
    "formula": "H2O",
@@ -707,221 +406,6 @@
    }
   },
   {
-   "id": "2-butanone",
-   "name": "2-Butanone",
-   "formula": "C4H8O",
-   "cas": "78-93-3",
-   "family": "ketone",
-   "M": {
-    "value": 72.107,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 535.6,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 4154325.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.329,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 9.1386,
-    "B": 1232.63,
-    "C": -54.46,
-    "Tmin": 265.62,
-    "Tmax": 375.66,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 352.71,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
-   "id": "ethyl-acetate",
-   "name": "Ethyl acetate",
-   "formula": "C4H8O2",
-   "cas": "141-78-6",
-   "family": "ester",
-   "M": {
-    "value": 88.106,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 523.2,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 3830085.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.363,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 9.13361,
-    "B": 1195.13,
-    "C": -60.68,
-    "Tmin": 265.5,
-    "Tmax": 372.51,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 350.21,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
-   "id": "methyl-acetate",
-   "name": "Methyl acetate",
-   "formula": "C3H6O2",
-   "cas": "79-20-9",
-   "family": "ester",
-   "M": {
-    "value": 74.079,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 506.8,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 4691347.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.32,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 9.18621,
-    "B": 1156.43,
-    "C": -53.46,
-    "Tmin": 249.9,
-    "Tmax": 351.11,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 330.09,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
-   "id": "diethyl-ether",
-   "name": "Diethyl ether",
-   "formula": "C4H10O",
-   "cas": "60-29-7",
-   "family": "ether",
-   "M": {
-    "value": 74.123,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 466.7,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 3637568.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.281,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 9.10962,
-    "B": 1090.64,
-    "C": -41.95,
-    "Tmin": 229.71,
-    "Tmax": 328.31,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 307.71,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
-   "id": "tetrahydrofuran",
-   "name": "Tetrahydrofuran",
-   "formula": "C4H8O",
-   "cas": "109-99-9",
-   "family": "ether",
-   "M": {
-    "value": 72.107,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 540.2,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 5187840.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.217,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 9.12142,
-    "B": 1203.11,
-    "C": -46.795,
-    "Tmin": 253.5,
-    "Tmax": 361.71,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 339.12,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
    "id": "chloroform",
    "name": "Chloroform",
    "formula": "CHCl3",
@@ -963,92 +447,6 @@
     "unit": "K",
     "source": "derived"
    }
-  },
-  {
-   "id": "dichloromethane",
-   "name": "Dichloromethane",
-   "formula": "CH2Cl2",
-   "cas": "75-09-2",
-   "family": "chlorinated",
-   "M": {
-    "value": 84.927,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 510.0,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 6355000.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.2027,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 9.07622,
-    "B": 1070.07,
-    "C": -49.91,
-    "Tmin": 235.2,
-    "Tmax": 333.36,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 312.79,
-    "unit": "K",
-    "source": "derived"
-   }
-  },
-  {
-   "id": "tetrachloromethane",
-   "name": "Tetrachloromethane",
-   "formula": "CCl4",
-   "cas": "56-23-5",
-   "family": "chlorinated",
-   "M": {
-    "value": 153.811,
-    "unit": "g/mol",
-    "source": "iupac_aw"
-   },
-   "Tc": {
-    "value": 556.4,
-    "unit": "K",
-    "source": "psrk4"
-   },
-   "Pc": {
-    "value": 4559625.0,
-    "unit": "Pa",
-    "source": "psrk4"
-   },
-   "omega": {
-    "value": 0.194,
-    "unit": "",
-    "source": "psrk4"
-   },
-   "antoine": {
-    "A": 9.10445,
-    "B": 1265.632,
-    "C": -41.002,
-    "Tmin": 259.0,
-    "Tmax": 373.76,
-    "P_unit": "Pa",
-    "T_unit": "K",
-    "form": "log10(P/Pa) = A - B/(T/K + C)",
-    "source": "poling"
-   },
-   "Tb": {
-    "value": 349.79,
-    "unit": "K",
-    "source": "derived"
-   }
   }
  ],
  "pairs": [
@@ -1062,33 +460,9 @@
   },
   {
    "a": "propane",
-   "b": "n-pentane",
-   "kij_pr": {
-    "value": 0.0267,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "propane",
    "b": "n-hexane",
    "kij_pr": {
     "value": 0.0007,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "propane",
-   "b": "n-heptane",
-   "kij_pr": {
-    "value": 0.0056,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "propane",
-   "b": "n-octane",
-   "kij_pr": {
-    "value": 0.0,
     "source": "chemsep_pr"
    }
   },
@@ -1110,33 +484,9 @@
   },
   {
    "a": "n-butane",
-   "b": "n-pentane",
-   "kij_pr": {
-    "value": 0.0174,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "n-butane",
    "b": "n-hexane",
    "kij_pr": {
     "value": -0.0056,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "n-butane",
-   "b": "n-heptane",
-   "kij_pr": {
-    "value": 0.0033,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "n-butane",
-   "b": "n-octane",
-   "kij_pr": {
-    "value": 0.0074,
     "source": "chemsep_pr"
    }
   },
@@ -1149,65 +499,6 @@
     "alpha": 0.4647,
     "unit": "K",
     "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "n-pentane",
-   "b": "n-heptane",
-   "kij_pr": {
-    "value": 0.0074,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "n-pentane",
-   "b": "n-octane",
-   "kij_pr": {
-    "value": 0.0,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "n-pentane",
-   "b": "cyclohexane",
-   "kij_pr": {
-    "value": 0.0037,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "n-pentane",
-   "b": "benzene",
-   "kij_pr": {
-    "value": 0.0189,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "n-pentane",
-   "b": "ethanol",
-   "nrtl": {
-    "b_ab": 595.5005354152097,
-    "b_ba": 207.70617726146966,
-    "alpha": 0.2886,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "n-hexane",
-   "b": "n-heptane",
-   "kij_pr": {
-    "value": -0.0078,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "n-hexane",
-   "b": "cyclohexane",
-   "kij_pr": {
-    "value": -0.0049,
-    "source": "chemsep_pr"
    }
   },
   {
@@ -1236,181 +527,6 @@
     "b_ab": 612.9749846818144,
     "b_ba": 289.5014427925397,
     "alpha": 0.2882,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "n-hexane",
-   "b": "1-propanol",
-   "nrtl": {
-    "b_ab": 549.5897038520766,
-    "b_ba": 241.88454604498574,
-    "alpha": 0.294,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "n-hexane",
-   "b": "2-propanol",
-   "kij_pr": {
-    "value": 0.0844,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "n-heptane",
-   "b": "benzene",
-   "kij_pr": {
-    "value": 0.0011,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "n-heptane",
-   "b": "methanol",
-   "nrtl": {
-    "b_ab": 804.3021209571995,
-    "b_ba": 788.2627028342732,
-    "alpha": 0.4408,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "n-heptane",
-   "b": "ethanol",
-   "nrtl": {
-    "b_ab": 657.1665667087489,
-    "b_ba": 560.7348591141472,
-    "alpha": 0.4758,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "n-heptane",
-   "b": "1-propanol",
-   "nrtl": {
-    "b_ab": 693.0830054390163,
-    "b_ba": 603.3461305180822,
-    "alpha": 0.5193,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "n-heptane",
-   "b": "2-butanone",
-   "nrtl": {
-    "b_ab": 468.72967182401396,
-    "b_ba": 342.9493455625573,
-    "alpha": 0.9809,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "n-octane",
-   "b": "benzene",
-   "kij_pr": {
-    "value": 0.003,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "n-octane",
-   "b": "methanol",
-   "nrtl": {
-    "b_ab": 760.5837665795672,
-    "b_ba": 846.2601630846998,
-    "alpha": 0.4381,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "n-octane",
-   "b": "ethanol",
-   "nrtl": {
-    "b_ab": 697.1463018842055,
-    "b_ba": 607.2902142557855,
-    "alpha": 0.4717,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "n-octane",
-   "b": "1-propanol",
-   "nrtl": {
-    "b_ab": 168.18160415406274,
-    "b_ba": 558.223441388315,
-    "alpha": 0.2907,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "cyclohexane",
-   "b": "benzene",
-   "kij_pr": {
-    "value": 0.0126,
-    "source": "chemsep_pr"
-   }
-  },
-  {
-   "a": "cyclohexane",
-   "b": "methanol",
-   "nrtl": {
-    "b_ab": 937.228214916292,
-    "b_ba": 661.1960468012869,
-    "alpha": 0.441,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "cyclohexane",
-   "b": "ethanol",
-   "nrtl": {
-    "b_ab": 701.3870335369063,
-    "b_ba": 383.33950658953546,
-    "alpha": 0.4376,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "cyclohexane",
-   "b": "1-propanol",
-   "nrtl": {
-    "b_ab": 859.3924316406502,
-    "b_ba": 177.77261620887575,
-    "alpha": 0.5914,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "cyclohexane",
-   "b": "acetone",
-   "nrtl": {
-    "b_ab": 366.1671903308434,
-    "b_ba": 216.3192324748812,
-    "alpha": 0.2925,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "cyclohexane",
-   "b": "2-butanone",
-   "nrtl": {
-    "b_ab": 118.48268690861096,
-    "b_ba": 304.8192441044288,
-    "alpha": 0.2963,
     "unit": "K",
     "source": "chemsep_nrtl"
    }
@@ -1450,17 +566,6 @@
   },
   {
    "a": "benzene",
-   "b": "1-propanol",
-   "nrtl": {
-    "b_ab": 439.93560108307463,
-    "b_ba": 143.8087699124902,
-    "alpha": 0.2899,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "benzene",
    "b": "acetone",
    "nrtl": {
     "b_ab": 446.13949277986086,
@@ -1472,33 +577,11 @@
   },
   {
    "a": "benzene",
-   "b": "2-butanone",
-   "nrtl": {
-    "b_ab": 452.09237857333784,
-    "b_ba": -324.5047896792737,
-    "alpha": 0.1563,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "benzene",
    "b": "chloroform",
    "nrtl": {
     "b_ab": -145.03471333999988,
     "b_ba": 89.00901818768155,
     "alpha": 0.3061,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "benzene",
-   "b": "tetrachloromethane",
-   "nrtl": {
-    "b_ab": 42.2811090680065,
-    "b_ba": -2.4869612565042503,
-    "alpha": 0.3055,
     "unit": "K",
     "source": "chemsep_nrtl"
    }
@@ -1527,33 +610,11 @@
   },
   {
    "a": "toluene",
-   "b": "1-propanol",
-   "nrtl": {
-    "b_ab": 463.9688627834422,
-    "b_ba": 12.893490887305378,
-    "alpha": 0.0175,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "toluene",
    "b": "acetone",
    "nrtl": {
     "b_ab": 366.09734345959384,
     "b_ba": -124.77288075539218,
     "alpha": 0.295,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "toluene",
-   "b": "2-butanone",
-   "nrtl": {
-    "b_ab": -91.36116693116148,
-    "b_ba": 253.15651262949805,
-    "alpha": 0.2996,
     "unit": "K",
     "source": "chemsep_nrtl"
    }
@@ -1570,45 +631,12 @@
    }
   },
   {
-   "a": "toluene",
-   "b": "tetrachloromethane",
-   "nrtl": {
-    "b_ab": 47.99904166129293,
-    "b_ba": -35.0648403137275,
-    "alpha": 0.3041,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
    "a": "methanol",
    "b": "ethanol",
    "nrtl": {
     "b_ab": 33.86174305303865,
     "b_ba": -35.48160673137118,
     "alpha": 0.3009,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "methanol",
-   "b": "1-propanol",
-   "nrtl": {
-    "b_ab": 12.530317349979319,
-    "b_ba": 4.798147929957382,
-    "alpha": 0.3011,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "methanol",
-   "b": "1-butanol",
-   "nrtl": {
-    "b_ab": 399.46437138924983,
-    "b_ba": -244.73070540450144,
-    "alpha": 0.2483,
     "unit": "K",
     "source": "chemsep_nrtl"
    }
@@ -1641,99 +669,11 @@
   },
   {
    "a": "methanol",
-   "b": "2-butanone",
-   "nrtl": {
-    "b_ab": 154.70332184687842,
-    "b_ba": 109.65646790080935,
-    "alpha": 0.3003,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "methanol",
-   "b": "ethyl-acetate",
-   "nrtl": {
-    "b_ab": 173.88328275641715,
-    "b_ba": 211.72232203636997,
-    "alpha": 0.2962,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "methanol",
-   "b": "methyl-acetate",
-   "nrtl": {
-    "b_ab": 174.3836842605283,
-    "b_ba": 191.95606004835184,
-    "alpha": 0.2965,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "methanol",
-   "b": "diethyl-ether",
-   "nrtl": {
-    "b_ab": 106.25883025453238,
-    "b_ba": 355.27243710864184,
-    "alpha": 0.2953,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "methanol",
-   "b": "tetrahydrofuran",
-   "nrtl": {
-    "b_ab": 85.25308823355346,
-    "b_ba": 192.81253969436676,
-    "alpha": 0.3002,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "methanol",
    "b": "chloroform",
    "nrtl": {
     "b_ab": -53.07240035412078,
     "b_ba": 671.9699770134955,
     "alpha": 0.2873,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "methanol",
-   "b": "dichloromethane",
-   "nrtl": {
-    "b_ab": 222.0894998996515,
-    "b_ba": 785.0366630489193,
-    "alpha": 0.6234,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "methanol",
-   "b": "tetrachloromethane",
-   "nrtl": {
-    "b_ab": 245.9056726932677,
-    "b_ba": 674.2638529349963,
-    "alpha": 0.4622,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "ethanol",
-   "b": "2-propanol",
-   "nrtl": {
-    "b_ab": 347.2915262732114,
-    "b_ba": -266.3778510428779,
-    "alpha": 0.3125,
     "unit": "K",
     "source": "chemsep_nrtl"
    }
@@ -1762,132 +702,11 @@
   },
   {
    "a": "ethanol",
-   "b": "2-butanone",
-   "nrtl": {
-    "b_ab": 220.00370525525247,
-    "b_ba": 16.926443194624536,
-    "alpha": 0.3022,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "ethanol",
-   "b": "ethyl-acetate",
-   "nrtl": {
-    "b_ab": 166.31933962644382,
-    "b_ba": 153.78595263731017,
-    "alpha": 0.2988,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "ethanol",
-   "b": "methyl-acetate",
-   "nrtl": {
-    "b_ab": 79.51462428330028,
-    "b_ba": 94.76323290933323,
-    "alpha": 0.3013,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "ethanol",
-   "b": "diethyl-ether",
-   "nrtl": {
-    "b_ab": 35.82842563385853,
-    "b_ba": 384.2940134006759,
-    "alpha": 0.2946,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "ethanol",
-   "b": "tetrahydrofuran",
-   "nrtl": {
-    "b_ab": -100.99188300716756,
-    "b_ba": 332.81470544570556,
-    "alpha": 0.3015,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "ethanol",
    "b": "chloroform",
    "nrtl": {
     "b_ab": -143.61286654809913,
     "b_ba": 648.7605863333722,
     "alpha": 0.2909,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "ethanol",
-   "b": "dichloromethane",
-   "nrtl": {
-    "b_ab": -77.03088363181043,
-    "b_ba": 670.6928058374756,
-    "alpha": 0.3057,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "1-propanol",
-   "b": "2-propanol",
-   "nrtl": {
-    "b_ab": -88.21076104169245,
-    "b_ba": 84.16351729962193,
-    "alpha": 0.3057,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "1-propanol",
-   "b": "2-butanone",
-   "nrtl": {
-    "b_ab": 107.3784433946138,
-    "b_ba": 74.91278229336076,
-    "alpha": 0.3016,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "1-propanol",
-   "b": "tetrahydrofuran",
-   "nrtl": {
-    "b_ab": -152.09800335609526,
-    "b_ba": 283.04141235320265,
-    "alpha": 0.3003,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "1-propanol",
-   "b": "tetrachloromethane",
-   "nrtl": {
-    "b_ab": 270.35162473305763,
-    "b_ba": 773.7696783377887,
-    "alpha": 0.631,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "1-butanol",
-   "b": "water",
-   "nrtl": {
-    "b_ab": 253.64181754760426,
-    "b_ba": 1325.3268195999854,
-    "alpha": 0.4447,
     "unit": "K",
     "source": "chemsep_nrtl"
    }
@@ -1899,50 +718,6 @@
     "b_ab": 666.7541568707342,
     "b_ba": 409.6929122710524,
     "alpha": 0.5663,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "water",
-   "b": "2-butanone",
-   "nrtl": {
-    "b_ab": 910.770391181574,
-    "b_ba": 339.4021510709245,
-    "alpha": 0.3536,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "water",
-   "b": "ethyl-acetate",
-   "nrtl": {
-    "b_ab": 808.2118348007648,
-    "b_ba": 647.1342814450109,
-    "alpha": 0.4393,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "water",
-   "b": "diethyl-ether",
-   "nrtl": {
-    "b_ab": 1049.9562845276246,
-    "b_ba": 776.9835905323853,
-    "alpha": 0.3792,
-    "unit": "K",
-    "source": "chemsep_nrtl"
-   }
-  },
-  {
-   "a": "water",
-   "b": "tetrahydrofuran",
-   "nrtl": {
-    "b_ab": 868.1028598337939,
-    "b_ba": 460.8207717038273,
-    "alpha": 0.4522,
     "unit": "K",
     "source": "chemsep_nrtl"
    }

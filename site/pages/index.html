@@ -21,10 +21,15 @@
   <section class="home-section">
     <h2>Start with one of these</h2>
     <ul class="tryit">
-      <li><a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325">Ethanol + water: an azeotrope</a></li>
-      <li><a href="app.html#a=acetone&amp;b=chloroform&amp;model=nrtl&amp;y=gamma&amp;x=x1&amp;hold=T&amp;T=323">Acetone + chloroform: molecules that attract</a></li>
+      <li><a href="app.html#a=ethanol&amp;b=water&amp;model={{act_id}}&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325">Ethanol + water: an azeotrope</a></li>
+      <li><a href="app.html#a=acetone&amp;b=chloroform&amp;model={{act_id}}&amp;y=gamma&amp;x=x1&amp;hold=T&amp;T=323">Acetone + chloroform: molecules that attract</a></li>
+      <!--full-->
       <li><a href="app.html#a=1-butanol&amp;b=water&amp;model=nrtl&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325">1-Butanol + water: two liquid layers</a></li>
       <li><a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=f&amp;x=x1&amp;hold=T&amp;T=350">Fugacity in ethanol + water</a></li>
+      <!--/full-->
+      <!--reduced-->
+      <li><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;y=P&amp;x=xy&amp;hold=T&amp;T=300&amp;compare=vdW">Peng–Robinson against van der Waals</a></li>
+      <!--/reduced-->
       <li><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;y=P&amp;x=T&amp;hold=x&amp;x1=0.5">Propane + n-butane under pressure</a></li>
       <li><a href="app.html#a=benzene&amp;b=toluene&amp;model=ideal&amp;y=P&amp;x=xy&amp;hold=T&amp;T=360&amp;compare=PR">Benzene + toluene: nearly ideal</a></li>
     </ul>
@@ -56,9 +61,9 @@
       <table class="keep-first">
         <tbody>
           <tr><td>Compounds</td><td><span data-v="database.n_compounds" data-d="0"></span> common liquids, any two at a time, with critical constants and vapor-pressure equations from published tables</td></tr>
-          <tr><td>Models</td><td>Three equations of state (van der Waals, Soave–Redlich–Kwong, Peng–Robinson) and four liquid models (ideal, Margules, van Laar, NRTL), with parameters you can change</td></tr>
-          <tr><td>Plots</td><td>Pxy, Txy, xy and P–T diagrams, K-values, relative volatility, activity coefficients, fugacities and Gibbs energies, or any of these against another</td></tr>
-          <tr><td>Found automatically</td><td>Azeotropes, and the three-phase line when a model predicts two liquid layers</td></tr>
+          <tr><td>Models</td><td><!--full-->Three equations of state (van der Waals, Soave–Redlich–Kwong, Peng–Robinson) and four liquid models (ideal, Margules, van Laar, NRTL)<!--/full--><!--reduced-->Two equations of state (van der Waals, Peng–Robinson) and two liquid models (ideal solution, van Laar)<!--/reduced-->, with parameters you can change</td></tr>
+          <tr><td>Plots</td><td><!--full-->Pxy, Txy, xy and P–T diagrams, K-values, relative volatility, activity coefficients, fugacities and Gibbs energies, or any of these against another<!--/full--><!--reduced-->Pxy, Txy, xy and P–T diagrams, and activity coefficients<!--/reduced--></td></tr>
+          <tr><td>Found automatically</td><td>Azeotropes<!--full-->, and the three-phase line when a model predicts two liquid layers<!--/full--></td></tr>
           <tr><td>Beyond the calculator</td><td>The Python program also handles solids and eutectics, any number of components in a flash, and gravity and centrifugal fields</td></tr>
           <tr><td>Checked</td><td>Every module tests itself against exact identities and hand calculations; see <a href="how-it-works.html#verification">verification</a></td></tr>
         </tbody>

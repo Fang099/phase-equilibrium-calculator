@@ -64,7 +64,19 @@
   var SOURCE_LABEL = { chemsep_nrtl: "ChemSep NRTL library", chemsep_pr: "ChemSep Peng–Robinson library",
     nrtl_infinite_dilution: "matched to the NRTL model at infinite dilution", none: "no database value" };
 
-  var state = { a: "ethanol", b: "water", model: "nrtl", compare: "", x: "xy", y: "T", hold: "P", T: 350, P: 1.01325, x1: 0.5, params: {} };
+  /* the edition (set at build time in site/edition.json) limits what is offered */
+  var ED = window.PEC_EDITION || {};
+  function offered(kind, v) { return !ED[kind] || ED[kind].indexOf(v) >= 0; }
+  var ACT = ["ideal", "margules", "vanlaar", "nrtl"].filter(function (m) { return offered("models", m); });
+  EOS = EOS.filter(function (m) { return offered("models", m); });
+  PRESETS = PRESETS.filter(function (p) { return offered("presets", p[0]); });
+  X_OPTS = X_OPTS.filter(function (o) { return offered("x_axes", o[0]); });
+  Y_OPTS = Y_OPTS.filter(function (o) { return offered("y_axes", o[0]); });
+  if (!offered("models", "nrtl"))
+    SOURCE_LABEL.nrtl_infinite_dilution = "infinite-dilution activity coefficients from the ChemSep interaction data";
+  var DEF = ED["default"] || { a: "ethanol", b: "water", model: "nrtl" };
+
+  var state = { a: DEF.a, b: DEF.b, model: DEF.model, compare: "", x: "xy", y: "T", hold: "P", T: 350, P: 1.01325, x1: 0.5, params: {} };
   var catalog = null, pair = null, last = null, engine, busy = false, dirty = false, timer = null;
 
   /* ------------------------------------------------------------ URL state */
@@ -166,11 +178,11 @@
   function drawModels() {
     function pick(m) { state.model = m; state.params = defaults(); if (state.compare === m) state.compare = ""; drawModels(); drawParams(); drawCompare(); schedule(0); }
     seg($("models-eos"), EOS.map(function (m) { return [m, MODEL_SHORT[m]]; }), state.model, pick);
-    seg($("models-act"), ["ideal", "margules", "vanlaar", "nrtl"].map(function (m) { return [m, MODEL_SHORT[m]]; }), state.model, pick);
+    seg($("models-act"), ACT.map(function (m) { return [m, MODEL_SHORT[m]]; }), state.model, pick);
   }
   function drawCompare() {
     var sel = $("compare");
-    sel.innerHTML = "<option value=''>Nothing</option>" + catalog.models.filter(function (m) { return m.id !== state.model; })
+    sel.innerHTML = "<option value=''>Nothing</option>" + catalog.models.filter(function (m) { return m.id !== state.model && offered("models", m.id); })
       .map(function (m) { return "<option value='" + m.id + "'>" + m.label + "</option>"; }).join("");
     sel.value = state.compare;
   }
@@ -516,7 +528,10 @@
     var h = "<table><thead><tr><th>Property</th><th>" + A.name + "</th><th>" + B.name + "</th><th>Source</th></tr></thead><tbody>" +
       rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td><td>" + r[3] + "</td></tr>"; }).join("");
     var pr = [];
-    if (pair.nrtl) { pr.push(["NRTL Δg₁₂, Δg₂₁ (J/mol), α", pair.nrtl.dg12 + ", " + pair.nrtl.dg21 + ", " + pair.nrtl.alpha, src(pair.nrtl.source)]); }
+    if (!offered("models", "nrtl")) {
+      if (pair.A.source !== "none") pr.push(["van Laar A₁₂, A₂₁ (starting values)", pair.A.A12 + ", " + pair.A.A21, SOURCE_LABEL[pair.A.source] + " (" + src("chemsep_nrtl") + ")"]);
+      else pr.push(["van Laar A₁₂, A₂₁", "no database value (0 used: an ideal solution)", ""]);
+    } else if (pair.nrtl) { pr.push(["NRTL Δg₁₂, Δg₂₁ (J/mol), α", pair.nrtl.dg12 + ", " + pair.nrtl.dg21 + ", " + pair.nrtl.alpha, src(pair.nrtl.source)]); }
     else pr.push(["NRTL parameters", "not in the database", ""]);
     if (pair.kij.source !== "none") pr.push(["Peng–Robinson k₁₂", pair.kij.value, src(pair.kij.source)]);
     else pr.push(["Peng–Robinson k₁₂", "not in the database (0 used)", ""]);
@@ -533,10 +548,14 @@
     function (err) { overlay("Python could not start in this browser", "Check your connection and reload the page. (" + err + ")", true); });
   engine.call({ op: "catalog" }).then(function (cat) {
     catalog = cat;
+    catalog.compounds = catalog.compounds.filter(function (c) { return offered("compounds", c.id); });
     var urlParams = readHash();
-    if (!comp(state.a)) state.a = "ethanol";
-    if (!comp(state.b) || state.b === state.a) state.b = state.a === "water" ? "ethanol" : "water";
-    if (!MODEL_SHORT[state.model]) state.model = "nrtl";
+    if (!comp(state.a)) state.a = DEF.a;
+    if (!comp(state.b) || state.b === state.a) state.b = state.a === DEF.b ? DEF.a : DEF.b;
+    if (!MODEL_SHORT[state.model] || !offered("models", state.model)) state.model = DEF.model;
+    if (state.compare && !offered("models", state.compare)) state.compare = "";
+    if (!Y_OPTS.some(function (o) { return o[0] === state.y; })) { state.y = "T"; state.x = "xy"; }
+    if (!X_OPTS.some(function (o) { return o[0] === state.x; })) state.x = "xy";
     fillCompounds(); bindAxes();
     urlParams.__first = true;
     return loadPair(urlParams);

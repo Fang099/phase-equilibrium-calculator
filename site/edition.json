@@ -1,0 +1,22 @@
+{
+  "_about": "Internal build setting, never shown on the website. 'active' picks which edition scripts/build_site.py builds into docs/. 'full' offers every model, compound and plot the Python program has; 'reduced' is the trimmed showcase. Override once with: python scripts/build_site.py --edition=full",
+  "active": "reduced",
+  "editions": {
+    "full": {
+      "vars": {"act": "NRTL", "act_id": "nrtl"},
+      "default": {"a": "ethanol", "b": "water", "model": "nrtl"}
+    },
+    "reduced": {
+      "vars": {"act": "van Laar", "act_id": "vanlaar"},
+      "default": {"a": "ethanol", "b": "water", "model": "vanlaar"},
+      "models": ["PR", "vdW", "ideal", "vanlaar"],
+      "compounds": ["propane", "n-butane", "n-hexane", "benzene", "toluene",
+                    "methanol", "ethanol", "water", "acetone", "chloroform"],
+      "presets": ["Pxy", "Txy", "xy", "P–T", "Activity coefficients"],
+      "x_axes": ["xy", "x1", "T"],
+      "y_axes": ["P", "T", "y1", "gamma"],
+      "gallery": ["txy_azeotrope.png", "phase_diagram_latent_heats.png", "pt_diagram.png", "gravity_profile.png"],
+      "hide_examples": ["database_ethanol_water_nrtl.txt", "missing_data_srk.txt"]
+    }
+  }
+}

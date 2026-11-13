@@ -12,12 +12,12 @@
         <li><a href="#chemical-potential">Chemical potential</a></li>
         <li><a href="#fugacity">Fugacity</a></li>
         <li><a href="#activity">Liquids and activity coefficients</a></li>
-        <li><a href="#models">Activity models</a></li>
+        <li><a href="#models"><!--full-->Activity models<!--/full--><!--reduced-->The van Laar model<!--/reduced--></a></li>
         <li><a href="#eos">Equations of state</a></li>
         <li><a href="#routes">Choosing a model</a></li>
         <li><a href="#diagrams">Reading the diagrams</a></li>
-        <li><a href="#kvalues">K-values and volatility</a></li>
-        <li><a href="#two-liquids">Two liquid layers</a></li>
+        <!--full--><li><a href="#kvalues">K-values and volatility</a></li><!--/full-->
+        <!--full--><li><a href="#two-liquids">Two liquid layers</a></li><!--/full-->
         <li><a href="#pt">The P–T diagram</a></li>
         <li><a href="#phase-rule">What you may choose</a></li>
         <li><a href="#beyond">Solids and fields</a></li>
@@ -32,12 +32,12 @@
           <li><a href="#chemical-potential">Chemical potential</a></li>
           <li><a href="#fugacity">Fugacity</a></li>
           <li><a href="#activity">Liquids and activity coefficients</a></li>
-          <li><a href="#models">Activity models</a></li>
+          <li><a href="#models"><!--full-->Activity models<!--/full--><!--reduced-->The van Laar model<!--/reduced--></a></li>
           <li><a href="#eos">Equations of state</a></li>
           <li><a href="#routes">Choosing a model</a></li>
           <li><a href="#diagrams">Reading the diagrams</a></li>
-          <li><a href="#kvalues">K-values and volatility</a></li>
-          <li><a href="#two-liquids">Two liquid layers</a></li>
+          <!--full--><li><a href="#kvalues">K-values and volatility</a></li><!--/full-->
+          <!--full--><li><a href="#two-liquids">Two liquid layers</a></li><!--/full-->
           <li><a href="#pt">The P–T diagram</a></li>
           <li><a href="#phase-rule">What you may choose</a></li>
           <li><a href="#beyond">Solids and fields</a></li>
@@ -84,7 +84,9 @@
         <h3>Fugacity in a vapor mixture</h3>
         <p>In an ideal-gas mixture the fugacity of a compound is its partial pressure, \(y_i P\), where \(y_i\) is its mole fraction in the vapor. A real vapor needs the fugacity coefficient of that compound in the mixture:</p>
         \[ \hat f_i^{V} = y_i\,\hat\varphi_i^{V}\,P . \]
+        <!--full-->
         <p class="note"><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;y=phiV&amp;x=x1&amp;hold=T&amp;T=300">See vapor fugacity coefficients in the calculator</a></p>
+        <!--/full-->
       </section>
 
       <!-- ============================================================ -->
@@ -101,7 +103,7 @@
         <figure class="chart-figure" aria-labelledby="fug-cap">
           <ul class="legend" id="fug-legend"></ul>
           <div class="chart" id="chart-fug"></div>
-          <figcaption id="fug-cap"><b>Fugacities in liquid ethanol–water at 350 K</b> (NRTL). The straight lines are an ideal solution. Both real curves lie above them, so both compounds escape more easily than in an ideal mixture.</figcaption>
+          <figcaption id="fug-cap"><b>Fugacities in liquid ethanol–water at 350 K</b> ({{act}}). The straight lines are an ideal solution. Both real curves lie above them, so both compounds escape more easily than in an ideal mixture.</figcaption>
         </figure>
         <h3>From equal fugacities to Raoult's law</h3>
         <p>Set the liquid fugacity equal to the vapor fugacity, with an ideal-gas vapor:</p>
@@ -112,35 +114,38 @@
           <div class="chart" id="chart-raoult"></div>
           <figcaption id="raoult-cap"><b>Ethanol–water at 350 K.</b> Raoult's law gives a straight bubble line between the two vapor pressures. With activity coefficients, the pressure rises above it and passes through a maximum: an azeotrope.</figcaption>
         </figure>
-        <p>The activity coefficient is largest when a compound is surrounded entirely by the other one. That limit, \(\gamma_i^{\infty}\), is the <b>infinite-dilution</b> activity coefficient. For this mixture at 350 K, \(\gamma^{\infty}\) is <span data-v="ew350.nrtl.gamma1.0" data-d="2"></span> for ethanol in water and <span data-v="ew350.nrtl.gamma2.-1" data-d="2"></span> for water in ethanol.</p>
+        <p>The activity coefficient is largest when a compound is surrounded entirely by the other one. That limit, \(\gamma_i^{\infty}\), is the <b>infinite-dilution</b> activity coefficient. For this mixture at 350 K, \(\gamma^{\infty}\) is <span data-v="ew350.act.gamma1.0" data-d="2"></span> for ethanol in water and <span data-v="ew350.act.gamma2.-1" data-d="2"></span> for water in ethanol.</p>
         <h3>Negative deviation</h3>
         <p>Acetone and chloroform form a hydrogen bond with each other that neither forms alone. Both activity coefficients fall below 1, the total pressure dips below Raoult's line, and the mixture has a pressure minimum: a maximum-boiling azeotrope.</p>
         <figure class="chart-figure" aria-labelledby="ac-cap">
           <ul class="legend" id="ac-legend"></ul>
           <div class="chart" id="chart-ac"></div>
-          <figcaption id="ac-cap"><b>Acetone–chloroform at 323 K</b> (NRTL). At infinite dilution the activity coefficients are <span data-v="acetone_chloroform.gamma1.0" data-d="2"></span> and <span data-v="acetone_chloroform.gamma2.-1" data-d="2"></span>.</figcaption>
+          <figcaption id="ac-cap"><b>Acetone–chloroform at 323 K</b> ({{act}}). At infinite dilution the activity coefficients are <span data-v="acetone_chloroform.gamma1.0" data-d="2"></span> and <span data-v="acetone_chloroform.gamma2.-1" data-d="2"></span>.</figcaption>
         </figure>
-        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=gamma&amp;x=x1&amp;hold=T&amp;T=350">Activity coefficients in the calculator</a> · <a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=f&amp;x=x1&amp;hold=T&amp;T=350">Fugacities in the calculator</a></p>
+        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model={{act_id}}&amp;y=gamma&amp;x=x1&amp;hold=T&amp;T=350">Activity coefficients in the calculator</a><!--full--> · <a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=f&amp;x=x1&amp;hold=T&amp;T=350">Fugacities in the calculator</a><!--/full--></p>
       </section>
 
       <!-- ============================================================ -->
       <section id="models">
-        <h2>Activity models</h2>
+        <h2><!--full-->Activity models<!--/full--><!--reduced-->The van Laar model<!--/reduced--></h2>
         <p>Activity coefficients are not chosen freely. They come from one function, the <b>excess Gibbs energy</b> \(G^{E}\): the Gibbs energy of the real mixture minus that of an ideal solution of the same composition. The two are linked by</p>
         \[ \frac{G^{E}}{RT} = \sum_i x_i \ln\gamma_i , \qquad \ln\gamma_i = \left(\frac{\partial\,(nG^{E}/RT)}{\partial n_i}\right)_{T,P,n_{j\neq i}} . \]
-        <p>An activity model is a formula for \(G^{E}\) as a function of composition, with a few parameters fitted to measurements. Because both \(\gamma_1\) and \(\gamma_2\) come from the same function, they automatically satisfy the Gibbs–Duhem equation: when one rises, the other must fall in a fixed way. The calculator has three such models.</p>
+        <p>An activity model is a formula for \(G^{E}\) as a function of composition, with a few parameters fitted to measurements. Because both \(\gamma_1\) and \(\gamma_2\) come from the same function, they automatically satisfy the Gibbs–Duhem equation: when one rises, the other must fall in a fixed way. <!--full-->The calculator has three such models.<!--/full--><!--reduced-->The calculator uses the van Laar model; setting both of its parameters to zero gives the ideal solution.<!--/reduced--></p>
 
+        <!--full-->
         <h3>Margules</h3>
         \[ \frac{G^{E}}{RT} = x_1x_2\,(A_{21}x_1 + A_{12}x_2) \]
         \[ \ln\gamma_1 = x_2^2\,[A_{12} + 2(A_{21}-A_{12})\,x_1], \qquad \ln\gamma_2 = x_1^2\,[A_{21} + 2(A_{12}-A_{21})\,x_2] \]
         <p>The simplest useful form: a polynomial in composition. It works well when the two molecules are of similar size.</p>
 
         <h3>van Laar</h3>
+        <!--/full-->
         \[ \frac{G^{E}}{RT} = \frac{A_{12}A_{21}\,x_1x_2}{A_{12}x_1 + A_{21}x_2} \]
         \[ \ln\gamma_1 = A_{12}\left(\frac{A_{21}x_2}{A_{12}x_1 + A_{21}x_2}\right)^{2}, \qquad \ln\gamma_2 = A_{21}\left(\frac{A_{12}x_1}{A_{12}x_1 + A_{21}x_2}\right)^{2} \]
-        <p>Handles unequal molecules better. Both parameters must have the same sign.</p>
-        <p>In both models the parameters have a direct meaning. Setting \(x_1 \to 0\) gives \(\ln\gamma_1^{\infty} = A_{12}\), and \(x_2 \to 0\) gives \(\ln\gamma_2^{\infty} = A_{21}\). <b>Each parameter is the logarithm of an infinite-dilution activity coefficient.</b></p>
+        <p><!--full-->Handles unequal molecules better. <!--/full-->Both parameters must have the same sign.</p>
+        <p><!--full-->In both models the<!--/full--><!--reduced-->The<!--/reduced--> parameters have a direct meaning. Setting \(x_1 \to 0\) gives \(\ln\gamma_1^{\infty} = A_{12}\), and \(x_2 \to 0\) gives \(\ln\gamma_2^{\infty} = A_{21}\). <b>Each parameter is the logarithm of an infinite-dilution activity coefficient.</b></p>
 
+        <!--full-->
         <h3>NRTL</h3>
         \[ \frac{G^{E}}{RT} = x_1x_2\left[\frac{\tau_{21}G_{21}}{x_1 + x_2G_{21}} + \frac{\tau_{12}G_{12}}{x_2 + x_1G_{12}}\right], \qquad \tau_{ij} = \frac{\Delta g_{ij}}{RT}, \quad G_{ij} = e^{-\alpha\,\tau_{ij}} \]
         <p>The non-random two-liquid model assumes that the composition around a molecule differs from the average, because molecules prefer some neighbors. \(\Delta g_{12}\) and \(\Delta g_{21}\) are interaction energies, and \(\alpha\) sets how strongly the local composition departs from random. Since \(\tau\) depends on temperature, so do the activity coefficients. NRTL extends to any number of compounds using only parameters for pairs, and it can describe mixtures that split into two liquids.</p>
@@ -153,10 +158,17 @@
           </div>
           <figcaption id="three-cap"><b>The three models for ethanol–water at <span data-v="three_models.T" data-d="0"></span> K,</b> all given the same infinite-dilution values (\(A_{12}\) = <span data-v="three_models.A12" data-d="2"></span>, \(A_{21}\) = <span data-v="three_models.A21" data-d="2"></span>). They agree at the two ends by construction and differ in between.</figcaption>
         </figure>
+        <!--/full-->
 
         <h3>Where the parameters come from</h3>
+        <!--full-->
         <p>Parameters are fitted to measured vapor–liquid data. The calculator's database holds published NRTL parameters for <span data-v="database.n_nrtl" data-d="0"></span> pairs. There is no comparable table for Margules and van Laar, so for those the calculator starts from the infinite-dilution values that the NRTL model gives, and starts from zero (an ideal solution) when it has nothing. Every parameter can then be changed with a slider to see what it does.</p>
         <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=vanlaar&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325&amp;compare=nrtl">Compare van Laar with NRTL in the calculator</a> · <a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=GE&amp;x=x1&amp;hold=T&amp;T=350">Excess Gibbs energy</a></p>
+        <!--/full-->
+        <!--reduced-->
+        <p>Parameters are fitted to measured vapor–liquid data. Since each van Laar parameter is a logarithm of an infinite-dilution activity coefficient, the calculator starts from those values, computed at the mean boiling point of the pair from the ChemSep binary interaction data, and from zero (an ideal solution) when a pair has none. Every parameter can then be changed with a slider to see what it does.</p>
+        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=vanlaar&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325&amp;compare=ideal">Compare van Laar with an ideal solution in the calculator</a></p>
+        <!--/reduced-->
       </section>
 
       <!-- ============================================================ -->
@@ -164,13 +176,13 @@
         <h2>Equations of state</h2>
         <p>An activity model describes only the liquid. An <b>equation of state</b> describes both phases at once. It gives pressure as a function of temperature, molar volume \(v\) and composition. The cubic equations used here share one form:</p>
         \[ P = \frac{RT}{v-b} - \frac{a(T)}{(v+\delta_1 b)(v+\delta_2 b)} \]
-        <p>The first term is the ideal gas law with the volume reduced by \(b\), the space the molecules themselves take up. The second term lowers the pressure because molecules attract each other, with strength \(a\). The three equations differ in the constants \(\delta_1, \delta_2\) and in whether \(a\) changes with temperature:</p>
+        <p>The first term is the ideal gas law with the volume reduced by \(b\), the space the molecules themselves take up. The second term lowers the pressure because molecules attract each other, with strength \(a\). The <!--full-->three<!--/full--><!--reduced-->two<!--/reduced--> equations differ in the constants \(\delta_1, \delta_2\) and in whether \(a\) changes with temperature:</p>
         <div class="table-wrap">
           <table class="keep-first">
             <thead><tr><th>Equation</th><th>\(\delta_1\)</th><th>\(\delta_2\)</th><th>\(a\) depends on \(T\)</th><th>Needs per compound</th></tr></thead>
             <tbody>
               <tr><td>van der Waals</td><td>0</td><td>0</td><td>no</td><td>\(T_c, P_c\)</td></tr>
-              <tr><td>Soave–Redlich–Kwong</td><td>1</td><td>0</td><td>yes</td><td>\(T_c, P_c, \omega\)</td></tr>
+              <!--full--><tr><td>Soave–Redlich–Kwong</td><td>1</td><td>0</td><td>yes</td><td>\(T_c, P_c, \omega\)</td></tr><!--/full-->
               <tr><td>Peng–Robinson</td><td>\(1+\sqrt2\)</td><td>\(1-\sqrt2\)</td><td>yes</td><td>\(T_c, P_c, \omega\)</td></tr>
             </tbody>
           </table>
@@ -201,8 +213,8 @@
             </tbody>
           </table>
         </div>
-        <p>A useful experiment: put ethanol and water through Peng–Robinson with \(k_{12} = 0\). The model wrongly predicts that they separate into two liquid layers. Then compare with NRTL, or adjust \(k_{12}\).</p>
-        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=PR&amp;y=P&amp;x=xy&amp;hold=T&amp;T=350&amp;compare=nrtl">Try it in the calculator</a></p>
+        <p>A useful experiment: put ethanol and water through Peng–Robinson with \(k_{12} = 0\). The model wrongly predicts that they separate into two liquid layers. Then compare with {{act}}, or adjust \(k_{12}\).</p>
+        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=PR&amp;y=P&amp;x=xy&amp;hold=T&amp;T=350&amp;compare={{act_id}}">Try it in the calculator</a></p>
       </section>
 
       <!-- ============================================================ -->
@@ -216,10 +228,11 @@
         <p>Each point is one liquid and its equilibrium vapor. The further the curve bends away from the diagonal, the easier the separation.</p>
         <h3>Azeotrope</h3>
         <p>At an <b>azeotrope</b> the liquid and vapor have the same composition, so boiling no longer separates the mixture. The bubble and dew curves touch, and the xy curve crosses the diagonal. With an ideal-gas vapor this happens where \(\gamma_1 P_1^{\mathrm{sat}} = \gamma_2 P_2^{\mathrm{sat}}\). Positive deviations give a pressure maximum (a minimum boiling point), negative deviations the opposite. The solver detects azeotropes and marks them.</p>
-        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=y1&amp;x=x1&amp;hold=P&amp;P=1.01325">The xy diagram of ethanol–water in the calculator</a></p>
+        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model={{act_id}}&amp;y=y1&amp;x=x1&amp;hold=P&amp;P=1.01325">The xy diagram of ethanol–water in the calculator</a></p>
       </section>
 
       <!-- ============================================================ -->
+      <!--full-->
       <section id="kvalues">
         <h2>K-values and relative volatility</h2>
         <p>The <b>K-value</b> of a compound is the ratio of its vapor and liquid mole fractions. From the equal-fugacity condition it is a ratio of fugacity coefficients:</p>
@@ -243,6 +256,7 @@
         <p>The tool calculates the three-phase line, not the full boundary between one and two liquids away from it.</p>
         <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=margules&amp;y=stab&amp;x=x1&amp;hold=T&amp;T=350&amp;A12=2.4&amp;A21=2.4">Raise the Margules parameters past 2 and watch the stability function</a></p>
       </section>
+      <!--/full-->
 
       <!-- ============================================================ -->
       <section id="pt">
@@ -256,7 +270,7 @@
         <h2>What you may choose</h2>
         <p>The calculator always asks for one variable to hold constant. The reason is the <b>phase rule</b>. Counting the variables of each phase and subtracting the equilibrium conditions leaves</p>
         \[ F = n + 2 - \pi \]
-        <p>independent variables, for \(n\) compounds in \(\pi\) phases. Two compounds in two phases gives \(F = 2\). Fix one variable (the temperature, say), sweep a second (the liquid composition), and everything else follows: pressure, vapor composition, fugacities. Three phases leave \(F = 1\), which is why the three-phase line sits at a single pressure once the temperature is fixed.</p>
+        <p>independent variables, for \(n\) compounds in \(\pi\) phases. Two compounds in two phases gives \(F = 2\). Fix one variable (the temperature, say), sweep a second (the liquid composition), and everything else follows: pressure, vapor composition, fugacities.<!--full--> Three phases leave \(F = 1\), which is why the three-phase line sits at a single pressure once the temperature is fixed.<!--/full--></p>
         <p>The Python program applies the same count to any input, to decide whether a problem is fully specified, underspecified or overspecified. An external field adds one more variable.</p>
       </section>
 
@@ -298,7 +312,7 @@
   });
 
   /* fugacities in ethanol-water */
-  var E = D.ew350.nrtl, n = E.x1.length, f1p = E.f1[n - 1], f2p = E.f2[0];
+  var E = D.ew350.act, n = E.x1.length, f1p = E.f1[n - 1], f2p = E.f2[0];
   PEC.legend("fug-legend", [{ name: "Ethanol", color: "--liquid" }, { name: "Water", color: "--vapor" }, { name: "Ideal solution", color: "--muted" }]);
   PEC.drawChart($("chart-fug"), {
     aria: "Fugacity of ethanol and of water against liquid composition at 350 K",
@@ -355,6 +369,7 @@
     fy: function (v) { return "P = " + PEC.fmt(v, 3) + " bar"; }
   });
 
+  <!--full-->
   /* three activity models */
   var M = D.three_models.models;
   var mods = [["margules", "Margules", "--liquid"], ["vanlaar", "van Laar", "--vapor"], ["nrtl", "NRTL", "--third"]];
@@ -392,5 +407,6 @@
     fx: function (v) { return "x or y = " + PEC.fmt(v, 3); },
     fy: function (v) { return "T = " + PEC.fmt(v, 2) + " K"; }
   });
+  <!--/full-->
 })();
 </script>
