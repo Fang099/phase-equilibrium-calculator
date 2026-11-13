@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=afd7524a6a">
+<link rel="stylesheet" href="assets/site.css?v=4aade62043">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -81,15 +81,59 @@
           <li><h4>Output<code>plotter.py</code> · <code>web_api.py</code></h4><p>Draws figures with Matplotlib from the command line, or returns numbers as JSON for the charts on the calculator page.</p></li>
         </ol>
         <p>Supporting files: <code>compound_db.py</code> and <code>data/compounds.json</code> (the property database), and <code>numerics.py</code> (the root finders).</p>
-        <p>The rest of this page follows one request: <b>ethanol and water, van Laar model, a Txy diagram at 1.01325 bar</b>.</p>
+        <p>The whole chain fits in a few lines. This is the start of the function the calculator calls for a diagram:</p>
+<figure class="code"><figcaption><span class="code-name">web_api._solve</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L197-L222"><code>web_api.py</code>, lines 197–222</a></figcaption><pre><code><span class="ln" data-n="197"></span><span class="tk">def</span> <span class="tf">_solve</span>(req):
+<span class="ln" data-n="198"></span>    text = build_input(req)
+<span class="ln" data-n="199"></span>    rep = check_input(text)
+<span class="ln" data-n="200"></span>    out = {<span class="ts">"input_text"</span>: text, <span class="ts">"report"</span>: str(rep), <span class="ts">"status"</span>: rep.status}
+<span class="ln" data-n="201"></span>    <span class="tk">if</span> rep.status != <span class="ts">"SUFFICIENT"</span>:
+<span class="ln" data-n="202"></span>        out[<span class="ts">"ok"</span>] = <span class="tk">False</span>
+<span class="ln" data-n="203"></span>        out[<span class="ts">"error"</span>] = <span class="ts">"The checker did not accept this input: "</span> + rep.status
+<span class="ln" data-n="204"></span>        <span class="tk">return</span> out
+<span class="ln" data-n="205"></span>    system = build_system(text)
+<span class="ln" data-n="206"></span>    eq = next(e <span class="tk">for</span> e <span class="tk">in</span> system.equilibria <span class="tk">if</span> e.phase_names[<span class="tn">1</span>] == <span class="ts">"V"</span>)
+<span class="ln" data-n="207"></span>    L, V = eq.phases
+<span class="ln" data-n="208"></span>    npts = int(req.get(<span class="ts">"npts"</span>, <span class="tn">41</span>))
+<span class="ln" data-n="209"></span>    hold = req.get(<span class="ts">"hold"</span>, <span class="ts">"T"</span>)
+<span class="ln" data-n="210"></span>    notes = []
+<span class="ln" data-n="211"></span>    out.update(route=eq.route, calculation=eq.calculation, names=list(system.names),
+<span class="ln" data-n="212"></span>               hold=hold, azeotrope=<span class="tk">None</span>, three_phase=<span class="tk">None</span>)
+<span class="ln" data-n="213"></span>    <span class="tk">if</span> hold <span class="tk">in</span> (<span class="ts">"T"</span>, <span class="ts">"P"</span>):
+<span class="ln" data-n="214"></span>        d = (es.vle_diagram(L, V, T=float(req[<span class="ts">"T"</span>]), npts=npts, spacing=<span class="ts">"ends"</span>) <span class="tk">if</span> hold == <span class="ts">"T"</span>
+<span class="ln" data-n="215"></span>             <span class="tk">else</span> es.vle_diagram(L, V, P=float(req[<span class="ts">"P"</span>]) * <span class="tn">1e5</span>, npts=npts, spacing=<span class="ts">"ends"</span>))
+<span class="ln" data-n="216"></span>        notes += d.notes
+<span class="ln" data-n="217"></span>        <span class="tk">if</span> len(d.x1) &lt; <span class="tn">2</span>:
+<span class="ln" data-n="218"></span>            out[<span class="ts">"ok"</span>] = <span class="tk">False</span>
+<span class="ln" data-n="219"></span>            out[<span class="ts">"error"</span>] = (<span class="ts">"No vapor-liquid equilibrium could be solved at this condition "</span>
+<span class="ln" data-n="220"></span>                            <span class="ts">"with this model. Try a lower temperature or pressure."</span>)
+<span class="ln" data-n="221"></span>            <span class="tk">return</span> out
+<span class="ln" data-n="222"></span>        out[<span class="ts">"columns"</span>] = _columns(es.diagram_properties(L, V, d))</code></pre></figure>
+        <p>Text in, text checked, phase objects built, diagram solved, properties tabulated. The rest of this page follows one request through these lines: <b>ethanol and water, van Laar model, a Txy diagram at 1.01325 bar</b>. All code shown is the current source, with its line numbers; each heading links to the file on GitHub.</p>
       </section>
 
       <!-- ============================================================ -->
       <section id="request">
         <h2>1. From choices to an input file</h2>
-        <p>The calculator page does no thermodynamics. It collects the choices into a small request and passes it to <code>web_api.compute()</code>:</p>
+        <p>The calculator page does no thermodynamics. It collects the choices into a small request:</p>
         <pre id="walk-request"></pre>
-        <p><code>web_api.build_input()</code> turns the request into the same kind of input file a person would write for the command-line program. Parameters the user has not touched come from the database; anything changed with a slider is written in explicitly.</p>
+        <p><code>build_input()</code> turns the request into the same kind of input file a person would write for the command-line program. For van Laar it takes the pair's database entry and writes each parameter as a formula in \(T\):</p>
+<figure class="code"><figcaption><span class="code-name">web_api.build_input (van Laar part)</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L135-L150"><code>web_api.py</code>, lines 135–150</a></figcaption><pre><code><span class="ln" data-n="135"></span><span class="tk">if</span> model == <span class="ts">"vanlaar"</span>:
+<span class="ln" data-n="136"></span>    v = d[<span class="ts">"vanlaar"</span>]
+<span class="ln" data-n="137"></span>    <span class="tk">if</span> v <span class="tk">is</span> <span class="tk">None</span> <span class="tk">and</span> <span class="tk">not</span> (<span class="ts">"A12"</span> <span class="tk">in</span> par <span class="tk">and</span> <span class="ts">"A21"</span> <span class="tk">in</span> par):
+<span class="ln" data-n="138"></span>        <span class="tk">raise</span> ValueError(<span class="ts">"the database has no van Laar parameters for this pair"</span>)
+<span class="ln" data-n="139"></span>    A12 = float(par.get(<span class="ts">"A12"</span>, v[<span class="ts">"A12"</span>] <span class="tk">if</span> v <span class="tk">else</span> <span class="tn">0.0</span>))
+<span class="ln" data-n="140"></span>    A21 = float(par.get(<span class="ts">"A21"</span>, v[<span class="ts">"A21"</span>] <span class="tk">if</span> v <span class="tk">else</span> <span class="tn">0.0</span>))
+<span class="ln" data-n="141"></span>    <span class="tk">if</span> A12 * A21 &lt;= <span class="tn">0</span>:
+<span class="ln" data-n="142"></span>        <span class="tk">raise</span> ValueError(<span class="ts">"van Laar needs A12 and A21 of the same sign"</span>)
+<span class="ln" data-n="143"></span>    <span class="tk">if</span> v <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span> <span class="tk">and</span> par.get(<span class="ts">"tdep"</span>, <span class="tn">1</span>):
+<span class="ln" data-n="144"></span>        <span class="tc"># A_ij(T) = a_ij + b_ij/T, passing through the chosen value at T_ref</span>
+<span class="ln" data-n="145"></span>        Tr = v[<span class="ts">"T_ref"</span>]
+<span class="ln" data-n="146"></span>        lines.append(<span class="ts">f"</span><span class="ts">A(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = </span>{compound_db.vanlaar_expr(A12 - v[<span class="ts">'b12'</span>] / Tr, v[<span class="ts">'b12'</span>])}<span class="ts">"</span>)
+<span class="ln" data-n="147"></span>        lines.append(<span class="ts">f"</span><span class="ts">A(</span>{b}<span class="ts">, </span>{a}<span class="ts">) = </span>{compound_db.vanlaar_expr(A21 - v[<span class="ts">'b21'</span>] / Tr, v[<span class="ts">'b21'</span>])}<span class="ts">"</span>)
+<span class="ln" data-n="148"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="149"></span>        lines.append(<span class="ts">f"</span><span class="ts">A(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = </span>{A12:<span class="ts">g</span>}<span class="ts">"</span>)
+<span class="ln" data-n="150"></span>        lines.append(<span class="ts">f"</span><span class="ts">A(</span>{b}<span class="ts">, </span>{a}<span class="ts">) = </span>{A21:<span class="ts">g</span>}<span class="ts">"</span>)</code></pre></figure>
+        <p>If a slider has moved, the new value is used at the reference temperature and the database slope \(b_{ij}\) is kept. If "Vary with temperature" is off, a plain number is written instead. The resulting file:</p>
         <pre id="walk-input"></pre>
         <p>From here on, the website and the command line run exactly the same code. The calculator shows this file, and the report below, under "Input file and checker report".</p>
       </section>
@@ -101,10 +145,77 @@
         <ol>
           <li><b>Parse.</b> Each line is a quantity, an optional target (a compound or a pair) and a value with a unit. Unknown names get a spelling suggestion.</li>
           <li><b>Convert units</b> to SI: kelvin, pascal, joule per mole, kilogram per mole.</li>
-          <li><b>Fill from the database.</b> With <code>database = builtin</code>, any property the file does not give is looked up: \(T_c\), \(P_c\), \(\omega\), molar mass, Antoine constants, and the pair's van Laar parameters \(A_{ij}(T) = a_{ij} + b_{ij}/T\) or Peng–Robinson \(k_{12}\). Values written in the file always win.</li>
+          <li><b>Fill from the database.</b> With <code>database = builtin</code>, any property the file does not give is looked up: \(T_c\), \(P_c\), \(\omega\), molar mass, Antoine constants, and the pair's NRTL parameters, van Laar parameters or Peng–Robinson \(k_{12}\). Values written in the file always win.</li>
           <li><b>Choose a route</b> for each possible equilibrium. If an equation of state was requested and its constants are complete, it is used for both phases. Otherwise the checker looks for a vapor-pressure source for each compound and uses the activity model for the liquid.</li>
-          <li><b>Count degrees of freedom</b> with the phase rule and compare with what was specified. Here \(F = 2 + 2 - 2 = 2\): the pressure is given and the composition is swept, so the problem is exactly specified.</li>
+          <li><b>Count degrees of freedom</b> and compare with what was specified.</li>
         </ol>
+        <h3>A parameter that depends on temperature</h3>
+        <p>A van Laar line such as <code>A(ethanol, water) = -0.0064882 + 598.8/T</code> is not a number, so the parser keeps it as a small object that is evaluated later, at whatever temperature the solver is trying:</p>
+<figure class="code"><figcaption><span class="code-name">TFunction</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/input_checker.py#L212-L225"><code>input_checker.py</code>, lines 212–225</a></figcaption><pre><code><span class="ln" data-n="212"></span><span class="tk">class</span> <span class="tf">TFunction</span>:
+<span class="ln" data-n="213"></span>    <span class="ts">"""A parameter written as a function of temperature, e.g. the van Laar</span>
+<span class="ln" data-n="214"></span><span class="ts">    'A(ethanol, water) = -0.0065 + 598.8/T' (T in K). Calling it gives the value."""</span>
+<span class="ln" data-n="215"></span>
+<span class="ln" data-n="216"></span>    <span class="tk">def</span> <span class="tf">__init__</span>(<span class="tv">self</span>, expr):
+<span class="ln" data-n="217"></span>        <span class="tv">self</span>.expr = expr.strip()
+<span class="ln" data-n="218"></span>        <span class="tv">self</span>._fn = compile_relation(<span class="tv">self</span>.expr, [<span class="ts">"T"</span>])
+<span class="ln" data-n="219"></span>        <span class="tv">self</span>(<span class="tn">300.0</span>)                                   <span class="tc"># fail early on a bad formula</span>
+<span class="ln" data-n="220"></span>
+<span class="ln" data-n="221"></span>    <span class="tk">def</span> <span class="tf">__call__</span>(<span class="tv">self</span>, T):
+<span class="ln" data-n="222"></span>        <span class="tk">return</span> float(<span class="tv">self</span>._fn(T=T))
+<span class="ln" data-n="223"></span>
+<span class="ln" data-n="224"></span>    <span class="tk">def</span> <span class="tf">__repr__</span>(<span class="tv">self</span>):
+<span class="ln" data-n="225"></span>        <span class="tk">return</span> <span class="tv">self</span>.expr</code></pre></figure>
+        <p><code>compile_relation</code> is the same safe formula reader used for a typed vapor-pressure relation; it only accepts \(T\), numbers and a few functions.</p>
+        <h3>Filling from the database</h3>
+        <p>If the file asks for van Laar but gives no parameters, the database fills both orders of the pair, in the same formula form:</p>
+<figure class="code"><figcaption><span class="code-name">apply_to_inputs</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/compound_db.py#L149-L159"><code>compound_db.py</code>, lines 149–159</a></figcaption><pre><code><span class="ln" data-n="149"></span><span class="tk">if</span> inp.activity == <span class="ts">"vanlaar"</span> <span class="tk">and</span> <span class="ts">"vanlaar"</span> <span class="tk">in</span> pr:
+<span class="ln" data-n="150"></span>    <span class="tk">from</span> input_checker <span class="tk">import</span> TFunction
+<span class="ln" data-n="151"></span>    v, used = pr[<span class="ts">"vanlaar"</span>], []
+<span class="ln" data-n="152"></span>    <span class="tk">for</span> (i_, j_), (av, bv) <span class="tk">in</span> (((a, b), (v[<span class="ts">"a_ab"</span>], v[<span class="ts">"b_ab"</span>])),
+<span class="ln" data-n="153"></span>                               ((b, a), (v[<span class="ts">"a_ba"</span>], v[<span class="ts">"b_ba"</span>]))):
+<span class="ln" data-n="154"></span>        <span class="tk">if</span> <span class="ts">"A"</span> <span class="tk">not</span> <span class="tk">in</span> inp.opairs.get((i_, j_), {}):
+<span class="ln" data-n="155"></span>            inp.opairs.setdefault((i_, j_), {})[<span class="ts">"A"</span>] = TFunction(vanlaar_expr(av, bv))
+<span class="ln" data-n="156"></span>            used.append(<span class="ts">f"</span><span class="ts">A(</span>{i_}<span class="ts">, </span>{j_}<span class="ts">) = </span>{vanlaar_expr(av, bv)}<span class="ts">"</span>)
+<span class="ln" data-n="157"></span>    <span class="tk">if</span> used:
+<span class="ln" data-n="158"></span>        notes.append(<span class="ts">"van Laar: "</span> + <span class="ts">", "</span>.join(used)
+<span class="ln" data-n="159"></span>                     + <span class="ts">f"</span><span class="ts"> (fitted </span>{v[<span class="ts">'Tmin'</span>]:<span class="ts">g</span>}<span class="ts">-</span>{v[<span class="ts">'Tmax'</span>]:<span class="ts">g</span>}<span class="ts"> K)</span><span class="ts">"</span>)</code></pre></figure>
+        <h3>The phase rule</h3>
+        <p>With \(n\) compounds, \(\pi = 2\) phases and \(m\) field variables, \(F = n + 2 + m - \pi\). The checker counts what the file fixes (temperature, pressure, a swept composition, a given phase composition) and compares:</p>
+<figure class="code"><figcaption><span class="code-name">input_checker.evaluate (degrees of freedom)</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/input_checker.py#L839-L853"><code>input_checker.py</code>, lines 839–853</a></figcaption><pre><code><span class="ln" data-n="839"></span>dof = n + <span class="tn">2</span> + m - <span class="tn">2</span>
+<span class="ln" data-n="840"></span>state = has[<span class="ts">"T"</span>] + has[<span class="ts">"P"</span>] + sweep_n + (n - <span class="tn">1</span>) * has[<span class="ts">"L"</span>]
+<span class="ln" data-n="841"></span><span class="tk">if</span> has[<span class="ts">"V"</span>]:
+<span class="ln" data-n="842"></span>    <span class="tk">if</span> is_sle:
+<span class="ln" data-n="843"></span>        res.notes.append(<span class="ts">"vapor composition ignored for solid-liquid equilibrium"</span>)
+<span class="ln" data-n="844"></span>    <span class="tk">elif</span> n_vap &gt; <span class="tn">1</span>:
+<span class="ln" data-n="845"></span>        state += n_vap - <span class="tn">1</span>
+<span class="ln" data-n="846"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="847"></span>        res.notes.append(<span class="ts">f"</span><span class="ts">vapor is pure </span>{vapor_comps[<span class="tn">0</span>]}<span class="ts">; its composition </span><span class="ts">"</span>
+<span class="ln" data-n="848"></span>                         <span class="ts">f"</span><span class="ts">is not an independent variable</span><span class="ts">"</span>)
+<span class="ln" data-n="849"></span><span class="tk">if</span> has[<span class="ts">"beta"</span>]:
+<span class="ln" data-n="850"></span>    res.notes.append(<span class="ts">"vapor fraction is ignored without a feed composition z"</span>)
+<span class="ln" data-n="851"></span>res.dof_line = (<span class="ts">f"</span><span class="ts">F = n + 2 + m - pi = </span>{n}<span class="ts"> + 2 + </span>{m}<span class="ts"> - 2 = </span>{dof}<span class="ts">; </span><span class="ts">"</span>
+<span class="ln" data-n="852"></span>                <span class="ts">f"</span><span class="ts">specified </span>{state + field_given}<span class="ts">"</span>
+<span class="ln" data-n="853"></span>                + (<span class="ts">" (incl. swept variable)"</span> <span class="tk">if</span> sweep_n <span class="tk">else</span> <span class="ts">""</span>))</code></pre></figure>
+        <p>Here \(F = 2 + 2 - 2 = 2\): the pressure is given and the composition is swept, so the problem is exactly specified. The comparison decides the verdict (when the count matches, the status is SUFFICIENT unless a property is missing):</p>
+<figure class="code"><figcaption><span class="code-name">input_checker.evaluate (verdict)</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/input_checker.py#L855-L873"><code>input_checker.py</code>, lines 855–873</a></figcaption><pre><code><span class="ln" data-n="855"></span>state_dof = dof - m
+<span class="ln" data-n="856"></span><span class="tk">if</span> res.errors:
+<span class="ln" data-n="857"></span>    res.status = <span class="ts">"INVALID"</span>
+<span class="ln" data-n="858"></span><span class="tk">elif</span> state &lt; state_dof:
+<span class="ln" data-n="859"></span>    res.status = <span class="ts">"INSUFFICIENT"</span>
+<span class="ln" data-n="860"></span>    res.missing.insert(<span class="tn">0</span>, <span class="ts">f"</span>{state_dof - state}<span class="ts"> more state variable(s)</span><span class="ts">"</span>)
+<span class="ln" data-n="861"></span>    <span class="tk">if</span> is_sle:
+<span class="ln" data-n="862"></span>        res.options = [<span class="ts">"P and x(L) -&gt; temperature at which the solid forms"</span>,
+<span class="ln" data-n="863"></span>                       <span class="ts">"P and T -&gt; saturated liquid composition"</span>,
+<span class="ln" data-n="864"></span>                       <span class="ts">"P and sweep = x -&gt; full solid-liquid curve"</span>]
+<span class="ln" data-n="865"></span>    <span class="tk">elif</span> has[<span class="ts">"z"</span>]:
+<span class="ln" data-n="866"></span>        res.options = [<span class="ts">"any two of T, P, beta (with z) -&gt; flash"</span>]
+<span class="ln" data-n="867"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="868"></span>        res.options = [<span class="ts">"T and x(L) -&gt; bubble P"</span>, <span class="ts">"P and x(L) -&gt; bubble T"</span>,
+<span class="ln" data-n="869"></span>                       <span class="ts">"T and x(V) -&gt; dew P"</span>, <span class="ts">"P and x(V) -&gt; dew T"</span>,
+<span class="ln" data-n="870"></span>                       <span class="ts">"T (or P) and sweep = x -&gt; Pxy (Txy) diagram"</span>,
+<span class="ln" data-n="871"></span>                       <span class="ts">"T, P and z -&gt; flash"</span>]
+<span class="ln" data-n="872"></span><span class="tk">elif</span> state &gt; state_dof:
+<span class="ln" data-n="873"></span>    res.status = <span class="ts">"OVERSPECIFIED"</span></code></pre></figure>
         <p>The verdict is one of four words. <b>SUFFICIENT</b> means it can be solved. <b>INSUFFICIENT</b> lists what is missing. <b>OVERSPECIFIED</b> says how many variables to remove. <b>INVALID</b> points at a mistake in the input. This is the actual report for the request above:</p>
         <pre id="walk-report"></pre>
       </section>
@@ -124,43 +235,193 @@
             </tbody>
           </table>
         </div>
+
         <h3>Activity route (this example)</h3>
-        <p>The pure-liquid fugacity \(f_i^{L}\) is the vapor pressure from the Antoine equation, multiplied by a Poynting correction \(\exp[V_i^{L}(P - P_i^{\mathrm{sat}})/RT]\) when a liquid volume is given. \(\ln\gamma_i\) comes from the <code>VanLaar</code> class, which holds the model's \(G^{E}\) and its analytic derivative in two methods, <code>ge_rt</code> and <code>ln_gamma</code>. An ideal solution is the same with \(\ln\gamma_i = 0\). A van Laar parameter can be a number or a formula in \(T\), as in the input above; the formula is evaluated at the temperature of each point, so the activity coefficients change along a Txy diagram.</p>
+        <p>The liquid fugacity is the table's first row, one line of code:</p>
+<figure class="code"><figcaption><span class="code-name">SolutionLiquid.ln_f</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L436-L437"><code>thermo_models.py</code>, lines 436–437</a></figcaption><pre><code><span class="ln" data-n="436"></span><span class="tk">def</span> <span class="tf">ln_f</span>(<span class="tv">self</span>, T, P, x):
+<span class="ln" data-n="437"></span>    <span class="tk">return</span> _safe_log(x) + <span class="tv">self</span>.ln_gamma(T, x) + <span class="tv">self</span>.ln_f0(T, P)</code></pre></figure>
+        <p>The pure-liquid fugacity \(f_i^{L}\) is the vapor pressure from the Antoine equation, times the Poynting correction \(\exp[V_i^{L}(P - P_i^{\mathrm{sat}})/RT]\) when a liquid volume is given. It is computed in logarithms so that very low vapor pressures do not underflow:</p>
+<figure class="code"><figcaption><span class="code-name">SolutionLiquid.ln_f0</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L426-L431"><code>thermo_models.py</code>, lines 426–431</a></figcaption><pre><code><span class="ln" data-n="426"></span>out = np.zeros(len(<span class="tv">self</span>.names))
+<span class="ln" data-n="427"></span><span class="tk">for</span> i, p <span class="tk">in</span> enumerate(<span class="tv">self</span>.props):
+<span class="ln" data-n="428"></span>    VL = p.get(<span class="ts">"V_L"</span>, <span class="tn">0.0</span>)
+<span class="ln" data-n="429"></span>    <span class="tk">if</span> <span class="tv">self</span>.absolute[i]:
+<span class="ln" data-n="430"></span>        lps = ln_psat(p, T)          <span class="tc"># log form: no underflow at low T</span>
+<span class="ln" data-n="431"></span>        out[i] = lps + VL * (P - math.exp(lps)) / (R * T)    <span class="tc"># Poynting</span></code></pre></figure>
+        <p>The vapor on this route is an ideal gas, \(\hat f_i = y_i P\). A compound marked non-volatile gets \(\ln \hat f_i = -\infty\), so it never enters the vapor:</p>
+<figure class="code"><figcaption><span class="code-name">IdealGasPhase.ln_f</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L302-L304"><code>thermo_models.py</code>, lines 302–304</a></figcaption><pre><code><span class="ln" data-n="302"></span><span class="tk">def</span> <span class="tf">ln_f</span>(<span class="tv">self</span>, T, P, x):
+<span class="ln" data-n="303"></span>    lf = _safe_log(x) + math.log(P)
+<span class="ln" data-n="304"></span>    <span class="tk">return</span> np.where(<span class="tv">self</span>.present, lf, -np.inf)</code></pre></figure>
+        <p>\(\ln\gamma_i\) comes from the activity model. The van Laar class reads its two parameters at the temperature asked for (a number, or a <code>TFunction</code> as above), checks that they have the same sign, and evaluates the two formulas from the <a href="concepts.html#models">Concepts</a> page:</p>
+<figure class="code"><figcaption><span class="code-name">_at</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L313-L315"><code>thermo_models.py</code>, lines 313–315</a></figcaption><pre><code><span class="ln" data-n="313"></span><span class="tk">def</span> <span class="tf">_at</span>(A, T):
+<span class="ln" data-n="314"></span>    <span class="ts">"""A parameter given as a number, or as a function of T (K)."""</span>
+<span class="ln" data-n="315"></span>    <span class="tk">return</span> float(A(T)) <span class="tk">if</span> callable(A) <span class="tk">else</span> A</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">VanLaar.params</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L355-L360"><code>thermo_models.py</code>, lines 355–360</a></figcaption><pre><code><span class="ln" data-n="355"></span><span class="tk">def</span> <span class="tf">params</span>(<span class="tv">self</span>, T):
+<span class="ln" data-n="356"></span>    A12, A21 = _at(<span class="tv">self</span>.A12, T), _at(<span class="tv">self</span>.A21, T)
+<span class="ln" data-n="357"></span>    <span class="tk">if</span> A12 * A21 &lt;= <span class="tn">0</span>:
+<span class="ln" data-n="358"></span>        <span class="tk">raise</span> ValueError(<span class="ts">f"</span><span class="ts">van Laar needs A12 and A21 of the same sign </span><span class="ts">"</span>
+<span class="ln" data-n="359"></span>                         <span class="ts">f"</span><span class="ts">(at </span>{T:<span class="ts">.1f</span>}<span class="ts"> K they are </span>{A12:<span class="ts">.4g</span>}<span class="ts"> and </span>{A21:<span class="ts">.4g</span>}<span class="ts">)</span><span class="ts">"</span>)
+<span class="ln" data-n="360"></span>    <span class="tk">return</span> A12, A21</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">VanLaar.ln_gamma</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L368-L372"><code>thermo_models.py</code>, lines 368–372</a></figcaption><pre><code><span class="ln" data-n="368"></span><span class="tk">def</span> <span class="tf">ln_gamma</span>(<span class="tv">self</span>, T, x):
+<span class="ln" data-n="369"></span>    x1, x2 = x
+<span class="ln" data-n="370"></span>    A12, A21 = <span class="tv">self</span>.params(T)
+<span class="ln" data-n="371"></span>    d = A12 * x1 + A21 * x2
+<span class="ln" data-n="372"></span>    <span class="tk">return</span> np.array([A12 * (A21 * x2 / d) ** <span class="tn">2</span>, A21 * (A12 * x1 / d) ** <span class="tn">2</span>])</code></pre></figure>
+        <p>NRTL is written for any number of compounds with matrices. <code>_tg</code> gives \(\tau_{ij} = \Delta g_{ij}/RT\) and \(G_{ij} = \exp(-\alpha_{ij}\tau_{ij})\); <code>ln_gamma</code> is the general NRTL expression, with the two sums built by matrix products:</p>
+<figure class="code"><figcaption><span class="code-name">NRTL._tg</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L384-L386"><code>thermo_models.py</code>, lines 384–386</a></figcaption><pre><code><span class="ln" data-n="384"></span><span class="tk">def</span> <span class="tf">_tg</span>(<span class="tv">self</span>, T):
+<span class="ln" data-n="385"></span>    tau = <span class="tv">self</span>.dg / (R * T)
+<span class="ln" data-n="386"></span>    <span class="tk">return</span> tau, np.exp(-<span class="tv">self</span>.alpha * tau)</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">NRTL.ln_gamma</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L395-L402"><code>thermo_models.py</code>, lines 395–402</a></figcaption><pre><code><span class="ln" data-n="395"></span><span class="tk">def</span> <span class="tf">ln_gamma</span>(<span class="tv">self</span>, T, x):
+<span class="ln" data-n="396"></span>    x = np.asarray(x, float)
+<span class="ln" data-n="397"></span>    tau, G = <span class="tv">self</span>._tg(T)
+<span class="ln" data-n="398"></span>    den = G.T @ x                     <span class="tc"># den_j = sum_k x_k G_kj</span>
+<span class="ln" data-n="399"></span>    num = (tau * G).T @ x             <span class="tc"># num_j = sum_m x_m tau_mj G_mj</span>
+<span class="ln" data-n="400"></span>    term1 = num / den
+<span class="ln" data-n="401"></span>    term2 = (G * (tau - term1[<span class="tk">None</span>, :])) @ (x / den)
+<span class="ln" data-n="402"></span>    <span class="tk">return</span> term1 + term2</code></pre></figure>
+        <p>Each model also has <code>ge_rt</code>, \(G^{E}/RT\). The tests differentiate \(nG^{E}/RT\) numerically and check that it reproduces <code>ln_gamma</code>, so the two cannot disagree.</p>
+
         <h3>Equation-of-state route</h3>
         <p><code>CubicEOS</code> stores van der Waals and Peng–Robinson as one residual Helmholtz energy with two constants:</p>
         \[ \frac{A^{\mathrm{res}}}{NRT} = -\ln\!\left(1-\frac{b}{v}\right) - \frac{a}{bRT(\delta_1-\delta_2)}\,\ln\frac{v+\delta_1 b}{v+\delta_2 b} . \]
-        <p>Pressure and \(\ln\hat\varphi_i\) are coded as its exact derivatives, and the tests compare them with numerical derivatives of this function. To evaluate at a given \(T\) and \(P\), the cubic for \(Z\) is solved in closed form (Cardano's formula, then two Newton steps to polish), and the smallest or largest root is taken for liquid or vapor.</p>
+        <p>This is the fundamental equation the project starts from, in code. With mixture totals \(D = n^2 a_{\mathrm{mix}}\) and \(B = n\,b_{\mathrm{mix}}\):</p>
+<figure class="code"><figcaption><span class="code-name">CubicEOS.helmholtz_res</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L176-L182"><code>thermo_models.py</code>, lines 176–182</a></figcaption><pre><code><span class="ln" data-n="176"></span><span class="tk">def</span> <span class="tf">helmholtz_res</span>(<span class="tv">self</span>, T, V, n):
+<span class="ln" data-n="177"></span>    <span class="ts">"""Residual Helmholtz energy A_res(T, V, n) in J (V in m3, n in mol)."""</span>
+<span class="ln" data-n="178"></span>    n = np.asarray(n, float)
+<span class="ln" data-n="179"></span>    D, _, B = <span class="tv">self</span>.mix(T, n)
+<span class="ln" data-n="180"></span>    ntot = n.sum()
+<span class="ln" data-n="181"></span>    F = -ntot * math.log(<span class="tn">1</span> - B / V) - D / (R * T * B) * <span class="tv">self</span>._log_term(V, B)
+<span class="ln" data-n="182"></span>    <span class="tk">return</span> R * T * F</code></pre></figure>
+        <p>Everything else is a derivative of this function. Pressure is \(P = -(\partial A/\partial V)_{T,n}\), and the fugacity coefficient is \(\ln\hat\varphi_i = \partial(A^{\mathrm{res}}/RT)/\partial n_i - \ln Z\), written out analytically:</p>
+<figure class="code"><figcaption><span class="code-name">CubicEOS.ln_phi_TV</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L191-L211"><code>thermo_models.py</code>, lines 191–211</a></figcaption><pre><code><span class="ln" data-n="191"></span><span class="tk">def</span> <span class="tf">ln_phi_TV</span>(<span class="tv">self</span>, T, V, n, _mix=<span class="tk">None</span>):
+<span class="ln" data-n="192"></span>    <span class="ts">"""ln phi_i = d(A_res/RT)/dn_i - ln Z, analytic derivatives."""</span>
+<span class="ln" data-n="193"></span>    n = np.asarray(n, float)
+<span class="ln" data-n="194"></span>    <span class="tk">if</span> _mix <span class="tk">is</span> <span class="tk">None</span>:
+<span class="ln" data-n="195"></span>        _mix = <span class="tv">self</span>.mix(T, n)
+<span class="ln" data-n="196"></span>    D, Di, B = _mix
+<span class="ln" data-n="197"></span>    ntot = n.sum()
+<span class="ln" data-n="198"></span>    b = <span class="tv">self</span>.b
+<span class="ln" data-n="199"></span>    P = <span class="tv">self</span>.pressure(T, V, n, _mix)
+<span class="ln" data-n="200"></span>    Z = P * V / (ntot * R * T)
+<span class="ln" data-n="201"></span>    dF1 = -math.log(<span class="tn">1</span> - B / V) + ntot * b / (V - B)
+<span class="ln" data-n="202"></span>    <span class="tk">if</span> <span class="tv">self</span>.model == <span class="ts">"vdW"</span>:
+<span class="ln" data-n="203"></span>        dF2 = -Di / (R * T * V)
+<span class="ln" data-n="204"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="205"></span>        d1, d2 = <span class="tv">self</span>.d1, <span class="tv">self</span>.d2
+<span class="ln" data-n="206"></span>        g = <span class="tv">self</span>._log_term(V, B)
+<span class="ln" data-n="207"></span>        <span class="tc"># d/dn_i of g = b_i (d1/(V+d1B) - d2/(V+d2B)) / (d1 - d2)</span>
+<span class="ln" data-n="208"></span>        dln = b * (d1 / (V + d1 * B) - d2 / (V + d2 * B)) / (d1 - d2)
+<span class="ln" data-n="209"></span>        dF2 = -(Di / (R * T * B) - D * b / (R * T * B ** <span class="tn">2</span>)) * g \
+<span class="ln" data-n="210"></span>              - D / (R * T * B) * dln
+<span class="ln" data-n="211"></span>    <span class="tk">return</span> dF1 + dF2 - math.log(Z)</code></pre></figure>
+        <p>To work at a given \(T\) and \(P\), the cubic in \(Z\) is solved in closed form, and the smallest root is taken for a liquid, the largest for a vapor:</p>
+<figure class="code"><figcaption><span class="code-name">CubicEOS._volume</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L233-L243"><code>thermo_models.py</code>, lines 233–243</a></figcaption><pre><code><span class="ln" data-n="233"></span><span class="tk">def</span> <span class="tf">_volume</span>(<span class="tv">self</span>, T, P, x, phase, mixed):
+<span class="ln" data-n="234"></span>    Z = <span class="tv">self</span>.z_roots(T, P, x, mixed)
+<span class="ln" data-n="235"></span>    <span class="tk">if</span> <span class="tk">not</span> Z:
+<span class="ln" data-n="236"></span>        <span class="tk">raise</span> ValueError(<span class="ts">"no physical root of the cubic"</span>)
+<span class="ln" data-n="237"></span>    <span class="tk">if</span> phase == <span class="ts">"liquid"</span>:
+<span class="ln" data-n="238"></span>        z = Z[<span class="tn">0</span>]
+<span class="ln" data-n="239"></span>    <span class="tk">elif</span> phase == <span class="ts">"vapor"</span>:
+<span class="ln" data-n="240"></span>        z = Z[-<span class="tn">1</span>]
+<span class="ln" data-n="241"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="242"></span>        z = min(Z, key=<span class="tk">lambda</span> zz: x @ <span class="tv">self</span>.ln_phi_TV(T, zz * R * T / P, x, mixed))
+<span class="ln" data-n="243"></span>    <span class="tk">return</span> z * R * T / P</code></pre></figure>
+        <p>The tests compare the pressure and \(\ln\hat\varphi_i\) with numerical derivatives of <code>helmholtz_res</code>.</p>
       </section>
 
       <!-- ============================================================ -->
       <section id="solver">
         <h2>4. The equilibrium solver</h2>
-        <h3>One bubble point</h3>
-        <p>A Txy diagram is a row of bubble points. For one liquid composition \(\mathbf x\) at the given pressure, the unknowns are the temperature and the vapor composition. The solver works with K-values, \(K_i = y_i/x_i = \hat\varphi_i^{L}/\hat\varphi_i^{V}\), and a material balance for a feed \(\mathbf z\) of which a fraction \(\beta\) is vapor (the Rachford–Rice equation):</p>
+        <h3>K-values and the material balance</h3>
+        <p>Equal fugacities, \(x_i\hat\varphi_i^{L} = y_i\hat\varphi_i^{V}\), give the K-values directly. For the activity route the liquid's "fugacity coefficient" is \(\gamma_i f_i^{L}/P\), so this is modified Raoult's law:</p>
+<figure class="code"><figcaption><span class="code-name">K_values</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L60-L64"><code>equilibrium_solver.py</code>, lines 60–64</a></figcaption><pre><code><span class="ln" data-n="60"></span><span class="tk">def</span> <span class="tf">K_values</span>(L, V, T, P, x, y):
+<span class="ln" data-n="61"></span>    <span class="ts">"""K_i = phi_i(L)/phi_i(V); 0 for components that cannot enter the vapor."""</span>
+<span class="ln" data-n="62"></span>    K = np.exp(L.ln_phi(T, P, x) - V.ln_phi(T, P, y))
+<span class="ln" data-n="63"></span>    K[~V.present] = <span class="tn">0.0</span>
+<span class="ln" data-n="64"></span>    <span class="tk">return</span> K</code></pre></figure>
+        <p>For a feed \(\mathbf z\) of which a fraction \(\beta\) is vapor, the material balance is the Rachford–Rice equation. With \(\beta = 0\) it is a bubble point and with \(\beta = 1\) a dew point:</p>
         \[ \sum_i \frac{z_i\,(K_i-1)}{1+\beta\,(K_i-1)} = 0 . \]
-        <p>With \(\beta = 0\) this is a bubble point and with \(\beta = 1\) a dew point, so one routine, <code>saturation()</code>, does both:</p>
-        <ol>
-          <li>Guess the temperature from K-values that ignore composition (Wilson's correlation for an equation of state, the ideal-solution value otherwise).</li>
-          <li>At a trial temperature, compute the vapor composition from the current K-values, recompute the K-values from the two phase models, and repeat until they stop changing.</li>
-          <li>Evaluate the Rachford–Rice sum. Step outward from the guess until it changes sign, then close in with Brent's method.</li>
-          <li>For an equation of state, reject a result where liquid and vapor came out identical (the "trivial solution" near a critical point).</li>
-        </ol>
-        <h3>The diagram</h3>
-        <p><code>vle_diagram()</code> repeats this across the composition range, each point starting from the previous answer. For the website, the points are spaced more closely near the pure compounds, where the curves are steepest. Each bubble point also gives one point of the dew curve, since the vapor it finds is a vapor at its dew point.</p>
-        <p>Afterwards one check runs on the result:</p>
-        <ul>
-          <li><b>Azeotrope.</b> If \(y_1 - x_1\) changes sign between two neighboring points, the exact composition where \(y_1 = x_1\) is found by Brent's method.</li>
-          
-        </ul>
-        <h3>Everything else along the curve</h3>
+<figure class="code"><figcaption><span class="code-name">_rr_residual</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L81-L83"><code>equilibrium_solver.py</code>, lines 81–83</a></figcaption><pre><code><span class="ln" data-n="81"></span><span class="tk">def</span> <span class="tf">_rr_residual</span>(z, K, beta):
+<span class="ln" data-n="82"></span>    <span class="ts">"""Rachford-Rice function."""</span>
+<span class="ln" data-n="83"></span>    <span class="tk">return</span> float(np.sum(z * (K - <span class="tn">1</span>) / (<span class="tn">1</span> + beta * (K - <span class="tn">1</span>))))</code></pre></figure>
+
+        <h3>One bubble point</h3>
+        <p>At a trial temperature, the K-values depend on the vapor composition, and the vapor composition on the K-values. <code>_sat_eval</code> iterates the two until they stop changing (successive substitution), then returns the Rachford–Rice residual:</p>
+<figure class="code"><figcaption><span class="code-name">_sat_eval</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L111-L123"><code>equilibrium_solver.py</code>, lines 111–123</a></figcaption><pre><code><span class="ln" data-n="111"></span>K = Kbox[<span class="tn">0</span>].copy()
+<span class="ln" data-n="112"></span>pres = V.present
+<span class="ln" data-n="113"></span><span class="tk">for</span> _ <span class="tk">in</span> range(maxit):
+<span class="ln" data-n="114"></span>    x, y = _compositions(z, K, beta)
+<span class="ln" data-n="115"></span>    Knew = K_values(L, V, T, P, x, y)
+<span class="ln" data-n="116"></span>    diff = np.max(np.abs(np.log(Knew[pres]) - np.log(K[pres])))
+<span class="ln" data-n="117"></span>    K = Knew
+<span class="ln" data-n="118"></span>    <span class="tk">if</span> diff &lt; tol:
+<span class="ln" data-n="119"></span>        <span class="tk">break</span>
+<span class="ln" data-n="120"></span><span class="tk">else</span>:
+<span class="ln" data-n="121"></span>    <span class="tk">if</span> diff &gt; <span class="tn">1e-7</span>:          <span class="tc"># still moving after maxit: do not trust it</span>
+<span class="ln" data-n="122"></span>        <span class="tk">raise</span> SolverError(<span class="ts">"K-values did not converge at this state"</span>)
+<span class="ln" data-n="123"></span>Kbox[<span class="tn">0</span>] = K</code></pre></figure>
+        <p><code>saturation()</code> then treats that residual as a function of the one unknown, temperature for a Txy diagram or \(\ln P\) for a Pxy diagram. It steps out from a guess until the residual changes sign, then closes in with Brent's method:</p>
+<figure class="code"><figcaption><span class="code-name">saturation</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L211-L221"><code>equilibrium_solver.py</code>, lines 211–221</a></figcaption><pre><code><span class="ln" data-n="211"></span><span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span>:                                  <span class="tc"># unknown: ln P</span>
+<span class="ln" data-n="212"></span>    f = <span class="tk">lambda</span> u: _sat_eval(L, V, T, math.exp(u), z, beta, Kbox)[<span class="tn">0</span>]
+<span class="ln" data-n="213"></span>    a, b = _bracket(f, math.log(guess), <span class="tn">0.02</span> <span class="tk">if</span> had_guess <span class="tk">else</span> <span class="tn">0.05</span>,
+<span class="ln" data-n="214"></span>                    math.log(<span class="tn">1.0</span>), math.log(<span class="tn">1e9</span>))
+<span class="ln" data-n="215"></span>    u = _root(f, a, b, <span class="tn">1e-12</span>)
+<span class="ln" data-n="216"></span>    Tsol, Psol = T, math.exp(u)
+<span class="ln" data-n="217"></span><span class="tk">else</span>:                                          <span class="tc"># unknown: T</span>
+<span class="ln" data-n="218"></span>    f = <span class="tk">lambda</span> u: _sat_eval(L, V, u, P, z, beta, Kbox)[<span class="tn">0</span>]
+<span class="ln" data-n="219"></span>    a, b = _bracket(f, guess, <span class="tn">1.0</span>, <span class="tn">20.0</span>, <span class="tn">3000.0</span>)
+<span class="ln" data-n="220"></span>    u = _root(f, a, b, <span class="tn">1e-10</span>)
+<span class="ln" data-n="221"></span>    Tsol, Psol = u, P</code></pre></figure>
+        <p>The guess comes from K-values that ignore composition (Wilson's correlation for an equation of state, the ideal-solution value otherwise). For an equation of state, a result where liquid and vapor came out identical is rejected as the "trivial solution" near a critical point.</p>
+
+        <h3>The diagram and the azeotrope</h3>
+        <p><code>vle_diagram()</code> repeats the bubble point across the composition range, each point starting from the previous answer. Each bubble point also gives one point of the dew curve, since the vapor it finds is at its dew point:</p>
+<figure class="code"><figcaption><span class="code-name">vle_diagram</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L331-L344"><code>equilibrium_solver.py</code>, lines 331–344</a></figcaption><pre><code><span class="ln" data-n="331"></span><span class="tk">for</span> x1 <span class="tk">in</span> xs:
+<span class="ln" data-n="332"></span>    x = np.array([x1, <span class="tn">1</span> - x1])
+<span class="ln" data-n="333"></span>    <span class="tk">if</span> <span class="tk">not</span> np.any((x &gt; <span class="tn">0</span>) &amp; V.present):
+<span class="ln" data-n="334"></span>        <span class="tk">continue</span>                             <span class="tc"># nothing volatile in the liquid</span>
+<span class="ln" data-n="335"></span>    <span class="tk">try</span>:
+<span class="ln" data-n="336"></span>        pt = saturation(L, V, x, <span class="tn">0.0</span>, T=T, P=P, guess=guess)
+<span class="ln" data-n="337"></span>    <span class="tk">except</span> (SolverError, ValueError):
+<span class="ln" data-n="338"></span>        fails += <span class="tn">1</span>
+<span class="ln" data-n="339"></span>        guess = <span class="tk">None</span>
+<span class="ln" data-n="340"></span>        <span class="tk">continue</span>
+<span class="ln" data-n="341"></span>    guess = pt.P <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span> <span class="tk">else</span> pt.T
+<span class="ln" data-n="342"></span>    out_x.append(x1)
+<span class="ln" data-n="343"></span>    out_y.append(pt.y[<span class="tn">0</span>])
+<span class="ln" data-n="344"></span>    out_v.append(pt.P <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span> <span class="tk">else</span> pt.T)</code></pre></figure>
+        <p>An azeotrope is where \(y_1 - x_1\) changes sign between two neighboring points. The exact composition is found with Brent's method on that difference:</p>
+<figure class="code"><figcaption><span class="code-name">find_azeotrope</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L306-L314"><code>equilibrium_solver.py</code>, lines 306–314</a></figcaption><pre><code><span class="ln" data-n="306"></span><span class="tk">def</span> <span class="tf">find_azeotrope</span>(L, V, x_lo, x_hi, T=<span class="tk">None</span>, P=<span class="tk">None</span>):
+<span class="ln" data-n="307"></span>    <span class="ts">"""Binary azeotrope between x_lo and x_hi, where y1 - x1 changes sign.</span>
+<span class="ln" data-n="308"></span><span class="ts">    Returns (x1, P or T)."""</span>
+<span class="ln" data-n="309"></span>    <span class="tk">def</span> <span class="tf">g</span>(x1):
+<span class="ln" data-n="310"></span>        pt = saturation(L, V, [x1, <span class="tn">1</span> - x1], <span class="tn">0.0</span>, T=T, P=P)
+<span class="ln" data-n="311"></span>        <span class="tk">return</span> pt.y[<span class="tn">0</span>] - x1
+<span class="ln" data-n="312"></span>    xa = brentq(g, x_lo, x_hi, xtol=<span class="tn">1e-10</span>)
+<span class="ln" data-n="313"></span>    pt = saturation(L, V, [xa, <span class="tn">1</span> - xa], <span class="tn">0.0</span>, T=T, P=P)
+<span class="ln" data-n="314"></span>    <span class="tk">return</span> xa, (pt.P <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span> <span class="tk">else</span> pt.T)</code></pre></figure>
+        
         <p><code>diagram_properties()</code> then evaluates, at each point, the activity coefficients, K-values and fugacities. Fugacities are computed from the liquid side and from the vapor side; they agree, which is the equilibrium condition itself.</p>
+
         <h3>Other calculations in the same module</h3>
         <dl class="terms">
           <dt>P–T diagram</dt><dd><code>pt_envelope()</code> holds the composition and steps through temperature, solving a bubble and a dew pressure at each. Each guess is extrapolated from the last two points, using the fact that \(\ln P\) is nearly linear in \(1/T\).</dd>
           <dt>Flash</dt><dd><code>flash_TP()</code> fixes \(T\) and \(P\) and solves the Rachford–Rice equation for the vapor fraction, for any number of compounds.</dd>
           <dt>Solid–liquid</dt><dd>One equation, liquid fugacity equals solid fugacity, solved for temperature or composition; the eutectic is where two such curves meet.</dd>
-          <dt>Fields</dt><dd><code>column_profile()</code> marches along height or radius, solving \(\ln\hat f_i + M_i\Phi/RT = \text{constant}\) for pressure and composition at each position, and switches phase where the fluid reaches saturation.</dd>
         </dl>
+
+        <h3>External fields</h3>
+        <p>In a gravity or centrifugal field the equilibrium condition becomes \(\ln\hat f_i + M_i\Phi/RT = \text{constant}\) along the system. The potential per unit mass:</p>
+<figure class="code"><figcaption><span class="code-name">Field.potential</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L492-L496"><code>thermo_models.py</code>, lines 492–496</a></figcaption><pre><code><span class="ln" data-n="492"></span><span class="tk">def</span> <span class="tf">potential</span>(<span class="tv">self</span>, pos):
+<span class="ln" data-n="493"></span>    <span class="ts">"""Phi(pos) - Phi(reference), J/kg."""</span>
+<span class="ln" data-n="494"></span>    <span class="tk">if</span> <span class="tv">self</span>.kind == <span class="ts">"gravity"</span>:
+<span class="ln" data-n="495"></span>        <span class="tk">return</span> <span class="tv">self</span>.strength * (pos - <span class="tv">self</span>.reference)
+<span class="ln" data-n="496"></span>    <span class="tk">return</span> -<span class="tn">0.5</span> * <span class="tv">self</span>.strength ** <span class="tn">2</span> * (pos ** <span class="tn">2</span> - <span class="tv">self</span>.reference ** <span class="tn">2</span>)</code></pre></figure>
+        <p><code>column_profile()</code> marches along height or radius. At each position it solves for the pressure and composition that put every compound's fugacity on its target:</p>
+<figure class="code"><figcaption><span class="code-name">_solve_at</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L794-L797"><code>equilibrium_solver.py</code>, lines 794–797</a></figcaption><pre><code><span class="ln" data-n="794"></span><span class="tk">def</span> <span class="tf">_solve_at</span>(phase, T, idx, c, n, pos, u0, M, fld):
+<span class="ln" data-n="795"></span>    <span class="ts">"""At one position, solve  ln f_i(T, P, x) = c_i - M_i Phi(pos)/RT  for</span>
+<span class="ln" data-n="796"></span><span class="ts">    ln P and the free mole fractions of the components present (idx)."""</span>
+<span class="ln" data-n="797"></span>    target = c - M[idx] * fld.potential(pos) / (R * T)</code></pre></figure>
+        <p>and switches phase where the fluid reaches saturation.</p>
       </section>
 
       <!-- ============================================================ -->
@@ -171,7 +432,7 @@
         </div>
         <div class="table-wrap" id="walk-table"></div>
         <div class="measure">
-          <p>On the website, <code>web_api.py</code> converts this to bar and JSON, and the page draws it as SVG. From the command line, <code>plotter.py</code> draws the same results with Matplotlib and saves PNG files, including 3D surfaces. Neither does any thermodynamics.</p>
+          <p>On the website, <code>web_api.py</code> converts this to bar and JSON, and the page draws it as SVG. From the command line, <code>plotter.py</code> draws the same results with Matplotlib and saves PNG files. Neither does any thermodynamics.</p>
         </div>
       </section>
 
@@ -257,9 +518,9 @@
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=afd7524a6a"></script>
-<script src="assets/charts.js?v=afd7524a6a"></script>
-<script src="assets/data.js?v=afd7524a6a"></script>
+<script src="assets/edition.js?v=4aade62043"></script>
+<script src="assets/charts.js?v=4aade62043"></script>
+<script src="assets/data.js?v=4aade62043"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, W = D.walkthrough, $ = function (id) { return document.getElementById(id); };

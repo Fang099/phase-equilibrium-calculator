@@ -152,6 +152,8 @@ def build_input(req):
             lines.append(f"A({a}, {b}) = {float(par.get('A12', d['A']['A12'])):g}")
             lines.append(f"A({b}, {a}) = {float(par.get('A21', d['A']['A21'])):g}")
         elif model == "nrtl":
+            if d["nrtl"] is None and not ("dg12" in par and "dg21" in par):
+                raise ValueError("the database has no NRTL parameters for this pair")
             n = d["nrtl"] or {"dg12": 0.0, "dg21": 0.0, "alpha": 0.3}
             lines.append(f"dg({a}, {b}) = {float(par.get('dg12', n['dg12'])):g} J/mol")
             lines.append(f"dg({b}, {a}) = {float(par.get('dg21', n['dg21'])):g} J/mol")

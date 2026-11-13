@@ -110,7 +110,7 @@ sweep = x                       # draw the diagram over all compositions</code><
               <tr><td><code>components</code></td><td>Compound names, comma separated, in the order used for compositions</td></tr>
               <tr><td><code>database</code></td><td><code>builtin</code>: fill in properties not given in the file from the compound database</td></tr>
               <tr><td><code>model</code></td><td>Equation of state: <code>vdW</code><!--full-->, <code>SRK</code><!--/full--> or <code>PR</code></td></tr>
-              <tr><td><code>activity</code></td><td>Liquid model: <code>ideal</code> (default)<!--full-->, <code>margules</code>, <code>vanlaar</code> or <code>nrtl</code><!--/full--><!--reduced--> or <code>vanlaar</code><!--/reduced--></td></tr>
+              <tr><td><code>activity</code></td><td>Liquid model: <code>ideal</code> (default)<!--full-->, <code>margules</code>, <code>vanlaar</code> or <code>nrtl</code><!--/full--><!--reduced-->, <code>vanlaar</code> or <code>nrtl</code><!--/reduced--></td></tr>
               <tr><td><code>T</code>, <code>P</code></td><td>Temperature (K or C) and pressure (Pa, kPa, bar, atm, mmHg, psi)</td></tr>
               <tr><td><code>x(L)</code>, <code>x(V)</code> or <code>y</code>, <code>z</code>, <code>beta</code></td><td>Liquid, vapor and feed compositions (give \(n\) or \(n-1\) mole fractions); vapor fraction</td></tr>
               <tr><td><code>sweep</code></td><td><code>x</code>, <code>T</code> or <code>P</code>: the variable swept to draw a diagram</td></tr>
@@ -121,7 +121,7 @@ sweep = x                       # draw the diagram over all compositions</code><
               <tr><td><code>name.M</code>, <code>.V_L</code>, <code>.V_S</code>, <code>.nonvolatile</code></td><td>Molar mass; liquid and solid molar volumes; the compound never enters the vapor</td></tr>
               <tr><td><code>kij(name1, name2)</code></td><td>Binary interaction parameter of the equation of state</td></tr>
               <tr><td><code>A(name1, name2)</code></td><td><!--full-->Margules or van Laar<!--/full--><!--reduced-->van Laar<!--/reduced--> parameter: \(\ln\gamma\) of name1 at infinite dilution in name2. Give both orders. A number, or a formula in <code>T</code> (in K), for example <code>A(ethanol, water) = -0.0065 + 598.8/T</code>.</td></tr>
-              <!--full--><tr><td><code>dg(name1, name2)</code>, <code>alpha(name1, name2)</code></td><td>NRTL energy \(g_{12} - g_{22}\) (both orders), and non-randomness (default 0.3)</td></tr><!--/full-->
+              <tr><td><code>dg(name1, name2)</code>, <code>alpha(name1, name2)</code></td><td>NRTL energy \(g_{12} - g_{22}\) (both orders), and non-randomness (default 0.3)</td></tr>
               <tr><td><code>field</code>, <code>g</code>, <code>omega</code>, <code>height</code>, <code>radius</code>, <code>reference</code></td><td>Gravity or centrifugal field: strength, extent, and the position where the given state applies</td></tr>
             </tbody>
           </table>
@@ -168,13 +168,13 @@ out["input_text"]       # the input file this request stands for</code></pre>
         <h4><code>compound_db.py</code></h4>
         <dl class="params">
           <dt>find(name)</dt><dd>A compound record by name, id or CAS number.</dd>
-          <dt>pair(a, b)</dt><dd><!--full-->NRTL parameters and Peng–Robinson \(k_{12}\) for a pair, if the database has them.<!--/full--><!--reduced-->Peng–Robinson \(k_{12}\) and the binary interaction data for a pair, if the database has them.<!--/reduced--></dd>
+          <dt>pair(a, b)</dt><dd>NRTL and van Laar parameters and Peng–Robinson \(k_{12}\) for a pair, if the database has them.</dd>
           <dt>sources()</dt><dd>The citation behind each source tag.</dd>
         </dl>
         <h4><code>thermo_models.py</code></h4>
         <dl class="params">
           <dt>CubicEOS</dt><dd>vdW<!--full-->, SRK<!--/full--> or PR: <code>helmholtz_res(T, V, n)</code>, <code>pressure</code>, <code>ln_phi_TV</code>, <code>z_roots(T, P, x)</code>, <code>molar_volume</code>, <code>ln_phi(T, P, x, phase)</code>.</dd>
-          <dt><!--full-->Margules, VanLaar, NRTL<!--/full--><!--reduced-->VanLaar<!--/reduced--></dt><dd><!--full-->Activity models<!--/full--><!--reduced-->Activity model<!--/reduced-->: <code>ge_rt(T, x)</code> and <code>ln_gamma(T, x)</code>.</dd>
+          <dt><!--full-->Margules, <!--/full-->VanLaar, NRTL</dt><dd>Activity models: <code>ge_rt(T, x)</code> and <code>ln_gamma(T, x)</code>.</dd>
           <dt>EOSPhase, SolutionLiquid, IdealGasPhase, PureSolidPhase</dt><dd>Phase models with one interface: <code>ln_f(T, P, x)</code>, <code>ln_phi</code>, <code>molar_volume</code>.</dd>
           <dt>Field</dt><dd><code>potential(pos)</code> for gravity or centrifugal fields.</dd>
           <dt>build_system(text)</dt><dd>Run the checker and build the phase models for each equilibrium that can be calculated.</dd>
@@ -208,7 +208,7 @@ out["input_text"]       # the input file this request stands for</code></pre>
       <section id="data" class="wide">
         <div class="measure">
           <h2>Compound data and sources</h2>
-          <p>The database holds <span data-v="database.n_compounds" data-d="0"></span> compounds<!--full-->, NRTL parameters for <span data-v="database.n_nrtl" data-d="0"></span> pairs<!--/full-->, temperature-dependent van Laar parameters for <span data-v="database.n_vanlaar" data-d="0"></span> pairs and a Peng–Robinson \(k_{12}\) for <span data-v="database.n_kij" data-d="0"></span> pairs. It was generated on <span id="db-date"></span> from the tables cited below. Every value in <code>data/compounds.json</code> carries a tag naming its source, and the calculator shows the values and sources for the selected pair under "Compound data and sources".</p>
+          <p>The database holds <span data-v="database.n_compounds" data-d="0"></span> compounds, NRTL parameters for <span data-v="database.n_nrtl" data-d="0"></span> pairs, temperature-dependent van Laar parameters for <span data-v="database.n_vanlaar" data-d="0"></span> pairs and a Peng–Robinson \(k_{12}\) for <span data-v="database.n_kij" data-d="0"></span> pairs. It was generated on <span id="db-date"></span> from the tables cited below. Every value in <code>data/compounds.json</code> carries a tag naming its source, and the calculator shows the values and sources for the selected pair under "Compound data and sources".</p>
           <p class="note">The values are reproduced from the cited sources for teaching use. Check them against the original publication before relying on them.</p>
         </div>
         <div class="table-wrap" id="compound-table"></div>
@@ -269,8 +269,8 @@ python scripts/build_site.py --pages   # only the pages, after editing text</cod
           <li>Kooijman, H. A., and Taylor, R. <i>ChemSep</i> binary interaction parameter library. <a href="http://www.chemsep.org/">chemsep.org</a>.</li>
           <li>Bell, C., and contributors. <i>chemicals</i> and <i>thermo</i>: Chemical properties components of the Chemical Engineering Design Library (ChEDL). <a href="https://github.com/CalebBell/chemicals">github.com/CalebBell/chemicals</a>, <a href="https://github.com/CalebBell/thermo">github.com/CalebBell/thermo</a>.</li>
           <li>Peng, D.-Y., and Robinson, D. B. A new two-constant equation of state. <i>Industrial &amp; Engineering Chemistry Fundamentals</i> 15 (1976) 59–64.</li>
-          <!--full--><li>Soave, G. Equilibrium constants from a modified Redlich–Kwong equation of state. <i>Chemical Engineering Science</i> 27 (1972) 1197–1203.</li>
-          <li>Renon, H., and Prausnitz, J. M. Local compositions in thermodynamic excess functions for liquid mixtures. <i>AIChE Journal</i> 14 (1968) 135–144.</li><!--/full-->
+          <!--full--><li>Soave, G. Equilibrium constants from a modified Redlich–Kwong equation of state. <i>Chemical Engineering Science</i> 27 (1972) 1197–1203.</li><!--/full-->
+          <li>Renon, H., and Prausnitz, J. M. Local compositions in thermodynamic excess functions for liquid mixtures. <i>AIChE Journal</i> 14 (1968) 135–144.</li>
           <li>Rachford, H. H., and Rice, J. D. Procedure for use of electronic digital computers in calculating flash vaporization hydrocarbon equilibrium. <i>Journal of Petroleum Technology</i> 4 (1952).</li>
           <li>Michelsen, M. L., and Mollerup, J. M. <i>Thermodynamic Models: Fundamentals and Computational Aspects</i>, 2nd ed. Tie-Line Publications, 2007.</li>
           <li>Whitson, C. H., and Belery, P. Compositional gradients in petroleum reservoirs. SPE 28000 (1994).</li>
@@ -305,7 +305,7 @@ python scripts/build_site.py --pages   # only the pages, after editing text</cod
   var rows = [
     ["Critical temperature, critical pressure, acentric factor", "psrk4"],
     ["Antoine constants and their temperature range", "poling"],
-    [<!--full-->"NRTL parameters for pairs"<!--/full--><!--reduced-->"Binary interaction parameters for pairs (the van Laar starting values)"<!--/reduced-->, "chemsep_nrtl"],
+    ["NRTL parameters for pairs", "chemsep_nrtl"],
     ["van Laar A<sub>ij</sub>(T) = a<sub>ij</sub> + b<sub>ij</sub>/T for pairs", "vanlaar_fit"],
     ["Peng–Robinson k<sub>12</sub> for pairs", "chemsep_pr"],
     ["Molar mass", "iupac_aw"],

@@ -182,13 +182,14 @@
     function pick(m) { state.model = m; state.params = defaults(); if (state.compare === m) state.compare = ""; drawModels(); drawParams(); drawCompare(); schedule(0); }
     seg($("models-eos"), EOS.map(function (m) { return [m, MODEL_SHORT[m]]; }), state.model, pick);
     seg($("models-act"), ACT.map(function (m) { return [m, MODEL_SHORT[m]]; }), state.model, pick,
-      function (m) { return m === "vanlaar" && !pair.vanlaar; });
-    var vb = [].slice.call($("models-act").children).filter(function (b) { return b.textContent === MODEL_SHORT.vanlaar; })[0];
-    if (vb && vb.disabled) vb.title = "The database has no van Laar parameters for this pair";
+      function (m) { return !hasData(m); });
+    [].slice.call($("models-act").children).forEach(function (b) {
+      if (b.disabled) b.title = "The database has no " + b.textContent + " parameters for this pair";
+    });
   }
   function drawCompare() {
     var sel = $("compare");
-    sel.innerHTML = "<option value=''>Nothing</option>" + catalog.models.filter(function (m) { return m.id !== state.model && offered("models", m.id) && (m.id !== "vanlaar" || pair.vanlaar); })
+    sel.innerHTML = "<option value=''>Nothing</option>" + catalog.models.filter(function (m) { return m.id !== state.model && offered("models", m.id) && hasData(m.id); })
       .map(function (m) { return "<option value='" + m.id + "'>" + m.label + "</option>"; }).join("");
     sel.value = state.compare;
   }
@@ -200,6 +201,12 @@
     dg21: { label: function () { return "Δg₂₁ (J/mol)"; }, min: -6000, max: 16000, step: 10 },
     alpha: { label: function () { return "Non-randomness α"; }, min: 0.05, max: 0.9, step: 0.005 }
   };
+  /* van Laar and NRTL need parameters from the database for the pair */
+  function hasData(m) {
+    if (m === "vanlaar") return !!pair.vanlaar;
+    if (m === "nrtl") return !!pair.nrtl;
+    return true;
+  }
   function atRef() {
     return (state.model === "vanlaar" && pair.vanlaar && state.params.tdep) ? ", at " + PEC.fmt(pair.vanlaar.T_ref, 1) + " K" : "";
   }
@@ -251,7 +258,7 @@
       extra = state.params.tdep
         ? " A changes with temperature as a + b/T (b₁₂ = " + PEC.fmt(v.b12, 1) + " K, b₂₁ = " + PEC.fmt(v.b21, 1) + " K), fitted from " +
           PEC.fmt(v.Tmin, 0) + " to " + PEC.fmt(v.Tmax, 0) + " K."
-        : " A is held constant at these values.";
+        : " A does not change with temperature.";
     }
     note.innerHTML = (edited ? "Edited. " : "") + "Starting values: " + (SOURCE_LABEL[src] || src) + "." + extra +
       (edited ? " <button class='linkbtn' type='button' id='reset-params'>Reset</button>" : "");
@@ -326,8 +333,8 @@
     overlay("Loading " + lower(nameA()) + " and " + lower(nameB()), "");
     return engine.call({ op: "pair", a: state.a, b: state.b }).then(function (p) {
       pair = p;
-      if (state.model === "vanlaar" && !pair.vanlaar) state.model = "PR";      // no database values for this pair
-      if (state.compare === "vanlaar" && !pair.vanlaar) state.compare = "";
+      if (!hasData(state.model)) state.model = "PR";      // no database values for this pair
+      if (state.compare && !hasData(state.compare)) state.compare = "";
       if (urlParams.__hasT) state.T = Math.min(Math.max(state.T, p.ranges.T[0]), p.ranges.T[1]);
       else state.T = p.ranges.T_default;
       state.params = defaults();

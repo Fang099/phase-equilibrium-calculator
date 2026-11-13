@@ -9,7 +9,7 @@
     "reduced": {
       "vars": {"act": "van Laar", "act_id": "vanlaar"},
       "default": {"a": "ethanol", "b": "water", "model": "vanlaar"},
-      "models": ["PR", "vdW", "ideal", "vanlaar"],
+      "models": ["PR", "vdW", "ideal", "vanlaar", "nrtl"],
       "compounds": ["propane", "n-butane", "n-hexane", "benzene", "toluene",
                     "methanol", "ethanol", "water", "acetone", "chloroform"],
       "presets": ["Pxy", "Txy", "xy", "P–T", "Activity coefficients"],

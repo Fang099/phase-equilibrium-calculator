@@ -49,15 +49,19 @@
           <li><h4>Output<code>plotter.py</code> · <code>web_api.py</code></h4><p>Draws figures with Matplotlib from the command line, or returns numbers as JSON for the charts on the calculator page.</p></li>
         </ol>
         <p>Supporting files: <code>compound_db.py</code> and <code>data/compounds.json</code> (the property database), and <code>numerics.py</code> (<!--full-->root finders used when SciPy is not available<!--/full--><!--reduced-->the root finders<!--/reduced-->).</p>
-        <p>The rest of this page follows one request: <b>ethanol and water, {{act}} model, a Txy diagram at 1.01325 bar</b>.</p>
+        <p>The whole chain fits in a few lines. This is the start of the function the calculator calls for a diagram:</p>
+<!--code file="web_api.py" def="_solve" to="out[&quot;columns&quot;] = _columns" title="web_api._solve"-->
+        <p>Text in, text checked, phase objects built, diagram solved, properties tabulated. The rest of this page follows one request through these lines: <b>ethanol and water, {{act}} model, a Txy diagram at 1.01325 bar</b>. All code shown is the current source, with its line numbers; each heading links to the file on GitHub.</p>
       </section>
 
       <!-- ============================================================ -->
       <section id="request">
         <h2>1. From choices to an input file</h2>
-        <p>The calculator page does no thermodynamics. It collects the choices into a small request and passes it to <code>web_api.compute()</code>:</p>
+        <p>The calculator page does no thermodynamics. It collects the choices into a small request:</p>
         <pre id="walk-request"></pre>
-        <p><code>web_api.build_input()</code> turns the request into the same kind of input file a person would write for the command-line program. Parameters the user has not touched come from the database; anything changed with a slider is written in explicitly.</p>
+        <p><code>build_input()</code> turns the request into the same kind of input file a person would write for the command-line program. For van Laar it takes the pair's database entry and writes each parameter as a formula in \(T\):</p>
+<!--code file="web_api.py" def="build_input" from="if model == &quot;vanlaar&quot;:" to="lines.append(f&quot;A({b}, {a}) = {A21:g}&quot;)" title="web_api.build_input (van Laar part)"-->
+        <p>If a slider has moved, the new value is used at the reference temperature and the database slope \(b_{ij}\) is kept. If "Vary with temperature" is off, a plain number is written instead. The resulting file:</p>
         <pre id="walk-input"></pre>
         <p>From here on, the website and the command line run exactly the same code. The calculator shows this file, and the report below, under "Input file and checker report".</p>
       </section>
@@ -69,10 +73,22 @@
         <ol>
           <li><b>Parse.</b> Each line is a quantity, an optional target (a compound or a pair) and a value with a unit. Unknown names get a spelling suggestion.</li>
           <li><b>Convert units</b> to SI: kelvin, pascal, joule per mole, kilogram per mole.</li>
-          <li><b>Fill from the database.</b> With <code>database = builtin</code>, any property the file does not give is looked up: \(T_c\), \(P_c\), \(\omega\), molar mass, Antoine constants, and the pair's <!--full-->NRTL parameters, <!--/full-->van Laar parameters \(A_{ij}(T) = a_{ij} + b_{ij}/T\) or Peng–Robinson \(k_{12}\). Values written in the file always win.</li>
+          <li><b>Fill from the database.</b> With <code>database = builtin</code>, any property the file does not give is looked up: \(T_c\), \(P_c\), \(\omega\), molar mass, Antoine constants, and the pair's NRTL parameters, van Laar parameters or Peng–Robinson \(k_{12}\). Values written in the file always win.</li>
           <li><b>Choose a route</b> for each possible equilibrium. If an equation of state was requested and its constants are complete, it is used for both phases. Otherwise the checker looks for a vapor-pressure source for each compound and uses the activity model for the liquid.</li>
-          <li><b>Count degrees of freedom</b> with the phase rule and compare with what was specified. Here \(F = 2 + 2 - 2 = 2\): the pressure is given and the composition is swept, so the problem is exactly specified.</li>
+          <li><b>Count degrees of freedom</b> and compare with what was specified.</li>
         </ol>
+        <h3>A parameter that depends on temperature</h3>
+        <p>A van Laar line such as <code>A(ethanol, water) = -0.0064882 + 598.8/T</code> is not a number, so the parser keeps it as a small object that is evaluated later, at whatever temperature the solver is trying:</p>
+<!--code file="input_checker.py" def="TFunction"-->
+        <p><code>compile_relation</code> is the same safe formula reader used for a typed vapor-pressure relation; it only accepts \(T\), numbers and a few functions.</p>
+        <h3>Filling from the database</h3>
+        <p>If the file asks for van Laar but gives no parameters, the database fills both orders of the pair, in the same formula form:</p>
+<!--code file="compound_db.py" def="apply_to_inputs" from="if inp.activity == &quot;vanlaar&quot;" to="f&quot; (fitted"-->
+        <h3>The phase rule</h3>
+        <p>With \(n\) compounds, \(\pi = 2\) phases and \(m\) field variables, \(F = n + 2 + m - \pi\). The checker counts what the file fixes (temperature, pressure, a swept composition, a given phase composition) and compares:</p>
+<!--code file="input_checker.py" def="evaluate" from="dof = n + 2 + m - 2" to="+ (&quot; (incl. swept variable)&quot; if sweep_n else &quot;&quot;))" title="input_checker.evaluate (degrees of freedom)"-->
+        <p>Here \(F = 2 + 2 - 2 = 2\): the pressure is given and the composition is swept, so the problem is exactly specified. The comparison decides the verdict (when the count matches, the status is SUFFICIENT unless a property is missing):</p>
+<!--code file="input_checker.py" def="evaluate" from="state_dof = dof - m" to="res.status = &quot;OVERSPECIFIED&quot;" title="input_checker.evaluate (verdict)"-->
         <p>The verdict is one of four words. <b>SUFFICIENT</b> means it can be solved. <b>INSUFFICIENT</b> lists what is missing. <b>OVERSPECIFIED</b> says how many variables to remove. <b>INVALID</b> points at a mistake in the input. This is the actual report for the request above:</p>
         <pre id="walk-report"></pre>
       </section>
@@ -92,43 +108,73 @@
             </tbody>
           </table>
         </div>
+
         <h3>Activity route (this example)</h3>
-        <p>The pure-liquid fugacity \(f_i^{L}\) is the vapor pressure from the Antoine equation, multiplied by a Poynting correction \(\exp[V_i^{L}(P - P_i^{\mathrm{sat}})/RT]\) when a liquid volume is given. <!--full-->\(\ln\gamma_i\) comes from the <code>NRTL</code> class, which holds the model's \(G^{E}\) and its analytic derivatives. <code>Margules</code> and <code>VanLaar</code> have the same two methods, <code>ge_rt</code> and <code>ln_gamma</code>.<!--/full--><!--reduced-->\(\ln\gamma_i\) comes from the <code>VanLaar</code> class, which holds the model's \(G^{E}\) and its analytic derivative in two methods, <code>ge_rt</code> and <code>ln_gamma</code>. An ideal solution is the same with \(\ln\gamma_i = 0\).<!--/reduced--> A van Laar parameter can be a number or a formula in \(T\), as in the input above; the formula is evaluated at the temperature of each point, so the activity coefficients change along a Txy diagram.</p>
+        <p>The liquid fugacity is the table's first row, one line of code:</p>
+<!--code file="thermo_models.py" def="SolutionLiquid.ln_f"-->
+        <p>The pure-liquid fugacity \(f_i^{L}\) is the vapor pressure from the Antoine equation, times the Poynting correction \(\exp[V_i^{L}(P - P_i^{\mathrm{sat}})/RT]\) when a liquid volume is given. It is computed in logarithms so that very low vapor pressures do not underflow:</p>
+<!--code file="thermo_models.py" def="SolutionLiquid.ln_f0" from="out = np.zeros" to="out[i] = lps + VL"-->
+        <p>The vapor on this route is an ideal gas, \(\hat f_i = y_i P\). A compound marked non-volatile gets \(\ln \hat f_i = -\infty\), so it never enters the vapor:</p>
+<!--code file="thermo_models.py" def="IdealGasPhase.ln_f"-->
+        <p>\(\ln\gamma_i\) comes from the activity model. The van Laar class reads its two parameters at the temperature asked for (a number, or a <code>TFunction</code> as above), checks that they have the same sign, and evaluates the two formulas from the <a href="concepts.html#models">Concepts</a> page:</p>
+<!--code file="thermo_models.py" def="_at"-->
+<!--code file="thermo_models.py" def="VanLaar.params"-->
+<!--code file="thermo_models.py" def="VanLaar.ln_gamma"-->
+        <p>NRTL is written for any number of compounds with matrices. <code>_tg</code> gives \(\tau_{ij} = \Delta g_{ij}/RT\) and \(G_{ij} = \exp(-\alpha_{ij}\tau_{ij})\); <code>ln_gamma</code> is the general NRTL expression, with the two sums built by matrix products:</p>
+<!--code file="thermo_models.py" def="NRTL._tg"-->
+<!--code file="thermo_models.py" def="NRTL.ln_gamma"-->
+        <p>Each model also has <code>ge_rt</code>, \(G^{E}/RT\). The tests differentiate \(nG^{E}/RT\) numerically and check that it reproduces <code>ln_gamma</code>, so the two cannot disagree.</p>
+
         <h3>Equation-of-state route</h3>
         <p><code>CubicEOS</code> stores van der Waals<!--full-->, SRK<!--/full--> and Peng–Robinson as one residual Helmholtz energy with two constants:</p>
         \[ \frac{A^{\mathrm{res}}}{NRT} = -\ln\!\left(1-\frac{b}{v}\right) - \frac{a}{bRT(\delta_1-\delta_2)}\,\ln\frac{v+\delta_1 b}{v+\delta_2 b} . \]
-        <p>Pressure and \(\ln\hat\varphi_i\) are coded as its exact derivatives, and the tests compare them with numerical derivatives of this function. To evaluate at a given \(T\) and \(P\), the cubic for \(Z\) is solved in closed form (Cardano's formula, then two Newton steps to polish), and the smallest or largest root is taken for liquid or vapor.</p>
+        <p>This is the fundamental equation the project starts from, in code. With mixture totals \(D = n^2 a_{\mathrm{mix}}\) and \(B = n\,b_{\mathrm{mix}}\):</p>
+<!--code file="thermo_models.py" def="CubicEOS.helmholtz_res"-->
+        <p>Everything else is a derivative of this function. Pressure is \(P = -(\partial A/\partial V)_{T,n}\), and the fugacity coefficient is \(\ln\hat\varphi_i = \partial(A^{\mathrm{res}}/RT)/\partial n_i - \ln Z\), written out analytically:</p>
+<!--code file="thermo_models.py" def="CubicEOS.ln_phi_TV"-->
+        <p>To work at a given \(T\) and \(P\), the cubic in \(Z\) is solved in closed form, and the smallest root is taken for a liquid, the largest for a vapor:</p>
+<!--code file="thermo_models.py" def="CubicEOS._volume"-->
+        <p>The tests compare the pressure and \(\ln\hat\varphi_i\) with numerical derivatives of <code>helmholtz_res</code>.</p>
       </section>
 
       <!-- ============================================================ -->
       <section id="solver">
         <h2>4. The equilibrium solver</h2>
-        <h3>One bubble point</h3>
-        <p>A Txy diagram is a row of bubble points. For one liquid composition \(\mathbf x\) at the given pressure, the unknowns are the temperature and the vapor composition. The solver works with K-values, \(K_i = y_i/x_i = \hat\varphi_i^{L}/\hat\varphi_i^{V}\), and a material balance for a feed \(\mathbf z\) of which a fraction \(\beta\) is vapor (the Rachford–Rice equation):</p>
+        <h3>K-values and the material balance</h3>
+        <p>Equal fugacities, \(x_i\hat\varphi_i^{L} = y_i\hat\varphi_i^{V}\), give the K-values directly. For the activity route the liquid's "fugacity coefficient" is \(\gamma_i f_i^{L}/P\), so this is modified Raoult's law:</p>
+<!--code file="equilibrium_solver.py" def="K_values"-->
+        <p>For a feed \(\mathbf z\) of which a fraction \(\beta\) is vapor, the material balance is the Rachford–Rice equation. With \(\beta = 0\) it is a bubble point and with \(\beta = 1\) a dew point:</p>
         \[ \sum_i \frac{z_i\,(K_i-1)}{1+\beta\,(K_i-1)} = 0 . \]
-        <p>With \(\beta = 0\) this is a bubble point and with \(\beta = 1\) a dew point, so one routine, <code>saturation()</code>, does both:</p>
-        <ol>
-          <li>Guess the temperature from K-values that ignore composition (Wilson's correlation for an equation of state, the ideal-solution value otherwise).</li>
-          <li>At a trial temperature, compute the vapor composition from the current K-values, recompute the K-values from the two phase models, and repeat until they stop changing.</li>
-          <li>Evaluate the Rachford–Rice sum. Step outward from the guess until it changes sign, then close in with Brent's method.</li>
-          <li>For an equation of state, reject a result where liquid and vapor came out identical (the "trivial solution" near a critical point).</li>
-        </ol>
-        <h3>The diagram</h3>
-        <p><code>vle_diagram()</code> repeats this across the composition range, each point starting from the previous answer. For the website, the points are spaced more closely near the pure compounds, where the curves are steepest. Each bubble point also gives one point of the dew curve, since the vapor it finds is a vapor at its dew point.</p>
-        <p>Afterwards <!--full-->two checks run<!--/full--><!--reduced-->one check runs<!--/reduced--> on the result:</p>
-        <ul>
-          <li><b>Azeotrope.</b> If \(y_1 - x_1\) changes sign between two neighboring points, the exact composition where \(y_1 = x_1\) is found by Brent's method.</li>
-          <!--full--><li><b>Liquid stability.</b> The second derivative of the Gibbs energy is evaluated at every point. If it is negative anywhere, the model predicts two liquid layers. The solver then looks for two liquid compositions whose bubble points share the same vapor and the same temperature, refines them with a two-variable root finder, removes the unphysical points between them and inserts the three-phase line.</li><!--/full-->
-        </ul>
-        <h3>Everything else along the curve</h3>
-        <p><code>diagram_properties()</code> then evaluates, at each point, <!--full-->the K-values, relative volatility, activity coefficients, fugacities, fugacity coefficients, \(G^{E}/RT\), the Gibbs energy of mixing and the stability function<!--/full--><!--reduced-->the activity coefficients, K-values and fugacities<!--/reduced-->. Fugacities are computed from the liquid side and from the vapor side; they agree, which is the equilibrium condition itself.<!--full--> This table is what "plot any variable against any other" draws from.<!--/full--></p>
+<!--code file="equilibrium_solver.py" def="_rr_residual"-->
+
+        <h3>One bubble point</h3>
+        <p>At a trial temperature, the K-values depend on the vapor composition, and the vapor composition on the K-values. <code>_sat_eval</code> iterates the two until they stop changing (successive substitution), then returns the Rachford–Rice residual:</p>
+<!--code file="equilibrium_solver.py" def="_sat_eval" from="K = Kbox[0].copy()" to="Kbox[0] = K"-->
+        <p><code>saturation()</code> then treats that residual as a function of the one unknown, temperature for a Txy diagram or \(\ln P\) for a Pxy diagram. It steps out from a guess until the residual changes sign, then closes in with Brent's method:</p>
+<!--code file="equilibrium_solver.py" def="saturation" from="if P is None:" to="Tsol, Psol = u, P"-->
+        <p>The guess comes from K-values that ignore composition (Wilson's correlation for an equation of state, the ideal-solution value otherwise). For an equation of state, a result where liquid and vapor came out identical is rejected as the "trivial solution" near a critical point.</p>
+
+        <h3>The diagram and the azeotrope</h3>
+        <p><code>vle_diagram()</code> repeats the bubble point across the composition range, each point starting from the previous answer. Each bubble point also gives one point of the dew curve, since the vapor it finds is at its dew point:</p>
+<!--code file="equilibrium_solver.py" def="vle_diagram" from="for x1 in xs:" to="out_v.append("-->
+        <p>An azeotrope is where \(y_1 - x_1\) changes sign between two neighboring points. The exact composition is found with Brent's method on that difference:</p>
+<!--code file="equilibrium_solver.py" def="find_azeotrope"-->
+        <!--full--><p>The solver also checks liquid stability: if the second derivative of the Gibbs energy of mixing is negative anywhere, the model predicts two liquid layers, and the solver finds the three-phase line and inserts it into the diagram.</p><!--/full-->
+        <p><code>diagram_properties()</code> then evaluates, at each point, <!--full-->the K-values, relative volatility, activity coefficients, fugacities, fugacity coefficients, \(G^{E}/RT\), the Gibbs energy of mixing and the stability function<!--/full--><!--reduced-->the activity coefficients, K-values and fugacities<!--/reduced-->. Fugacities are computed from the liquid side and from the vapor side; they agree, which is the equilibrium condition itself.</p>
+
         <h3>Other calculations in the same module</h3>
         <dl class="terms">
           <dt>P–T diagram</dt><dd><code>pt_envelope()</code> holds the composition and steps through temperature, solving a bubble and a dew pressure at each. Each guess is extrapolated from the last two points, using the fact that \(\ln P\) is nearly linear in \(1/T\).</dd>
           <dt>Flash</dt><dd><code>flash_TP()</code> fixes \(T\) and \(P\) and solves the Rachford–Rice equation for the vapor fraction, for any number of compounds.</dd>
           <dt>Solid–liquid</dt><dd>One equation, liquid fugacity equals solid fugacity, solved for temperature or composition; the eutectic is where two such curves meet.</dd>
-          <dt>Fields</dt><dd><code>column_profile()</code> marches along height or radius, solving \(\ln\hat f_i + M_i\Phi/RT = \text{constant}\) for pressure and composition at each position, and switches phase where the fluid reaches saturation.</dd>
         </dl>
+
+        <h3>External fields</h3>
+        <p>In a gravity or centrifugal field the equilibrium condition becomes \(\ln\hat f_i + M_i\Phi/RT = \text{constant}\) along the system. The potential per unit mass:</p>
+<!--code file="thermo_models.py" def="Field.potential"-->
+        <p><code>column_profile()</code> marches along height or radius. At each position it solves for the pressure and composition that put every compound's fugacity on its target:</p>
+<!--code file="equilibrium_solver.py" def="_solve_at" to="target = c - M[idx]"-->
+        <p>and switches phase where the fluid reaches saturation.</p>
       </section>
 
       <!-- ============================================================ -->
@@ -139,7 +185,7 @@
         </div>
         <div class="table-wrap" id="walk-table"></div>
         <div class="measure">
-          <p>On the website, <code>web_api.py</code> converts this to bar and JSON, and the page draws it as SVG. From the command line, <code>plotter.py</code> draws the same results with Matplotlib and saves PNG files, including 3D surfaces. Neither does any thermodynamics.</p>
+          <p>On the website, <code>web_api.py</code> converts this to bar and JSON, and the page draws it as SVG. From the command line, <code>plotter.py</code> draws the same results with Matplotlib and saves PNG files. Neither does any thermodynamics.</p>
         </div>
       </section>
 

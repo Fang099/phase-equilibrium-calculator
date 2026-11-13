@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=afd7524a6a">
+<link rel="stylesheet" href="assets/site.css?v=4aade62043">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -44,7 +44,7 @@
         <li><a href="#chemical-potential">Chemical potential</a></li>
         <li><a href="#fugacity">Fugacity</a></li>
         <li><a href="#activity">Liquids and activity coefficients</a></li>
-        <li><a href="#models">The van Laar model</a></li>
+        <li><a href="#models">Activity models</a></li>
         <li><a href="#eos">Equations of state</a></li>
         <li><a href="#routes">Choosing a model</a></li>
         <li><a href="#diagrams">Reading the diagrams</a></li>
@@ -64,7 +64,7 @@
           <li><a href="#chemical-potential">Chemical potential</a></li>
           <li><a href="#fugacity">Fugacity</a></li>
           <li><a href="#activity">Liquids and activity coefficients</a></li>
-          <li><a href="#models">The van Laar model</a></li>
+          <li><a href="#models">Activity models</a></li>
           <li><a href="#eos">Equations of state</a></li>
           <li><a href="#routes">Choosing a model</a></li>
           <li><a href="#diagrams">Reading the diagrams</a></li>
@@ -156,11 +156,12 @@
 
       <!-- ============================================================ -->
       <section id="models">
-        <h2>The van Laar model</h2>
+        <h2>Activity models</h2>
         <p>Activity coefficients are not chosen freely. They come from one function, the <b>excess Gibbs energy</b> \(G^{E}\): the Gibbs energy of the real mixture minus that of an ideal solution of the same composition. The two are linked by</p>
         \[ \frac{G^{E}}{RT} = \sum_i x_i \ln\gamma_i , \qquad \ln\gamma_i = \left(\frac{\partial\,(nG^{E}/RT)}{\partial n_i}\right)_{T,P,n_{j\neq i}} . \]
-        <p>An activity model is a formula for \(G^{E}\) as a function of composition, with a few parameters fitted to measurements. Because both \(\gamma_1\) and \(\gamma_2\) come from the same function, they automatically satisfy the Gibbs–Duhem equation: when one rises, the other must fall in a fixed way. The calculator uses the van Laar model; setting both of its parameters to zero gives the ideal solution.</p>
+        <p>An activity model is a formula for \(G^{E}\) as a function of composition, with a few parameters fitted to measurements. Because both \(\gamma_1\) and \(\gamma_2\) come from the same function, they automatically satisfy the Gibbs–Duhem equation: when one rises, the other must fall in a fixed way. The calculator has two, van Laar and NRTL. With all their parameters set to zero, both reduce to the ideal solution.</p>
 
+        <h3>van Laar</h3>
         \[ \frac{G^{E}}{RT} = \frac{A_{12}A_{21}\,x_1x_2}{A_{12}x_1 + A_{21}x_2} \]
         \[ \ln\gamma_1 = A_{12}\left(\frac{A_{21}x_2}{A_{12}x_1 + A_{21}x_2}\right)^{2}, \qquad \ln\gamma_2 = A_{21}\left(\frac{A_{12}x_1}{A_{12}x_1 + A_{21}x_2}\right)^{2} \]
         <p>Both parameters must have the same sign.</p>
@@ -169,12 +170,22 @@
         \[ A_{ij}(T) = a_{ij} + \frac{b_{ij}}{T} \qquad (T \text{ in K}). \]
         <p>\(b_{ij}\) carries the temperature dependence. For most pairs it is positive: the mixture moves closer to ideal as it gets hotter.</p>
 
+        <h3>NRTL</h3>
+        \[ \frac{G^{E}}{RT} = x_1x_2\left[\frac{\tau_{21}G_{21}}{x_1 + x_2G_{21}} + \frac{\tau_{12}G_{12}}{x_2 + x_1G_{12}}\right], \qquad \tau_{ij} = \frac{\Delta g_{ij}}{RT}, \quad G_{ij} = e^{-\alpha\,\tau_{ij}} \]
+        <p>The non-random two-liquid model assumes that the composition around a molecule differs from the average, because molecules prefer some neighbors. \(\Delta g_{12}\) and \(\Delta g_{21}\) are interaction energies, and \(\alpha\) sets how strongly the local composition departs from random. Since \(\tau\) depends on temperature, so do the activity coefficients. NRTL extends to any number of compounds using only parameters for pairs, and it can describe mixtures that split into two liquids.</p>
+        <h4>The non-randomness parameter \(\alpha\)</h4>
+        <p>NRTL pictures the liquid as cells, each with one molecule at the center. The mole fraction of molecules 2 around a central molecule 1 is not the overall \(x_2\) but is weighted by a Boltzmann-like factor:</p>
+        \[ \frac{x_{21}}{x_{11}} = \frac{x_2}{x_1}\,\exp\!\left(-\frac{\alpha\,\Delta g_{21}}{RT}\right) = \frac{x_2}{x_1}\,G_{21} . \]
+        <p>\(\alpha\) sets how strongly the energies sort the neighbors. With \(\alpha = 0\) the neighbors are random, every \(G_{ij} = 1\), and the model collapses to \(G^{E}/RT = x_1x_2(\tau_{12} + \tau_{21})\), a Margules-type form. The larger \(\alpha\), the more the local composition departs from the bulk. Renon and Prausnitz suggested values between about 0.2 and 0.47 depending on the kind of mixture, with 0.3 the usual choice.</p>
+        <p>\(\alpha\) has no exact theoretical value, so in practice it is either fixed by that rule or fitted to the data along with \(\Delta g_{12}\) and \(\Delta g_{21}\). The DECHEMA fits in the database fitted it, which is why the values are close to 0.3 but not equal to it (0.2937 for ethanol–water), and larger for alcohols with hydrocarbons. Changing \(\alpha\) in the calculator shows how sensitive a diagram is to this partly empirical choice. A fit with a different \(\alpha\) would also have different energies, so moving \(\alpha\) alone gives a different, no longer fitted model.</p>
+
 
         <h3>Where the parameters come from</h3>
-        <p>Parameters are fitted to measured vapor–liquid data. The largest collection of such data, the DECHEMA <i>Vapor–Liquid Equilibrium Data Collection</i>, fits each measured data set with several models, but of those fits only the NRTL parameters are openly available (in the ChemSep parameter library). The van Laar parameters in this project's database are therefore regressed from them: for each pair, NRTL gives \(\ln\gamma_1\) and \(\ln\gamma_2\) across all compositions at temperatures spanning the two boiling points, and \(a_{12}, b_{12}, a_{21}, b_{21}\) are fitted to all of those values at once.</p>
-        <p>For the <span data-v="database.n_vanlaar" data-d="0"></span> pairs with van Laar parameters, the root-mean-square error in \(\ln\gamma\) is <span data-v="database.vl_rms_median" data-d="4"></span> for the median pair and at most <span data-v="database.vl_rms_max" data-d="3"></span>. The fitted values agree with a widely reproduced table of van Laar constants (see <a href="reference.html#vanlaar-check">Reference</a>). The calculator does not offer van Laar for a pair with no database entry.</p>
+        <p>Parameters are fitted to measured vapor–liquid data. The largest collection of such data, the DECHEMA <i>Vapor–Liquid Equilibrium Data Collection</i>, fits each measured data set with several models, but of those fits only the NRTL parameters are openly available (in the ChemSep parameter library). The calculator's database holds them for <span data-v="database.n_nrtl" data-d="0"></span> pairs.</p>
+        <p>The van Laar parameters in this project's database are regressed from them: for each pair, NRTL gives \(\ln\gamma_1\) and \(\ln\gamma_2\) across all compositions at temperatures spanning the two boiling points, and \(a_{12}, b_{12}, a_{21}, b_{21}\) are fitted to all of those values at once.</p>
+        <p>For the <span data-v="database.n_vanlaar" data-d="0"></span> pairs with van Laar parameters, the root-mean-square error in \(\ln\gamma\) is <span data-v="database.vl_rms_median" data-d="4"></span> for the median pair and at most <span data-v="database.vl_rms_max" data-d="3"></span>. The fitted values agree with a widely reproduced table of van Laar constants (see <a href="reference.html#vanlaar-check">Reference</a>). The calculator does not offer van Laar or NRTL for a pair with no database entry.</p>
         <p>The sliders change \(A_{12}\) and \(A_{21}\) at a reference temperature, the mean boiling point of the pair, and keep the database's \(b_{ij}\). Unticking "Vary with temperature" holds them constant instead.</p>
-        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=vanlaar&amp;y=gamma&amp;x=x1&amp;hold=T&amp;T=340">Watch the activity coefficients change as you move the temperature</a> · <a href="app.html#a=ethanol&amp;b=water&amp;model=vanlaar&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325&amp;compare=ideal">Compare van Laar with an ideal solution</a></p>
+        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=vanlaar&amp;y=gamma&amp;x=x1&amp;hold=T&amp;T=340">Watch the activity coefficients change as you move the temperature</a> · <a href="app.html#a=ethanol&amp;b=water&amp;model=vanlaar&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325&amp;compare=nrtl">Compare van Laar with NRTL</a></p>
       </section>
 
       <!-- ============================================================ -->
@@ -283,9 +294,9 @@
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=afd7524a6a"></script>
-<script src="assets/charts.js?v=afd7524a6a"></script>
-<script src="assets/data.js?v=afd7524a6a"></script>
+<script src="assets/edition.js?v=4aade62043"></script>
+<script src="assets/charts.js?v=4aade62043"></script>
+<script src="assets/data.js?v=4aade62043"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, zip = PEC.zip, $ = function (id) { return document.getElementById(id); };

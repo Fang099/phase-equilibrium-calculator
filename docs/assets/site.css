@@ -418,3 +418,30 @@ input[type="range"] { width: 100%; accent-color: var(--liquid); margin: 0; }
 .home-section:last-of-type { padding-bottom: 2rem; }
 .param { grid-template-columns: minmax(0, 1fr) 7rem; }
 @media (max-width: 640px) { .chart-card .chart { min-height: 240px; } }
+
+/* ---------------- code excerpts (How it works) ---------------- */
+:root { --tk: #8a3fa8; --ts: #1f7a3d; --tc: #76828f; --tn: #b4530e; --tf: #1c5cab; --tv: #9a5b00; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --tk: #d29bf0; --ts: #7fd19a; --tc: #8794a2; --tn: #f0a66e; --tf: #7db3f0; --tv: #e0b46a; }
+}
+:root[data-theme="dark"] { --tk: #d29bf0; --ts: #7fd19a; --tc: #8794a2; --tn: #f0a66e; --tf: #7db3f0; --tv: #e0b46a; }
+figure.code { margin: 0.4rem 0 1.4rem; border: 1px solid var(--hair); border-radius: 8px; overflow: hidden; background: var(--code-bg); }
+figure.code figcaption {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.2rem 1rem;
+  padding: 0.45rem 0.9rem; border-bottom: 1px solid var(--hair); font: 500 0.8rem/1.4 var(--sans); color: var(--ink-2);
+}
+figure.code figcaption .code-name { font-family: var(--mono); color: var(--ink); }
+figure.code figcaption a { color: var(--muted); text-decoration: none; }
+figure.code figcaption a:hover { color: var(--link); text-decoration: underline; }
+figure.code figcaption a code { background: none; padding: 0; font-size: 1em; }
+figure.code pre { margin: 0; border-radius: 0; padding: 0.7rem 0.9rem 0.8rem 0; font-size: 0.82rem; line-height: 1.55; }
+figure.code pre code { display: block; min-width: max-content; }
+figure.code .ln::before {
+  content: attr(data-n); display: inline-block; width: 3.2em; padding-right: 0.9em; margin-right: 0.2em;
+  text-align: right; color: var(--muted); opacity: 0.7; user-select: none;
+}
+.tk { color: var(--tk); } .ts { color: var(--ts); } .tc { color: var(--tc); font-style: italic; }
+.tn { color: var(--tn); } .tf { color: var(--tf); font-weight: 600; } .tv { color: var(--tv); }
+/* sections with code use the full column for the code, the usual measure for text */
+main.doc > section:has(figure.code) { max-width: 58rem; }
+main.doc > section:has(figure.code) > :not(figure.code):not(.katex-display):not(.table-wrap) { max-width: 72ch; }

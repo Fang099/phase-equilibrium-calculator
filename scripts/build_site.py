@@ -109,6 +109,108 @@ def asset_version():
     return h.hexdigest()[:10]
 
 
+# --------------------------------------------------------------------------
+# Code excerpts on the pages: <!--code file="x.py" def="Class.method"
+# [from="text"] [to="text"]--> is replaced by that part of the current
+# source, highlighted and with its real line numbers, so the excerpts can
+# never drift from the code.
+# --------------------------------------------------------------------------
+import ast        # noqa: E402
+import html       # noqa: E402
+import io         # noqa: E402
+import keyword    # noqa: E402
+import textwrap   # noqa: E402
+import tokenize   # noqa: E402
+
+
+def _find_def(tree, qualname):
+    node = tree
+    for part in qualname.split("."):
+        node = next((c for c in ast.iter_child_nodes(node)
+                     if isinstance(c, (ast.FunctionDef, ast.ClassDef)) and c.name == part), None)
+        if node is None:
+            raise SystemExit(f"code excerpt: no definition {qualname!r}")
+    return node.lineno, node.end_lineno
+
+
+def _highlight(code):
+    """Python source -> list of HTML lines with token classes."""
+    lines = code.split("\n")
+    starts = [0]
+    for ln in lines:
+        starts.append(starts[-1] + len(ln) + 1)
+    off = lambda rc: starts[rc[0] - 1] + rc[1]
+    out, pos, prev = [], 0, None
+    try:
+        toks = list(tokenize.generate_tokens(io.StringIO(code + "\n").readline))
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        toks = []
+    for t in toks:
+        a, b = off(t.start), off(t.end) if t.end[0] <= len(lines) else len(code)
+        if a < pos or a > len(code):
+            continue
+        cls = None
+        if t.type == tokenize.COMMENT:
+            cls = "c"
+        elif t.type == tokenize.STRING or tokenize.tok_name.get(t.type, "").startswith("FSTRING"):
+            cls = "s"
+        elif t.type == tokenize.NUMBER:
+            cls = "n"
+        elif t.type == tokenize.NAME:
+            if keyword.iskeyword(t.string):
+                cls = "k"
+            elif prev in ("def", "class"):
+                cls = "f"
+            elif t.string == "self":
+                cls = "v"
+        if t.type == tokenize.NAME:
+            prev = t.string
+        elif t.type == tokenize.OP:
+            prev = None
+        out.append((None, code[pos:a]))
+        out.append((cls, code[a:b]))
+        pos = b
+    out.append((None, code[pos:]))
+    html_lines, cur = [], ""
+    for cls, text in out:
+        for k, piece in enumerate(text.split("\n")):
+            if k:
+                html_lines.append(cur)
+                cur = ""
+            if piece:
+                e = html.escape(piece, quote=False)
+                cur += f'<span class="t{cls}">{e}</span>' if cls else e
+    html_lines.append(cur)
+    return html_lines[:len(lines)]
+
+
+def code_excerpt(m):
+    at = {k: html.unescape(v) for k, v in re.findall(r'(\w+)="(.*?)"', m.group(1))}
+    path = at["file"]
+    with open(os.path.join(ROOT, path), encoding="utf-8") as fh:
+        src = fh.read()
+    lines = src.split("\n")
+    first, last = _find_def(ast.parse(src), at["def"])
+    while first > 1 and lines[first - 2].lstrip().startswith("@"):
+        first -= 1
+    if "from" in at:
+        first = next((k for k in range(first, last + 1) if at["from"] in lines[k - 1]), None)
+        if first is None:
+            raise SystemExit(f"code excerpt: {at['from']!r} not in {at['def']}")
+    if "to" in at:
+        last = next((k for k in range(first, last + 1) if at["to"] in lines[k - 1]), None)
+        if last is None:
+            raise SystemExit(f"code excerpt: {at['to']!r} not in {at['def']}")
+    code = textwrap.dedent("\n".join(lines[first - 1:last])).rstrip()
+    body = "\n".join(f'<span class="ln" data-n="{first + k}"></span>{h}'
+                     for k, h in enumerate(_highlight(code)))
+    url = f"{REPO_URL}/blob/main/{path}#L{first}-L{last}"
+    label = html.escape(at.get("title", at["def"]))
+    return (f'<figure class="code"><figcaption><span class="code-name">{label}</span>'
+            f'<a href="{url}"><code>{path}</code>, lines {first}–{last}</a></figcaption>'
+            f'<pre><code>{body}</code></pre></figure>')
+
+
 def render_pages():
     """site/pages/*.html + site/layout.html -> docs/*.html.
 
@@ -126,6 +228,7 @@ def render_pages():
             continue
         with open(os.path.join(pages_dir, fn), encoding="utf-8") as fh:
             src = apply_edition(fh.read())
+            src = re.sub(r"<!--code\s+(.*?)-->", code_excerpt, src, flags=re.S)
         m = re.match(r"\s*<!--\s*(\{.*?\})\s*-->\n", src, re.S)
         if not m:
             sys.exit(f"site/pages/{fn}: missing the settings comment on the first line")
