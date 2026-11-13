@@ -33,6 +33,7 @@ Run `python equilibrium_solver.py` for the verification tests and demos, or
 """
 
 import math
+import time
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -255,6 +256,10 @@ def flash_TP(L, V, T, P, z, tol=1e-12, maxit=500):
     z = np.asarray(z, float) / np.sum(z)
     K = initial_K(L, V, T, P)
     pres = V.present
+    # Successive substitution. When the Rachford-Rice root falls outside
+    # (0, 1) the K-values are still updated, from the feed and its incipient
+    # other phase: the first K-values ignore non-ideality and can put a
+    # two-phase feed wrongly into one phase. Only converged K decide.
     for _ in range(maxit):
         f0, f1 = _rr_residual(z, K, 0.0), _rr_residual(z, K, 1.0 - 1e-12)
         if f0 <= 0:
@@ -264,14 +269,24 @@ def flash_TP(L, V, T, P, z, tol=1e-12, maxit=500):
         else:
             beta = brentq(lambda b: _rr_residual(z, K, b), 0.0, 1.0 - 1e-12,
                           xtol=1e-14)
-        if beta in (0.0, 1.0):
+        try:
+            x, y = _compositions(z, K, beta)
+        except SolverError:
             break
-        x, y = _compositions(z, K, beta)
         Knew = K_values(L, V, T, P, x, y)
         diff = np.max(np.abs(np.log(Knew[pres]) - np.log(K[pres])))
         K = Knew
         if diff < tol:
             break
+    if isinstance(L, EOSPhase) and pres.sum() > 1 and np.max(np.abs(np.log(K[pres]))) < 1e-6:
+        # trivial solution: the EOS has one root here, so the fluid is one phase;
+        # liquid-like or vapor-like by its compressibility factor
+        Zc = P * L.molar_volume(T, P, z) / (R * T)
+        return (VLEPoint(T, P, z.copy(), np.full_like(z, np.nan), 0.0, "liquid") if Zc < 0.3
+                else VLEPoint(T, P, np.full_like(z, np.nan), z.copy(), 1.0, "vapor"))
+    f0, f1 = _rr_residual(z, K, 0.0), _rr_residual(z, K, 1.0 - 1e-12)   # with the final K
+    beta = (0.0 if f0 <= 0 else 1.0 if f1 >= 0 else
+            brentq(lambda b: _rr_residual(z, K, b), 0.0, 1.0 - 1e-12, xtol=1e-14))
     if beta == 0.0:
         return VLEPoint(T, P, z.copy(), np.full_like(z, np.nan), 0.0, "liquid")
     if beta == 1.0:
@@ -796,9 +811,15 @@ class Profile:
     extra: dict = field(default_factory=dict)
 
 
+_deadline = [None]          # wall-clock limit for the current profile, if any
+
+
 def _solve_at(phase, T, idx, c, n, pos, u0, M, fld):
     """At one position, solve  ln f_i(T, P, x) = c_i - M_i Phi(pos)/RT  for
     ln P and the free mole fractions of the components present (idx)."""
+    if _deadline[0] is not None and time.time() > _deadline[0]:
+        raise _TooSlow("the profile took too long to calculate: try a weaker field, "
+                       "a smaller system or a state further from saturation")
     target = c - M[idx] * fld.potential(pos) / (R * T)
 
     def full_x(free):
@@ -844,6 +865,8 @@ def _step_to(phase, T, idx, c, n, prev, pos, u, M, fld, depth=0):
             u0[0] = math.log(P_guess)
     try:
         return _solve_at(phase, T, idx, c, n, pos, u0, M, fld)
+    except _TooSlow:
+        raise
     except SolverError:
         if depth >= 12:
             raise
@@ -877,7 +900,7 @@ def _unstable(kind, P, Psat):
 
 
 def _march_side(system, L, V, T, start, P_start, x_start, kind, positions, out, notes,
-                contacts=None):
+                contacts=None, switches=0):
     """March one phase from `start` through `positions` (ordered away from
     start). If the phase reaches saturation, locate the contact by bisection
     and continue with the other phase from there."""
@@ -894,6 +917,8 @@ def _march_side(system, L, V, T, start, P_start, x_start, kind, positions, out, 
         try:
             P, x, u_new = _step_to(ph, T, idx, c, n, prev, pos, u, M, fld)
             crossed = V is not None and _unstable(kind, P, _sat_pressure(L, V, T, x, kind))
+        except _TooSlow:
+            raise
         except SolverError:
             crossed = V is not None        # the phase cannot exist here: assume a contact
             if not crossed:
@@ -911,6 +936,8 @@ def _march_side(system, L, V, T, start, P_start, x_start, kind, positions, out, 
             try:
                 Pm, xm, _u = _step_to(ph, T, idx, c, n, prev, mid, u, M, fld)
                 bad = _unstable(kind, Pm, _sat_pressure(L, V, T, xm, kind))
+            except _TooSlow:
+                raise
             except SolverError:
                 bad = True
             if bad:
@@ -930,12 +957,27 @@ def _march_side(system, L, V, T, start, P_start, x_start, kind, positions, out, 
                              "x_vapor": x_other if kind == "L" else xc})
         notes.append(f"gas-liquid contact at {pc:.4g} m (P = {Pc / 1e5:.4g} bar): "
                      f"{'vapor' if other_kind == 'V' else 'liquid'} beyond this point")
+        if switches >= 8:                  # phases flipping back and forth: a numerical dead end
+            raise SolverError("the gas-liquid boundary could not be located in this field")
         return _march_side(system, L, V, T, pc, sat.P, x_other, other_kind,
-                           positions[k:], out, notes, contacts)
+                           positions[k:], out, notes, contacts, switches + 1)
     return out
 
 
-def column_profile(system, L, V, point, npts=21):
+class _TooSlow(SolverError):
+    """Raised when a profile exceeds its time limit; never retried."""
+
+
+def column_profile(system, L, V, point, npts=21, time_limit=None):
+    """See _column_profile. time_limit (s): stop with a SolverError after that."""
+    _deadline[0] = None if time_limit is None else time.time() + time_limit
+    try:
+        return _column_profile(system, L, V, point, npts)
+    finally:
+        _deadline[0] = None
+
+
+def _column_profile(system, L, V, point, npts=21):
     """P, composition and phase along the field direction, from an
     equilibrium state given at the reference position.
 

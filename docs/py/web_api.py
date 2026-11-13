@@ -223,7 +223,8 @@ def _profile(req, text, out):
     L, V = eq.phases
     z1, P = float(req["z1"]), float(req["P"]) * 1e5
     point = es.flash_TP(L, V, float(req["T"]), P, np.array([z1, 1 - z1]))
-    prof = es.column_profile(system, L, V, point, npts=int(req.get("npts", 61)))
+    prof = es.column_profile(system, L, V, point, npts=int(req.get("npts", 61)),
+                             time_limit=float(req.get("time_limit", 8.0)))
     out.update(route=eq.route, calculation=eq.calculation, names=list(system.names),
                hold="field", azeotrope=None, three_phase=None, unstable=None,
                field=dict(req["field"]), fixed={"T": float(req["T"])})

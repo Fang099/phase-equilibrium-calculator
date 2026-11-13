@@ -399,7 +399,7 @@
         field: state.field === "gravity" ? { kind: "gravity", g: state.g, height: state.H }
                                          : { kind: "centrifugal", rpm: state.rpm, r_in: state.ri, r_out: state.ro } };
     var req = { components: [state.a, state.b], model: state.model, params: p, hold: state.hold,
-      npts: state.hold === "x" ? 61 : 81, compare: state.compare || null };
+      npts: state.hold === "x" ? 41 : 81, compare: state.compare || null };
     if (state.hold === "T") req.T = state.T; else if (state.hold === "P") req.P = state.P; else req.x1 = state.x1;
     return req;
   }
