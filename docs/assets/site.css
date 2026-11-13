@@ -499,3 +499,20 @@ main.doc > section:has(figure.code) > :not(figure.code):not(.katex-display):not(
 .eqx-dl dt { font: 600 0.85rem var(--sans); color: var(--ink-2); }
 .eqx-dl dd { margin: 0; }
 @media (max-width: 640px) { .eqx-dl { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; } .eqx-dl dd { margin-bottom: 0.5rem; } }
+
+/* ---------------- is there equilibrium here? ---------------- */
+#check-panel h2 { font-size: 0.95rem; color: var(--ink); }
+#check-panel .seg { margin-bottom: 0.6rem; }
+.check-inputs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 0.6rem; align-items: end; margin: 0.4rem 0 0.8rem; }
+.check-inputs label { font-size: 0.82rem; color: var(--ink-2); display: flex; flex-direction: column; gap: 0.25rem; }
+.check-inputs .btn, .check-actions .btn { padding: 0.45rem 1rem; font-size: 0.92rem; }
+.check-result p { margin: 0 0 0.5rem; }
+.check-verdict { font-weight: 600; font-size: 1.02rem; margin: 0.2rem 0 0.4rem !important; }
+.check-verdict.ph-two-phase, .check-verdict.st-sufficient { color: var(--built); }
+.check-verdict.ph-liquid { color: var(--liquid); }
+.check-verdict.ph-vapor { color: var(--vapor); }
+.check-verdict.st-insufficient, .check-verdict.st-overspecified, .check-verdict.st-invalid { color: var(--warn); }
+#ck-text { width: 100%; font: 0.85rem/1.5 var(--mono); color: var(--ink); background: var(--page); border: 1px solid var(--axis); border-radius: 6px; padding: 0.6rem 0.7rem; resize: vertical; }
+.check-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; margin: 0.6rem 0; }
+#ck-file-result pre { font-size: 0.8rem; max-height: 440px; overflow: auto; }
+@media (max-width: 640px) { .check-inputs { grid-template-columns: minmax(0, 1fr); } }

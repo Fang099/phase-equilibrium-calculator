@@ -37,7 +37,11 @@ import web_api                                                     # noqa: E402
 OUT = os.path.join(ROOT, "docs", "surfaces")
 LAYERS, LAYER_PTS = 15, 31                    # must match docs/assets/app.js
 MODULES = ["input_checker.py", "thermo_models.py", "equilibrium_solver.py", "numerics.py",
-           "compound_db.py", "web_api.py", "data/compounds.json"]
+           "compound_db.py", "data/compounds.json"]
+# from web_api.py only what a surface depends on, so changes to the rest of the
+# web interface (new operations, messages) do not make every surface outdated
+WEB_API_PARTS = ["EOS_MODELS", "ACTIVITY_MODELS", "pair_defaults", "build_input", "_solve",
+                 "_columns", "_clean", "surface"]
 # columns each plotted quantity needs (the same names the page uses)
 Y_COLUMNS = {"T": ["T"], "P": ["P"], "y1": ["y1"], "gamma": ["gamma1", "gamma2"],
              "lngamma": ["gamma1", "gamma2"], "K": ["K1", "K2"], "f": ["f1", "f2"],
@@ -55,10 +59,18 @@ def edition():
 
 
 def fingerprint():
+    import ast
     h = hashlib.sha256()
     for f in MODULES:
         with open(os.path.join(ROOT, f), "rb") as fh:
             h.update(fh.read())
+    with open(os.path.join(ROOT, "web_api.py"), encoding="utf-8") as fh:
+        src = fh.read()
+    for node in ast.parse(src).body:
+        names = ([node.name] if isinstance(node, (ast.FunctionDef, ast.ClassDef)) else
+                 [t.id for t in getattr(node, "targets", []) if isinstance(t, ast.Name)])
+        if any(n in WEB_API_PARTS for n in names):
+            h.update(ast.get_source_segment(src, node).encode())
     h.update(f"{LAYERS}/{LAYER_PTS}".encode())
     return h.hexdigest()[:16]
 

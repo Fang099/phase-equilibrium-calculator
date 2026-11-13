@@ -22,6 +22,7 @@ compositions as mole fractions of the first component.
 """
 
 import json
+import os
 import math
 import time
 
@@ -429,6 +430,76 @@ def surface(req):
     return out
 
 
+def point(req):
+    """Is there vapor-liquid equilibrium at the user's T, P and overall
+    composition z1? A flash answers it; the bubble and dew pressures (at T)
+    and temperatures (at P) of the same feed say where equilibrium occurs."""
+    t0 = time.time()
+    try:
+        r = dict(req, hold="T", npts=3)
+        lines = build_input(r).splitlines()
+        lines = [l for l in lines if not l.startswith(("sweep", "T =", "P =", "x(L)"))]
+        T, P, z1 = float(req["T"]), float(req["P"]), float(req["z1"])
+        if not 0 < z1 < 1:
+            raise ValueError("the overall mole fraction must be between 0 and 1")
+        text = "\n".join(lines + [f"T = {T:g} K", f"P = {P:g} bar", f"z = {z1:g}"]) + "\n"
+        rep = check_input(text)
+        out = {"input_text": text, "report": str(rep), "status": rep.status}
+        if rep.status != "SUFFICIENT":
+            out.update(ok=False, error="The checker did not accept this input: " + rep.status)
+            return out
+        system = build_system(text)
+        eq = next(e for e in system.equilibria if e.phase_names[1] == "V")
+        L, V = eq.phases
+        z = np.array([z1, 1 - z1])
+        pt = es.flash_TP(L, V, T, P * 1e5, z)
+        fin = lambda v: None if v is None or not np.isfinite(v) else float(f"{v:.6g}")
+        out.update(ok=True, route=eq.route, phase=pt.phase, beta=fin(pt.beta),
+                   x1=fin(pt.x[0]), y1=fin(pt.y[0]), T=T, P=P, z1=z1)
+        if pt.phase == "two-phase":
+            K = es.K_values(L, V, T, P * 1e5, pt.x, pt.y)
+            g = L.ln_gamma(T, pt.x) if hasattr(L, "ln_gamma") else None
+            out["K"] = [fin(k) for k in K]
+            out["gamma"] = None if g is None else [fin(math.exp(v)) for v in g]
+        bounds = {}
+        for name, beta, kw in (("P_bubble", 0.0, {"T": T}), ("P_dew", 1.0, {"T": T}),
+                               ("T_bubble", 0.0, {"P": P * 1e5}), ("T_dew", 1.0, {"P": P * 1e5})):
+            try:
+                s_ = es.saturation(L, V, z, beta, **kw)
+                bounds[name] = fin(s_.P / 1e5) if name.startswith("P") else fin(s_.T)
+            except Exception:
+                bounds[name] = None
+        out["bounds"] = bounds
+    except Exception as e:
+        out = {"ok": False, "error": str(e) or type(e).__name__}
+    out["ms"] = round(1000 * (time.time() - t0))
+    return out
+
+
+def run_input(text, time_limit=20.0):
+    """Check any input file and, if it is sufficient, solve it: exactly what
+    `python equilibrium_solver.py file.txt` prints."""
+    import contextlib
+    import io
+    t0 = time.time()
+    rep = check_input(text)
+    out = {"ok": True, "status": rep.status, "report": str(rep), "results": ""}
+    if rep.status == "SUFFICIENT":
+        buf = io.StringIO()
+        es._deadline[0] = time.time() + time_limit
+        try:
+            with contextlib.redirect_stdout(buf):
+                system = build_system(text)
+                es.print_results(system, es.solve(system))
+        except Exception as e:
+            buf.write(f"\nThe calculation stopped: {e}\n")
+        finally:
+            es._deadline[0] = None
+        out["results"] = buf.getvalue()
+    out["ms"] = round(1000 * (time.time() - t0))
+    return out
+
+
 def handle(message):
     """JSON in, JSON out: {"op": "ping"} | {"op": "catalog"} |
     {"op": "pair", "a":, "b":} | {"op": "compute", "request": {...}} |
@@ -446,6 +517,10 @@ def handle(message):
             res = compute(msg["request"])
         elif op == "surface":
             res = surface(msg["request"])
+        elif op == "point":
+            res = point(msg["request"])
+        elif op == "run_input":
+            res = run_input(msg["text"])
         else:
             res = {"ok": False, "error": f"unknown operation '{op}'"}
     except Exception as e:
@@ -544,6 +619,19 @@ if __name__ == "__main__":
     report("centrifuge with an activity model: Rackett liquid volumes, P rises outward",
            r["ok"] and "Rackett" in r["input_text"] and r["columns"]["P"][-1] > r["columns"]["P"][0] > 0.99,
            f"{r['columns']['P'][-1] if r.get('ok') else r.get('error')} bar at the rim")
+
+    # "is there equilibrium here?": a state inside the two-phase region, and one above it
+    r = point({"components": ["ethanol", "water"], "model": "vanlaar", "T": 360.0, "P": 1.01325, "z1": 0.4})
+    r2 = point({"components": ["ethanol", "water"], "model": "vanlaar", "T": 360.0, "P": 2.0, "z1": 0.4})
+    b_ = r.get("bounds", {})
+    report("state check: two phases between the dew and bubble pressures, liquid above",
+           r["ok"] and r["phase"] == "two-phase" and b_["P_dew"] < 1.01325 < b_["P_bubble"]
+           and r["x1"] < 0.4 < r["y1"] and r2["phase"] == "liquid",
+           f"x = {r.get('x1')}, y = {r.get('y1')}, beta = {r.get('beta')}")
+    o = run_input(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "examples",
+                                    "gravity_column_gas_cap.txt")).read())
+    report("own input: checked, solved and printed", o["status"] == "SUFFICIENT"
+           and "gas-liquid contact" in o["results"], f"{o['ms']} ms")
 
     # 3D: each layer of a surface is the ordinary diagram at that pressure
     sv = surface({"components": ["ethanol", "water"], "model": "nrtl", "hold": "P",

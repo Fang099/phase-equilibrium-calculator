@@ -81,7 +81,8 @@ def initial_K(L, V, T, P):
 
 def _rr_residual(z, K, beta):
     """Rachford-Rice function."""
-    return float(np.sum(z * (K - 1) / (1 + beta * (K - 1))))
+    with np.errstate(divide="ignore", invalid="ignore"):     # beta = 1 with K = 0 gives -inf: fine
+        return float(np.sum(z * (K - 1) / (1 + beta * (K - 1))))
 
 
 def _compositions(z, K, beta):
@@ -970,11 +971,13 @@ class _TooSlow(SolverError):
 
 def column_profile(system, L, V, point, npts=21, time_limit=None):
     """See _column_profile. time_limit (s): stop with a SolverError after that."""
-    _deadline[0] = None if time_limit is None else time.time() + time_limit
+    before = _deadline[0]                 # a caller may already have set a limit
+    if time_limit is not None:
+        _deadline[0] = time.time() + time_limit
     try:
         return _column_profile(system, L, V, point, npts)
     finally:
-        _deadline[0] = None
+        _deadline[0] = before
 
 
 def _column_profile(system, L, V, point, npts=21):

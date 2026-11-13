@@ -330,6 +330,76 @@
       n.value = state.x1; n.step = 0.01; u.textContent = "mole fraction of " + lower(nameA());
     }
   }
+  /* ------------------------------------------------------------ is there equilibrium here? */
+  var check = { mode: "point", mark: null };
+  function phaseWord(p) { return { liquid: "Liquid only", vapor: "Vapor only", "two-phase": "Liquid and vapor in equilibrium" }[p] || p; }
+  function drawCheckMode() {
+    seg($("check-mode"), [["point", "A state of this mixture"], ["file", "Your own input"]], check.mode, function (m) {
+      check.mode = m; $("check-point").hidden = m !== "point"; $("check-file").hidden = m !== "file"; drawCheckMode();
+      if (m === "file" && !$("ck-text").value && last) $("ck-text").value = last.res.input_text || "";
+    });
+  }
+  function fillCheckDefaults() {
+    if (!$("ck-T").value) $("ck-T").value = state.T;
+    if (!$("ck-P").value) $("ck-P").value = +(+state.P).toPrecision(5);
+    if (!$("ck-z").value) $("ck-z").value = 0.5;
+    $("ck-z-label").textContent = "Overall mole fraction of " + lower(nameA());
+  }
+  function runPoint() {
+    var T = +$("ck-T").value, P = +$("ck-P").value, z = +$("ck-z").value, box = $("ck-result");
+    if (!(T > 0) || !(P > 0) || !(z > 0 && z < 1)) { box.innerHTML = "<p class='notice'>Give T > 0, P > 0 and a mole fraction between 0 and 1.</p>"; return; }
+    var p = {}; activeParams().forEach(function (k) { p[k] = state.params[k]; });
+    box.innerHTML = "<p class='source'>Calculating…</p>";
+    engine.call({ op: "point", request: { components: [state.a, state.b], model: state.model, params: p, T: T, P: P, z1: z } }).then(function (r) {
+      if (!r.ok) { box.innerHTML = "<p class='notice'>" + (r.error || "This state could not be calculated.") + "</p>"; check.mark = null; return; }
+      var a = lower(nameA()), b = r.bounds || {}, f = function (v, d) { return v == null ? "–" : PEC.fmt(v, d); };
+      var s = function (v) { return v == null ? "–" : PEC.sig(v, 4); };
+      var h = "<p class='check-verdict ph-" + r.phase + "'>" + phaseWord(r.phase) + "</p>";
+      if (r.phase === "two-phase") {
+        h += "<p>Yes: at " + f(T, 2) + " K and " + s(P) + " bar this mixture splits into a liquid with x = " + f(r.x1, 4) + " and a vapor with y = " + f(r.y1, 4) +
+          " (mole fractions of " + a + "), " + f(r.beta * 100, 1) + "% of it vapor. The two compositions are the ends of the tie line through your state.</p>";
+      } else {
+        h += "<p>No two-phase equilibrium at this state: the mixture is all " + (r.phase === "liquid" ? "liquid (the pressure is above its bubble pressure)" : "vapor (the pressure is below its dew pressure)") + ".</p>";
+      }
+      h += "<p><b>Where equilibrium occurs for this composition:</b> at " + f(T, 2) + " K, between the dew pressure " + s(b.P_dew) + " bar and the bubble pressure " + s(b.P_bubble) +
+        " bar; at " + s(P) + " bar, between the bubble temperature " + f(b.T_bubble, 2) + " K and the dew temperature " + f(b.T_dew, 2) + " K." +
+        (b.P_dew != null && b.P_bubble != null && Math.abs(b.P_bubble - b.P_dew) < 1e-3 * b.P_bubble ? " The two coincide: this composition is (very nearly) the azeotrope." : "") + "</p>";
+      if (r.K) h += "<p class='source'>K = " + r.K.map(s).join(", ") + (r.gamma ? " · γ = " + r.gamma.map(s).join(", ") : "") + " · " + r.ms + " ms</p>";
+      h += "<p><button type='button' class='linkbtn' id='ck-show'>Show it on the Txy diagram at " + s(P) + " bar</button>" +
+        " · <button type='button' class='linkbtn' id='ck-show-p'>on the Pxy diagram at " + f(T, 1) + " K</button></p>";
+      box.innerHTML = h;
+      check.mark = { T: T, P: P, z1: z, x1: r.x1, y1: r.y1, phase: r.phase };
+      function go(hold) {
+        state.field = "none"; state.view = "2d"; state.hold = hold; state.x = "xy"; state.y = hold === "P" ? "T" : "P";
+        if (hold === "P") state.P = P; else state.T = T;
+        drawField(); drawAxes(); schedule(0);
+        document.querySelector(".workspace").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      $("ck-show").addEventListener("click", function () { go("P"); });
+      $("ck-show-p").addEventListener("click", function () { go("T"); });
+      if (last) redraw();
+    });
+  }
+  function runFile() {
+    var box = $("ck-file-result"), text = $("ck-text").value;
+    if (!text.trim()) { box.innerHTML = "<p class='notice'>Write an input first, or start from the current calculation.</p>"; return; }
+    box.innerHTML = "<p class='source'>Checking and solving…</p>";
+    engine.call({ op: "run_input", text: text }).then(function (r) {
+      if (!r.ok) { box.innerHTML = "<p class='notice'>" + (r.error || "Failed") + "</p>"; return; }
+      var esc = function (t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;"); };
+      box.innerHTML = "<p class='check-verdict st-" + r.status.toLowerCase() + "'>" + r.status + "</p>" +
+        "<pre>" + esc(r.report) + "</pre>" + (r.results ? "<pre>" + esc(r.results) + "</pre>" : "") +
+        "<p class='source'>" + r.ms + " ms</p>";
+    });
+  }
+  function bindCheck() {
+    drawCheckMode();
+    $("ck-run").addEventListener("click", runPoint);
+    ["ck-T", "ck-P", "ck-z"].forEach(function (id) { $(id).addEventListener("keydown", function (e) { if (e.key === "Enter") runPoint(); }); });
+    $("ck-file-run").addEventListener("click", runFile);
+    $("ck-file-fill").addEventListener("click", function () { if (last) $("ck-text").value = last.res.input_text || ""; });
+  }
+
   /* the settings column: scrolls on its own beside the plot (a sheet at the bottom
      on small screens), and can be hidden to give the plot more room */
   function bindControls() {
@@ -349,6 +419,7 @@
   }
   function bindAxes() {
     bindControls();
+    bindCheck();
     $("shade").addEventListener("change", function () {          // a redraw, not a new calculation
       state.shade = this.checked; writeHash();
       if (last) show(last.res, last.req, last.view, last.sres);
@@ -401,6 +472,7 @@
       state.params = defaults();
       Object.keys(urlParams).forEach(function (k) { if (k.indexOf("__") !== 0) state.params[k] = urlParams[k]; });
       drawModels(); drawParams(); drawCompare(); drawField(); drawAxes(); drawSources();
+      check.mark = null; $("ck-result").innerHTML = ""; fillCheckDefaults();
       schedule(0);
     });
   }
@@ -911,6 +983,18 @@
       items.push({ name: "Two liquids and vapor coexist", color: "--third" });
     }
     var az = res.azeotrope;
+    /* the state checked below the plot, with its tie line, on a matching diagram */
+    var mk = check.mark;
+    if (mk && X === "xy" && ((Y === "T" && hold === "P" && Math.abs(res.fixed.P - mk.P) < 1e-6 * mk.P) ||
+                             (Y === "P" && hold === "T" && Math.abs(res.fixed.T - mk.T) < 1e-6 * mk.T))) {
+      var v = Y === "T" ? mk.T : mk.P;
+      if (mk.phase === "two-phase") {
+        cfg.series.push({ name: "Tie line", color: "--ink", width: 1.5, dash: "5 4", noHover: true, pts: [[mk.x1, v], [mk.y1, v]] });
+        cfg.points.push({ x: mk.x1, y: v, color: "--liquid" }, { x: mk.y1, y: v, color: "--vapor" });
+      }
+      cfg.points.push({ x: mk.z1, y: v, color: "--ink", text: "your state", dx: 8, dy: -8 });
+      items.push({ name: "Your state" + (mk.phase === "two-phase" ? " and its tie line" : ""), color: "--ink", dot: true });
+    }
     if (az && isComp(X) && (Y === "P" || Y === "T" || Y === "y1")) {
       cfg.points.push({ x: az.x1, y: Y === "y1" ? az.x1 : (az.P != null ? az.P : az.T), color: "--ink-2" });
       items.push({ name: "Azeotrope", color: "--ink-2", dot: true });

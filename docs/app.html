@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="assets/site.css?v=32039c10f9">
+<link rel="stylesheet" href="assets/site.css?v=5bb82a6716">
 </head>
 <body class="app">
 <a class="skip" href="#main">Skip to content</a>
@@ -126,6 +126,30 @@
       <p class="notice" id="notice" hidden></p>
     </section>
 
+    <section class="panel" id="check-panel">
+      <h2>Is there equilibrium here?</h2>
+      <div class="seg" id="check-mode" role="group" aria-label="What to check"></div>
+      <div id="check-point">
+        <p class="source">Give a temperature, a pressure and the overall composition for the mixture and model chosen above.</p>
+        <div class="check-inputs">
+          <label>Temperature (K)<input type="number" id="ck-T" step="any"></label>
+          <label>Pressure (bar)<input type="number" id="ck-P" step="any"></label>
+          <label><span id="ck-z-label">Overall mole fraction</span><input type="number" id="ck-z" step="any" min="0" max="1"></label>
+          <button type="button" class="btn primary" id="ck-run">Check</button>
+        </div>
+        <div id="ck-result" class="check-result" aria-live="polite"></div>
+      </div>
+      <div id="check-file" hidden>
+        <p class="source">Write any input the Python program accepts: compounds, models, properties of your own, a field. It is checked for sufficiency and, if sufficient, solved, exactly as from the command line. <a href="reference.html#input">Input format</a></p>
+        <textarea id="ck-text" rows="12" spellcheck="false" aria-label="Input file"></textarea>
+        <div class="check-actions">
+          <button type="button" class="btn primary" id="ck-file-run">Check and solve</button>
+          <button type="button" class="linkbtn" id="ck-file-fill">Start from the current calculation</button>
+        </div>
+        <div id="ck-file-result" aria-live="polite"></div>
+      </div>
+    </section>
+
     <section class="panel">
       <div class="tabs" role="tablist">
         <button role="tab" id="tab-data" aria-controls="panel-data" aria-selected="true">Data</button>
@@ -158,9 +182,9 @@
   </div>
 </footer>
 
-<script src="assets/edition.js?v=32039c10f9"></script>
-<script src="assets/charts.js?v=32039c10f9"></script>
-<script src="assets/app.js?v=32039c10f9"></script>
+<script src="assets/edition.js?v=5bb82a6716"></script>
+<script src="assets/charts.js?v=5bb82a6716"></script>
+<script src="assets/app.js?v=5bb82a6716"></script>
 
 </body>
 </html>

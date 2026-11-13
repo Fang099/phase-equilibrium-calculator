@@ -5,6 +5,7 @@ A Python program that calculates and plots the phase equilibrium of mixtures. It
 **Website:** https://fang099.github.io/phase-equilibrium-calculator/
 
 - **Calculator:** pick any two of 24 compounds and a model, and plot their vapor–liquid equilibrium between any two variables.
+- **Is there equilibrium here?** on the calculator page: give T, P and an overall composition and it says whether the mixture splits into liquid and vapor, the two compositions, and the bubble and dew points that bound it; or paste any input file to have it checked and solved as from the command line.
 - **Concepts:** chemical potential, fugacity, activity coefficients and the models, in plain language.
 - **How it works:** one calculation followed through the code.
 - **Examples** and **Reference:** worked cases, the input format, the compound data and its sources.
