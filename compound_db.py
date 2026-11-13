@@ -12,8 +12,9 @@ In an input file, the line
 
 fills in whatever the input does not give itself: Tc, Pc, omega, molar mass
 and Antoine constants for each component, the Peng-Robinson k_ij when
-model = PR, and NRTL parameters when activity = nrtl. Values typed in the
-input always take precedence.
+model = PR, NRTL parameters when activity = nrtl, and the temperature-dependent
+van Laar parameters A_ij(T) = a_ij + b_ij/T when activity = vanlaar. Values
+typed in the input always take precedence.
 """
 
 import json
@@ -60,6 +61,8 @@ def pair(a, b):
         'dg_ab', 'dg_ba'  NRTL energies in J/mol (tau_ab = dg_ab / RT)
         'alpha'           NRTL non-randomness
         'kij_pr'          Peng-Robinson binary interaction parameter
+        'vanlaar'         {'a_ab', 'b_ab', 'a_ba', 'b_ba', 'Tmin', 'Tmax',
+                           'rms_lngamma', 'source'}: A_ab(T) = a_ab + b_ab/T
         'nrtl_source', 'kij_source'
     """
     ra, rb = find(a), find(b)
@@ -75,7 +78,19 @@ def pair(a, b):
         out.update(dg_ab=b_ab * R, dg_ba=b_ba * R, alpha=n["alpha"], nrtl_source=n["source"])
     if "kij_pr" in rec:
         out.update(kij_pr=rec["kij_pr"]["value"], kij_source=rec["kij_pr"]["source"])
+    if "vanlaar" in rec:
+        v = rec["vanlaar"]
+        fwd = rec["a"] == ra["id"]
+        out["vanlaar"] = {"a_ab": v["a12"] if fwd else v["a21"], "b_ab": v["b12"] if fwd else v["b21"],
+                          "a_ba": v["a21"] if fwd else v["a12"], "b_ba": v["b21"] if fwd else v["b12"],
+                          "Tmin": v["Tmin"], "Tmax": v["Tmax"], "rms_lngamma": v["rms_lngamma"],
+                          "source": v["source"]}
     return out
+
+
+def vanlaar_expr(a, b):
+    """'a + b/T' text for one van Laar parameter, as written in an input file."""
+    return f"{a:.5g} {'+' if b >= 0 else '-'} {abs(b):.5g}/T"
 
 
 def sources():
@@ -131,4 +146,15 @@ def apply_to_inputs(inp):
                     used.append(f"alpha = {pr['alpha']:g}")
                 if used:
                     notes.append("NRTL: " + ", ".join(used))
+            if inp.activity == "vanlaar" and "vanlaar" in pr:
+                from input_checker import TFunction
+                v, used = pr["vanlaar"], []
+                for (i_, j_), (av, bv) in (((a, b), (v["a_ab"], v["b_ab"])),
+                                           ((b, a), (v["a_ba"], v["b_ba"]))):
+                    if "A" not in inp.opairs.get((i_, j_), {}):
+                        inp.opairs.setdefault((i_, j_), {})["A"] = TFunction(vanlaar_expr(av, bv))
+                        used.append(f"A({i_}, {j_}) = {vanlaar_expr(av, bv)}")
+                if used:
+                    notes.append("van Laar: " + ", ".join(used)
+                                 + f" (fitted {v['Tmin']:g}-{v['Tmax']:g} K)")
     return notes, warnings

@@ -158,7 +158,7 @@ VOCAB = {
     ("component", "nonvolatile"): ("bool", None, "yes if the component never enters the vapor"),
     # ---- pair data ----
     ("pair", "kij"): ("scalar", "none", "binary interaction parameter for the EOS"),
-    ("pair", "A"): ("scalar", "none", "Margules / van Laar: A(i, j) = ln gamma_i at infinite dilution in j"),
+    ("pair", "A"): ("scalar", "none", "Margules / van Laar: A(i, j) = ln gamma_i at infinite dilution in j; a number, or a function of T in K such as 0.52 + 160/T"),
     ("pair", "dg"): ("scalar", "energy_mol", "NRTL: dg(i, j) = g_ij - g_jj, so tau_ij = dg(i, j)/RT"),
     ("pair", "alpha"): ("scalar", "none", "NRTL non-randomness alpha(i, j) (default 0.3)"),
 }
@@ -207,6 +207,22 @@ def compile_relation(expr, variables):
             raise ValueError("only exp, log, ln, log10 and sqrt may be called")
     code = compile(tree, "<relation>", "eval")
     return lambda **kw: eval(code, {"__builtins__": {}}, {**_SAFE_FUNCS, **kw})
+
+
+class TFunction:
+    """A parameter written as a function of temperature, e.g. the van Laar
+    'A(ethanol, water) = -0.0065 + 598.8/T' (T in K). Calling it gives the value."""
+
+    def __init__(self, expr):
+        self.expr = expr.strip()
+        self._fn = compile_relation(self.expr, ["T"])
+        self(300.0)                                   # fail early on a bad formula
+
+    def __call__(self, T):
+        return float(self._fn(T=T))
+
+    def __repr__(self):
+        return self.expr
 
 
 # ==========================================================================
@@ -369,7 +385,10 @@ def parse_input(text):
                 unknown = [n for n in names if n.lower() not in known]
                 if unknown:
                     raise ValueError(f"'{unknown[0]}' is not in the component list")
-                vals = convert(qty, raw, dim, lineno)
+                if qty == "A" and re.search(r"\bT\b", raw):
+                    vals = [TFunction(raw)]                   # a function of T (K)
+                else:
+                    vals = convert(qty, raw, dim, lineno)
                 if len(vals) != 1:
                     raise ValueError("expected a single value")
                 if qty in ORDERED_PAIR:

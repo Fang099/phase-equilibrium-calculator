@@ -144,6 +144,9 @@
         \[ \ln\gamma_1 = A_{12}\left(\frac{A_{21}x_2}{A_{12}x_1 + A_{21}x_2}\right)^{2}, \qquad \ln\gamma_2 = A_{21}\left(\frac{A_{12}x_1}{A_{12}x_1 + A_{21}x_2}\right)^{2} \]
         <p><!--full-->Handles unequal molecules better. <!--/full-->Both parameters must have the same sign.</p>
         <p><!--full-->In both models the<!--/full--><!--reduced-->The<!--/reduced--> parameters have a direct meaning. Setting \(x_1 \to 0\) gives \(\ln\gamma_1^{\infty} = A_{12}\), and \(x_2 \to 0\) gives \(\ln\gamma_2^{\infty} = A_{21}\). <b>Each parameter is the logarithm of an infinite-dilution activity coefficient.</b></p>
+        <p>Activity coefficients change with temperature, so the van Laar parameters must too. van Laar derived his model from the van der Waals equation, and in that derivation the excess Gibbs energy comes entirely from the energy of mixing, which makes \(G^{E}/RT\), and with it each \(A_{ij}\), proportional to \(1/T\). The database uses this form with a constant added:</p>
+        \[ A_{ij}(T) = a_{ij} + \frac{b_{ij}}{T} \qquad (T \text{ in K}). \]
+        <p>\(b_{ij}\) carries the temperature dependence. For most pairs it is positive: the mixture moves closer to ideal as it gets hotter.</p>
 
         <!--full-->
         <h3>NRTL</h3>
@@ -162,13 +165,13 @@
 
         <h3>Where the parameters come from</h3>
         <!--full-->
-        <p>Parameters are fitted to measured vapor–liquid data. The calculator's database holds published NRTL parameters for <span data-v="database.n_nrtl" data-d="0"></span> pairs. There is no comparable table for Margules and van Laar, so for those the calculator starts from the infinite-dilution values that the NRTL model gives, and starts from zero (an ideal solution) when it has nothing. Every parameter can then be changed with a slider to see what it does.</p>
+        <p>Parameters are fitted to measured vapor–liquid data. The calculator's database holds published NRTL parameters for <span data-v="database.n_nrtl" data-d="0"></span> pairs. There is no comparable table for Margules, so the calculator starts from the infinite-dilution values that the NRTL model gives, and from zero (an ideal solution) when it has nothing.</p>
         <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=vanlaar&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325&amp;compare=nrtl">Compare van Laar with NRTL in the calculator</a> · <a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=GE&amp;x=x1&amp;hold=T&amp;T=350">Excess Gibbs energy</a></p>
         <!--/full-->
-        <!--reduced-->
-        <p>Parameters are fitted to measured vapor–liquid data. Since each van Laar parameter is a logarithm of an infinite-dilution activity coefficient, the calculator starts from those values, computed at the mean boiling point of the pair from the ChemSep binary interaction data, and from zero (an ideal solution) when a pair has none. Every parameter can then be changed with a slider to see what it does.</p>
-        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=vanlaar&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325&amp;compare=ideal">Compare van Laar with an ideal solution in the calculator</a></p>
-        <!--/reduced-->
+        <p><!--reduced-->Parameters are fitted to measured vapor–liquid data. <!--/reduced-->The largest collection of such data, the DECHEMA <i>Vapor–Liquid Equilibrium Data Collection</i>, fits each measured data set with several models, but of those fits only the NRTL parameters are openly available (in the ChemSep parameter library). The van Laar parameters in this project's database are therefore regressed from them: for each pair, NRTL gives \(\ln\gamma_1\) and \(\ln\gamma_2\) across all compositions at temperatures spanning the two boiling points, and \(a_{12}, b_{12}, a_{21}, b_{21}\) are fitted to all of those values at once.</p>
+        <p>For the <span data-v="database.n_vanlaar" data-d="0"></span> pairs with van Laar parameters, the root-mean-square error in \(\ln\gamma\) is <span data-v="database.vl_rms_median" data-d="4"></span> for the median pair and at most <span data-v="database.vl_rms_max" data-d="3"></span>. The fitted values agree with a widely reproduced table of van Laar constants (see <a href="reference.html#vanlaar-check">Reference</a>). The calculator does not offer van Laar for a pair with no database entry.</p>
+        <p>The sliders change \(A_{12}\) and \(A_{21}\) at a reference temperature, the mean boiling point of the pair, and keep the database's \(b_{ij}\). Unticking "Vary with temperature" holds them constant instead.</p>
+        <p class="note"><a href="app.html#a=ethanol&amp;b=water&amp;model=vanlaar&amp;y=gamma&amp;x=x1&amp;hold=T&amp;T=340">Watch the activity coefficients change as you move the temperature</a><!--reduced--> · <a href="app.html#a=ethanol&amp;b=water&amp;model=vanlaar&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325&amp;compare=ideal">Compare van Laar with an ideal solution</a><!--/reduced--></p>
       </section>
 
       <!-- ============================================================ -->

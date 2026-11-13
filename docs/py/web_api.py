@@ -59,7 +59,8 @@ def catalog():
                         "Pc": c["Pc"]["source"], "omega": c["omega"]["source"],
                         "antoine": a["source"], "Tb": c["Tb"]["source"]},
         })
-    pairs = [{"a": p["a"], "b": p["b"], "nrtl": "nrtl" in p, "kij_pr": "kij_pr" in p}
+    pairs = [{"a": p["a"], "b": p["b"], "nrtl": "nrtl" in p, "kij_pr": "kij_pr" in p,
+              "vanlaar": "vanlaar" in p}
              for p in db["pairs"]]
     return {"compounds": comps, "pairs": pairs, "sources": db["meta"]["sources"],
             "generated": db["meta"]["generated"],
@@ -71,11 +72,12 @@ def catalog():
 def pair_defaults(a, b):
     """Starting parameter values and sensible ranges for a pair of compounds.
 
-    NRTL parameters and the Peng-Robinson k_ij come from the database when it
-    has them. Margules and van Laar have no database; their A12 and A21 are
-    ln(gamma) at infinite dilution, so they are matched to the NRTL model's
-    infinite-dilution values at the mean boiling point when NRTL parameters
-    exist, and are zero (an ideal solution) otherwise."""
+    NRTL parameters, the Peng-Robinson k_ij and the temperature-dependent van
+    Laar parameters A_ij(T) = a_ij + b_ij/T come from the database when it has
+    them ('vanlaar': A12 and A21 are given at T_ref, with the slopes b12, b21).
+    Margules has no database; its A12 and A21 are ln(gamma) at infinite
+    dilution, matched to the NRTL model's values at the mean boiling point
+    when NRTL parameters exist, and zero (an ideal solution) otherwise."""
     ca, cb = compound_db.find(a), compound_db.find(b)
     if ca is None or cb is None:
         raise ValueError("unknown compound")
@@ -84,7 +86,14 @@ def pair_defaults(a, b):
     out = {"a": ca["id"], "b": cb["id"], "T_ref": round(T_ref, 2),
            "kij": {"value": pr.get("kij_pr", 0.0),
                    "source": pr.get("kij_source", "none")},
-           "nrtl": None, "A": {"A12": 0.0, "A21": 0.0, "source": "none"}}
+           "nrtl": None, "A": {"A12": 0.0, "A21": 0.0, "source": "none"}, "vanlaar": None}
+    if "vanlaar" in pr:
+        v = pr["vanlaar"]
+        out["vanlaar"] = {"A12": round(v["a_ab"] + v["b_ab"] / T_ref, 4),
+                          "A21": round(v["a_ba"] + v["b_ba"] / T_ref, 4),
+                          "b12": v["b_ab"], "b21": v["b_ba"], "T_ref": round(T_ref, 2),
+                          "Tmin": v["Tmin"], "Tmax": v["Tmax"],
+                          "rms_lngamma": v["rms_lngamma"], "source": v["source"]}
     if "dg_ab" in pr:
         out["nrtl"] = {"dg12": round(pr["dg_ab"], 2), "dg21": round(pr["dg_ba"], 2),
                        "alpha": pr["alpha"], "source": pr["nrtl_source"]}
@@ -123,7 +132,23 @@ def build_input(req):
         lines.append(f"kij({a}, {b}) = {float(kij):g}")
     elif model in ACTIVITY_MODELS:
         lines.append(f"activity = {model}")
-        if model in ("margules", "vanlaar"):
+        if model == "vanlaar":
+            v = d["vanlaar"]
+            if v is None and not ("A12" in par and "A21" in par):
+                raise ValueError("the database has no van Laar parameters for this pair")
+            A12 = float(par.get("A12", v["A12"] if v else 0.0))
+            A21 = float(par.get("A21", v["A21"] if v else 0.0))
+            if A12 * A21 <= 0:
+                raise ValueError("van Laar needs A12 and A21 of the same sign")
+            if v is not None and par.get("tdep", 1):
+                # A_ij(T) = a_ij + b_ij/T, passing through the chosen value at T_ref
+                Tr = v["T_ref"]
+                lines.append(f"A({a}, {b}) = {compound_db.vanlaar_expr(A12 - v['b12'] / Tr, v['b12'])}")
+                lines.append(f"A({b}, {a}) = {compound_db.vanlaar_expr(A21 - v['b21'] / Tr, v['b21'])}")
+            else:
+                lines.append(f"A({a}, {b}) = {A12:g}")
+                lines.append(f"A({b}, {a}) = {A21:g}")
+        elif model == "margules":
             lines.append(f"A({a}, {b}) = {float(par.get('A12', d['A']['A12'])):g}")
             lines.append(f"A({b}, {a}) = {float(par.get('A21', d['A']['A21'])):g}")
         elif model == "nrtl":
@@ -254,6 +279,12 @@ def _solve(req):
         if Ts and (min(Ts) < lo - 10 or max(Ts) > hi + 10):
             notes.append(f"Vapor pressures are extrapolated: the Antoine constants of this "
                          f"pair are fitted from {lo:.0f} to {hi:.0f} K.")
+    if req.get("model") == "vanlaar" and (req.get("params") or {}).get("tdep", 1):
+        v = pair_defaults(*req["components"])["vanlaar"]
+        Ts = [t for t in out["columns"]["T"] if t is not None]
+        if v and Ts and (min(Ts) < v["Tmin"] - 5 or max(Ts) > v["Tmax"] + 5):
+            notes.append(f"The van Laar parameters are extrapolated: their temperature "
+                         f"dependence is fitted from {v['Tmin']:.0f} to {v['Tmax']:.0f} K.")
     out["notes"] = notes
     out["ok"] = True
     return out
@@ -384,6 +415,23 @@ if __name__ == "__main__":
                  "params": {"A12": 1.0, "A21": -1.0}})
     report("invalid parameters give a readable error, not a crash",
            not r["ok"] and "same sign" in r["error"], r.get("error", ""))
+
+    # database van Laar: A_ij(T) = a + b/T, against the NRTL fit it came from
+    pdv = pair_defaults("ethanol", "water")["vanlaar"]
+    r = compute({"components": ["ethanol", "water"], "model": "vanlaar", "hold": "P", "P": 1.01325})
+    rn = compute({"components": ["ethanol", "water"], "model": "nrtl", "hold": "P", "P": 1.01325})
+    report("van Laar from the database: ethanol-water azeotrope near the NRTL one",
+           r["ok"] and abs(r["azeotrope"]["x1"] - rn["azeotrope"]["x1"]) < 0.03
+           and abs(r["azeotrope"]["T"] - rn["azeotrope"]["T"]) < 0.3
+           and "/T" in r["input_text"] and pdv["rms_lngamma"] < 0.01,
+           f"{r['azeotrope']} vs {rn['azeotrope']}")
+    g = [compute({"components": ["ethanol", "water"], "model": "vanlaar", "hold": "T", "T": T,
+                  "params": {"tdep": td}})["columns"]["gamma1"][0] for T in (340.0, 370.0) for td in (1, 0)]
+    report("temperature dependence: gamma(inf) changes with T only when it is switched on",
+           abs(g[0] - g[2]) > 0.1 and abs(g[1] - g[3]) < 1e-9, f"{g}")
+    r = compute({"components": ["propane", "n-butane"], "model": "vanlaar", "hold": "T", "T": 300})
+    report("a pair without database van Laar parameters is refused", not r["ok"]
+           and "no van Laar" in r["error"], r.get("error", ""))
 
     rt = json.loads(handle(json.dumps({"op": "compute", "request": {
         "components": ["methanol", "water"], "model": "nrtl", "hold": "P", "P": 1.0}})))

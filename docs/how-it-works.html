@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=bcdf66c46c">
+<link rel="stylesheet" href="assets/site.css?v=afd7524a6a">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -101,7 +101,7 @@
         <ol>
           <li><b>Parse.</b> Each line is a quantity, an optional target (a compound or a pair) and a value with a unit. Unknown names get a spelling suggestion.</li>
           <li><b>Convert units</b> to SI: kelvin, pascal, joule per mole, kilogram per mole.</li>
-          <li><b>Fill from the database.</b> With <code>database = builtin</code>, any property the file does not give is looked up: \(T_c\), \(P_c\), \(\omega\), molar mass, Antoine constants, and the pair's \(k_{12}\) for Peng–Robinson. Values written in the file always win.</li>
+          <li><b>Fill from the database.</b> With <code>database = builtin</code>, any property the file does not give is looked up: \(T_c\), \(P_c\), \(\omega\), molar mass, Antoine constants, and the pair's van Laar parameters \(A_{ij}(T) = a_{ij} + b_{ij}/T\) or Peng–Robinson \(k_{12}\). Values written in the file always win.</li>
           <li><b>Choose a route</b> for each possible equilibrium. If an equation of state was requested and its constants are complete, it is used for both phases. Otherwise the checker looks for a vapor-pressure source for each compound and uses the activity model for the liquid.</li>
           <li><b>Count degrees of freedom</b> with the phase rule and compare with what was specified. Here \(F = 2 + 2 - 2 = 2\): the pressure is given and the composition is swept, so the problem is exactly specified.</li>
         </ol>
@@ -125,7 +125,7 @@
           </table>
         </div>
         <h3>Activity route (this example)</h3>
-        <p>The pure-liquid fugacity \(f_i^{L}\) is the vapor pressure from the Antoine equation, multiplied by a Poynting correction \(\exp[V_i^{L}(P - P_i^{\mathrm{sat}})/RT]\) when a liquid volume is given. \(\ln\gamma_i\) comes from the <code>VanLaar</code> class, which holds the model's \(G^{E}\) and its analytic derivative in two methods, <code>ge_rt</code> and <code>ln_gamma</code>. An ideal solution is the same with \(\ln\gamma_i = 0\).</p>
+        <p>The pure-liquid fugacity \(f_i^{L}\) is the vapor pressure from the Antoine equation, multiplied by a Poynting correction \(\exp[V_i^{L}(P - P_i^{\mathrm{sat}})/RT]\) when a liquid volume is given. \(\ln\gamma_i\) comes from the <code>VanLaar</code> class, which holds the model's \(G^{E}\) and its analytic derivative in two methods, <code>ge_rt</code> and <code>ln_gamma</code>. An ideal solution is the same with \(\ln\gamma_i = 0\). A van Laar parameter can be a number or a formula in \(T\), as in the input above; the formula is evaluated at the temperature of each point, so the activity coefficients change along a Txy diagram.</p>
         <h3>Equation-of-state route</h3>
         <p><code>CubicEOS</code> stores van der Waals and Peng–Robinson as one residual Helmholtz energy with two constants:</p>
         \[ \frac{A^{\mathrm{res}}}{NRT} = -\ln\!\left(1-\frac{b}{v}\right) - \frac{a}{bRT(\delta_1-\delta_2)}\,\ln\frac{v+\delta_1 b}{v+\delta_2 b} . \]
@@ -228,7 +228,7 @@
         <h3>Limitations</h3>
         <ul>
           <li>On the activity route the vapor is an ideal gas, so that route is for low to moderate pressure.</li>
-          <li>van Laar parameters are constants, so the activity coefficients do not change with temperature.</li>
+          <li>The van Laar parameters vary with temperature only as \(a + b/T\), fitted between the two boiling points. Outside that range they are extrapolated, and the calculator says so. They are regressed from NRTL rather than directly from measurements.</li>
           <li>Antoine constants are fitted over a limited temperature range. Outside it the vapor pressure is extrapolated, and the calculator says so.</li>
           <li>Equations of state use van der Waals mixing rules with one \(k_{12}\). That suits hydrocarbons and is poor for polar mixtures.</li>
           <li>Near a mixture critical point, bubble and dew calculations with an equation of state can fail. The curves stop there and a note is shown.</li>
@@ -257,9 +257,9 @@
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=bcdf66c46c"></script>
-<script src="assets/charts.js?v=bcdf66c46c"></script>
-<script src="assets/data.js?v=bcdf66c46c"></script>
+<script src="assets/edition.js?v=afd7524a6a"></script>
+<script src="assets/charts.js?v=afd7524a6a"></script>
+<script src="assets/data.js?v=afd7524a6a"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, W = D.walkthrough, $ = function (id) { return document.getElementById(id); };

@@ -374,7 +374,8 @@ data["ew350"] = {"act": {k: nr["columns"][k] for k in keep},
 pd_ew = web_api.pair_defaults("ethanol", "water")
 models = {}
 for m in [m for m in ("margules", "vanlaar", "nrtl") if offered("models", m)]:
-    o = run(components=ew, model=m, hold="T", T=pd_ew["T_ref"])
+    same = {} if m == "nrtl" else {"A12": pd_ew["A"]["A12"], "A21": pd_ew["A"]["A21"], "tdep": 0}
+    o = run(components=ew, model=m, hold="T", T=pd_ew["T_ref"], params=same)
     models[m] = {"x1": o["columns"]["x1"], "gamma1": o["columns"]["gamma1"],
                  "gamma2": o["columns"]["gamma2"], "azeotrope": o["azeotrope"]}
 data["three_models"] = {"T": pd_ew["T_ref"], "A12": pd_ew["A"]["A12"], "A21": pd_ew["A"]["A21"],
@@ -424,12 +425,33 @@ fv = VT.ln_f(tp["value"], 101325.0, [tp["y"], 1 - tp["y"]])
 data["verification"]["three_phase_mismatch"] = float(
     f"{max(np.max(np.abs(fa - fb)), np.max(np.abs(fa - fv))):.1e}")
 
+# database van Laar parameters against a widely reproduced table of constants
+# (Wikipedia, "Van Laar equation"; it gives no temperature, so the fitted
+# A_ij(T) are evaluated at the mean normal boiling point of the pair)
+QUOTED = [("acetone", "chloroform", -0.8643, -0.5899), ("acetone", "methanol", 0.6184, 0.5797),
+          ("acetone", "water", 2.1041, 1.5555), ("chloroform", "methanol", 0.9356, 1.8860),
+          ("ethanol", "benzene", 1.8570, 1.4785), ("ethanol", "water", 1.6798, 0.9227)]
+vcheck = []
+for a_, b_, q12, q21 in QUOTED:
+    if not (offered("compounds", a_) and offered("compounds", b_)):
+        continue
+    pv = web_api.pair_defaults(a_, b_)
+    v = pv["vanlaar"]
+    vcheck.append({"a": a_, "b": b_, "T": pv["T_ref"], "quoted": [q12, q21],
+                   "fit": [v["A12"], v["A21"]], "rms": v["rms_lngamma"]})
+data["vanlaar_check"] = vcheck
+vl_rms = sorted(web_api.pair_defaults(p_["a"], p_["b"])["vanlaar"]["rms_lngamma"]
+                for p_ in web_api.catalog()["pairs"] if p_["vanlaar"]
+                and offered("compounds", p_["a"]) and offered("compounds", p_["b"]))
+
 cat = web_api.catalog()
 cat["compounds"] = [c for c in cat["compounds"] if offered("compounds", c["id"])]
 cat["pairs"] = [p_ for p_ in cat["pairs"] if offered("compounds", p_["a"]) and offered("compounds", p_["b"])]
 data["database"] = {"n_compounds": len(cat["compounds"]),
                     "n_nrtl": sum(1 for p_ in cat["pairs"] if p_["nrtl"]),
                     "n_kij": sum(1 for p_ in cat["pairs"] if p_["kij_pr"]),
+                    "n_vanlaar": sum(1 for p_ in cat["pairs"] if p_["vanlaar"]),
+                    "vl_rms_median": vl_rms[len(vl_rms) // 2], "vl_rms_max": vl_rms[-1],
                     "compounds": [{"id": c["id"], "name": c["name"], "formula": c["formula"],
                                    "cas": c["cas"], "family": c["family"], "M": c["M"],
                                    "Tc": c["Tc"], "Pc": r(c["Pc_bar"], 2), "omega": c["omega"],

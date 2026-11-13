@@ -13,9 +13,11 @@
    "chemsep_pr": "ChemSep interaction parameter data, file 'DECHEMA Peng-Robinson Parameters' (copyright 2009 H. Kooijman and R. Taylor, Artistic License 2.0). Read from the thermo library data files.",
    "iupac_aw": "Molar mass from the molecular formula and IUPAC abridged standard atomic weights (2021).",
    "derived": "Calculated here: temperature at which the Antoine equation gives 101 325 Pa.",
-   "libraries": "Bell, C. and contributors. chemicals: Chemical properties component of Chemical Engineering Design Library (ChEDL), and thermo: Chemical properties component of ChEDL. https://github.com/CalebBell/chemicals, https://github.com/CalebBell/thermo (MIT License)."
+   "libraries": "Bell, C. and contributors. chemicals: Chemical properties component of Chemical Engineering Design Library (ChEDL), and thermo: Chemical properties component of ChEDL. https://github.com/CalebBell/chemicals, https://github.com/CalebBell/thermo (MIT License).",
+   "vanlaar_fit": "van Laar parameters A_ij(T) = a_ij + b_ij/T regressed in this project (scripts/fit_vanlaar.py) to ln(gamma) from the DECHEMA NRTL parameters of the same pair (ChemSep file 'DECHEMA NRTL at P = 1 atm', see chemsep_nrtl), over x1 = 0.01 to 0.99 and the temperature range given with each pair."
   },
-  "notes": "Values are reproduced from the cited sources for teaching use. Check them against the original publication before relying on them."
+  "notes": "Values are reproduced from the cited sources for teaching use. Check them against the original publication before relying on them.",
+  "vanlaar_fitted": "2026-11-13"
  },
  "compounds": [
   {
@@ -1149,6 +1151,17 @@
     "alpha": 0.4647,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.49325,
+    "b12": 186.798,
+    "a21": 1.36946,
+    "b21": 401.661,
+    "Tmin": 272.7,
+    "Tmax": 337.7,
+    "rms_lngamma": 0.1017,
+    "max_lngamma": 0.4947,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1192,6 +1205,17 @@
     "alpha": 0.2886,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.62514,
+    "b12": 342.934,
+    "a21": 0.17162,
+    "b21": 698.808,
+    "Tmin": 309.2,
+    "Tmax": 351.4,
+    "rms_lngamma": 0.0095,
+    "max_lngamma": 0.0399,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1227,6 +1251,17 @@
     "alpha": 0.4365,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.76583,
+    "b12": 298.38,
+    "a21": 1.76536,
+    "b21": 299.898,
+    "Tmin": 324.8,
+    "Tmax": 354.8,
+    "rms_lngamma": 0.1325,
+    "max_lngamma": 0.5665,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1238,6 +1273,17 @@
     "alpha": 0.2882,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.63077,
+    "b12": 421.809,
+    "a21": 0.2584,
+    "b21": 732.39,
+    "Tmin": 331.6,
+    "Tmax": 361.6,
+    "rms_lngamma": 0.0127,
+    "max_lngamma": 0.0511,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1249,6 +1295,17 @@
     "alpha": 0.294,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.504,
+    "b12": 400.011,
+    "a21": 0.17665,
+    "b21": 672.466,
+    "Tmin": 341.1,
+    "Tmax": 371.1,
+    "rms_lngamma": 0.0083,
+    "max_lngamma": 0.033,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1276,6 +1333,17 @@
     "alpha": 0.4408,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.60404,
+    "b12": 334.23,
+    "a21": 1.5966,
+    "b21": 351.626,
+    "Tmin": 337.7,
+    "Tmax": 371.6,
+    "rms_lngamma": 0.1154,
+    "max_lngamma": 0.4938,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1287,6 +1355,17 @@
     "alpha": 0.4758,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.08891,
+    "b12": 346.204,
+    "a21": 1.00539,
+    "b21": 460.09,
+    "Tmin": 346.5,
+    "Tmax": 376.5,
+    "rms_lngamma": 0.0643,
+    "max_lngamma": 0.2665,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1298,6 +1377,17 @@
     "alpha": 0.5193,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.20736,
+    "b12": 291.746,
+    "a21": 1.15028,
+    "b21": 393.887,
+    "Tmin": 355.9,
+    "Tmax": 385.9,
+    "rms_lngamma": 0.0796,
+    "max_lngamma": 0.3335,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1309,6 +1399,17 @@
     "alpha": 0.9809,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.84529,
+    "b12": 68.372,
+    "a21": 0.82431,
+    "b21": 193.027,
+    "Tmin": 347.1,
+    "Tmax": 377.1,
+    "rms_lngamma": 0.0645,
+    "max_lngamma": 0.2811,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1328,6 +1429,17 @@
     "alpha": 0.4381,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.50574,
+    "b12": 421.967,
+    "a21": 1.55086,
+    "b21": 327.145,
+    "Tmin": 337.7,
+    "Tmax": 398.8,
+    "rms_lngamma": 0.1083,
+    "max_lngamma": 0.4988,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1339,6 +1451,17 @@
     "alpha": 0.4717,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.13711,
+    "b12": 361.724,
+    "a21": 1.0651,
+    "b21": 467.354,
+    "Tmin": 351.4,
+    "Tmax": 398.8,
+    "rms_lngamma": 0.0691,
+    "max_lngamma": 0.3011,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1350,6 +1473,17 @@
     "alpha": 0.2907,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.0841,
+    "b12": 667.0,
+    "a21": 0.4332,
+    "b21": 361.138,
+    "Tmin": 369.6,
+    "Tmax": 399.6,
+    "rms_lngamma": 0.0043,
+    "max_lngamma": 0.0171,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1369,6 +1503,17 @@
     "alpha": 0.441,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.70486,
+    "b12": 179.78,
+    "a21": 1.59307,
+    "b21": 473.128,
+    "Tmin": 330.8,
+    "Tmax": 360.8,
+    "rms_lngamma": 0.1207,
+    "max_lngamma": 0.5217,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1380,6 +1525,17 @@
     "alpha": 0.4376,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.99253,
+    "b12": 268.392,
+    "a21": 0.65011,
+    "b21": 644.023,
+    "Tmin": 337.7,
+    "Tmax": 367.7,
+    "rms_lngamma": 0.0423,
+    "max_lngamma": 0.1741,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1391,6 +1547,17 @@
     "alpha": 0.5914,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.01278,
+    "b12": -26.934,
+    "a21": 0.46309,
+    "b21": 754.957,
+    "Tmin": 347.1,
+    "Tmax": 377.1,
+    "rms_lngamma": 0.0385,
+    "max_lngamma": 0.1518,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1402,6 +1569,17 @@
     "alpha": 0.2925,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.277,
+    "b12": 383.615,
+    "a21": 0.13027,
+    "b21": 495.538,
+    "Tmin": 326.6,
+    "Tmax": 356.6,
+    "rms_lngamma": 0.0042,
+    "max_lngamma": 0.0167,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1413,6 +1591,17 @@
     "alpha": 0.2963,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.04098,
+    "b12": 395.66,
+    "a21": 0.18124,
+    "b21": 288.602,
+    "Tmin": 338.3,
+    "Tmax": 368.3,
+    "rms_lngamma": 0.0014,
+    "max_lngamma": 0.0053,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1424,6 +1613,17 @@
     "alpha": 0.3033,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.00669,
+    "b12": -10.081,
+    "a21": 0.00877,
+    "b21": -11.476,
+    "Tmin": 353.2,
+    "Tmax": 383.8,
+    "rms_lngamma": 0.0,
+    "max_lngamma": 0.0,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1435,6 +1635,17 @@
     "alpha": 0.4893,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.82015,
+    "b12": 299.744,
+    "a21": 0.63284,
+    "b21": 498.292,
+    "Tmin": 330.4,
+    "Tmax": 360.4,
+    "rms_lngamma": 0.0378,
+    "max_lngamma": 0.1557,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1446,6 +1657,17 @@
     "alpha": 0.297,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.4544,
+    "b12": 301.055,
+    "a21": 0.06714,
+    "b21": 612.89,
+    "Tmin": 337.3,
+    "Tmax": 367.3,
+    "rms_lngamma": 0.0039,
+    "max_lngamma": 0.0154,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1457,6 +1679,17 @@
     "alpha": 0.2899,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.3227,
+    "b12": 332.234,
+    "a21": 0.06381,
+    "b21": 540.73,
+    "Tmin": 346.7,
+    "Tmax": 376.7,
+    "rms_lngamma": 0.0029,
+    "max_lngamma": 0.0113,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1468,6 +1701,17 @@
     "alpha": 0.2971,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.31592,
+    "b12": -0.606,
+    "a21": 0.08839,
+    "b21": 183.252,
+    "Tmin": 326.2,
+    "Tmax": 356.2,
+    "rms_lngamma": 0.0034,
+    "max_lngamma": 0.0136,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1479,6 +1723,17 @@
     "alpha": 0.1563,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.19875,
+    "b12": -23.256,
+    "a21": 0.14139,
+    "b21": 28.891,
+    "Tmin": 337.9,
+    "Tmax": 367.9,
+    "rms_lngamma": 0.001,
+    "max_lngamma": 0.0044,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1490,6 +1745,17 @@
     "alpha": 0.3061,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.06269,
+    "b12": -97.683,
+    "a21": 0.01948,
+    "b21": -69.596,
+    "Tmin": 328.7,
+    "Tmax": 358.7,
+    "rms_lngamma": 0.0001,
+    "max_lngamma": 0.0003,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1501,6 +1767,17 @@
     "alpha": 0.3055,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.00427,
+    "b12": 36.767,
+    "a21": 1e-05,
+    "b21": 39.785,
+    "Tmin": 336.5,
+    "Tmax": 366.5,
+    "rms_lngamma": 0.0,
+    "max_lngamma": 0.0,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1512,6 +1789,17 @@
     "alpha": 0.4064,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.64462,
+    "b12": 459.052,
+    "a21": 0.57181,
+    "b21": 529.936,
+    "Tmin": 337.7,
+    "Tmax": 383.8,
+    "rms_lngamma": 0.027,
+    "max_lngamma": 0.1143,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1523,6 +1811,17 @@
     "alpha": 0.2937,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.27886,
+    "b12": 447.892,
+    "a21": 0.16966,
+    "b21": 538.153,
+    "Tmin": 351.4,
+    "Tmax": 383.8,
+    "rms_lngamma": 0.0051,
+    "max_lngamma": 0.0203,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1534,6 +1833,17 @@
     "alpha": 0.0175,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.026,
+    "b12": 457.166,
+    "a21": 3e-05,
+    "b21": 476.843,
+    "Tmin": 362.0,
+    "Tmax": 392.0,
+    "rms_lngamma": 0.0,
+    "max_lngamma": 0.0,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1545,6 +1855,17 @@
     "alpha": 0.295,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.22182,
+    "b12": 68.005,
+    "a21": 0.02925,
+    "b21": 219.063,
+    "Tmin": 329.2,
+    "Tmax": 383.8,
+    "rms_lngamma": 0.0012,
+    "max_lngamma": 0.0058,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1556,6 +1877,17 @@
     "alpha": 0.2996,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.01669,
+    "b12": 149.144,
+    "a21": 0.11259,
+    "b21": 73.699,
+    "Tmin": 352.7,
+    "Tmax": 383.8,
+    "rms_lngamma": 0.0004,
+    "max_lngamma": 0.0015,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1567,6 +1899,17 @@
     "alpha": 0.2974,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.25592,
+    "b12": -150.172,
+    "a21": 0.17921,
+    "b21": -114.661,
+    "Tmin": 334.3,
+    "Tmax": 383.8,
+    "rms_lngamma": 0.0002,
+    "max_lngamma": 0.0009,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1578,6 +1921,17 @@
     "alpha": 0.3041,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.005,
+    "b12": 9.228,
+    "a21": 0.00285,
+    "b21": 10.856,
+    "Tmin": 349.8,
+    "Tmax": 383.8,
+    "rms_lngamma": 0.0,
+    "max_lngamma": 0.0,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1589,6 +1943,17 @@
     "alpha": 0.3009,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.00283,
+    "b12": -3.583,
+    "a21": 0.0033,
+    "b21": -3.875,
+    "Tmin": 329.5,
+    "Tmax": 359.5,
+    "rms_lngamma": 0.0,
+    "max_lngamma": 0.0,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1600,6 +1965,17 @@
     "alpha": 0.3011,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.00038,
+    "b12": 17.063,
+    "a21": 6e-05,
+    "b21": 17.289,
+    "Tmin": 337.7,
+    "Tmax": 370.3,
+    "rms_lngamma": 0.0,
+    "max_lngamma": 0.0,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1611,6 +1987,17 @@
     "alpha": 0.2483,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.21246,
+    "b12": -15.791,
+    "a21": 0.11604,
+    "b21": 70.268,
+    "Tmin": 337.7,
+    "Tmax": 390.9,
+    "rms_lngamma": 0.0017,
+    "max_lngamma": 0.0079,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1626,6 +2013,17 @@
    "kij_pr": {
     "value": -0.0778,
     "source": "chemsep_pr"
+   },
+   "vanlaar": {
+    "a12": 0.01234,
+    "b12": 293.293,
+    "a21": 0.26115,
+    "b21": 98.532,
+    "Tmin": 337.7,
+    "Tmax": 373.2,
+    "rms_lngamma": 0.0012,
+    "max_lngamma": 0.0052,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1637,6 +2035,17 @@
     "alpha": 0.3003,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.05422,
+    "b12": 171.402,
+    "a21": 0.01071,
+    "b21": 201.547,
+    "Tmin": 318.5,
+    "Tmax": 348.5,
+    "rms_lngamma": 0.0002,
+    "max_lngamma": 0.0008,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1648,6 +2057,17 @@
     "alpha": 0.3003,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.05628,
+    "b12": 224.827,
+    "a21": 0.0311,
+    "b21": 243.023,
+    "Tmin": 330.2,
+    "Tmax": 360.2,
+    "rms_lngamma": 0.0004,
+    "max_lngamma": 0.0017,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1659,6 +2079,17 @@
     "alpha": 0.2962,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.07575,
+    "b12": 333.491,
+    "a21": 0.10403,
+    "b21": 312.668,
+    "Tmin": 328.9,
+    "Tmax": 358.9,
+    "rms_lngamma": 0.0013,
+    "max_lngamma": 0.0053,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1670,6 +2101,17 @@
     "alpha": 0.2965,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.0793,
+    "b12": 313.12,
+    "a21": 0.09263,
+    "b21": 303.605,
+    "Tmin": 318.9,
+    "Tmax": 348.9,
+    "rms_lngamma": 0.0013,
+    "max_lngamma": 0.005,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1681,6 +2123,17 @@
     "alpha": 0.2953,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.04518,
+    "b12": 434.442,
+    "a21": 0.27384,
+    "b21": 271.996,
+    "Tmin": 307.7,
+    "Tmax": 337.7,
+    "rms_lngamma": 0.002,
+    "max_lngamma": 0.008,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1692,6 +2145,17 @@
     "alpha": 0.3002,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.02154,
+    "b12": 263.903,
+    "a21": 0.08603,
+    "b21": 217.975,
+    "Tmin": 323.4,
+    "Tmax": 353.4,
+    "rms_lngamma": 0.0005,
+    "max_lngamma": 0.0019,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1703,6 +2167,17 @@
     "alpha": 0.2873,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": -0.01368,
+    "b12": 624.43,
+    "a21": 0.6316,
+    "b21": 115.766,
+    "Tmin": 321.0,
+    "Tmax": 351.0,
+    "rms_lngamma": 0.0024,
+    "max_lngamma": 0.0096,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1714,6 +2189,17 @@
     "alpha": 0.6234,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.73066,
+    "b12": 594.209,
+    "a21": 1.09409,
+    "b21": -28.411,
+    "Tmin": 310.2,
+    "Tmax": 340.2,
+    "rms_lngamma": 0.0586,
+    "max_lngamma": 0.2419,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1725,6 +2211,17 @@
     "alpha": 0.4622,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.40305,
+    "b12": 668.349,
+    "a21": 0.8931,
+    "b21": 174.215,
+    "Tmin": 328.7,
+    "Tmax": 358.7,
+    "rms_lngamma": 0.0284,
+    "max_lngamma": 0.1161,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1747,6 +2244,17 @@
     "alpha": 0.2937,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": -0.00645,
+    "b12": 598.802,
+    "a21": 0.52062,
+    "b21": 159.907,
+    "Tmin": 347.3,
+    "Tmax": 377.3,
+    "rms_lngamma": 0.001,
+    "max_lngamma": 0.004,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1758,6 +2266,17 @@
     "alpha": 0.3006,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.07933,
+    "b12": 155.542,
+    "a21": 0.00213,
+    "b21": 210.399,
+    "Tmin": 325.3,
+    "Tmax": 355.3,
+    "rms_lngamma": 0.0001,
+    "max_lngamma": 0.0004,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1769,6 +2288,17 @@
     "alpha": 0.3022,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.0986,
+    "b12": 164.213,
+    "a21": 0.0014,
+    "b21": 236.069,
+    "Tmin": 337.1,
+    "Tmax": 367.1,
+    "rms_lngamma": 0.0001,
+    "max_lngamma": 0.0004,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1780,6 +2310,17 @@
     "alpha": 0.2988,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.06426,
+    "b12": 274.519,
+    "a21": 0.05635,
+    "b21": 280.382,
+    "Tmin": 335.8,
+    "Tmax": 365.8,
+    "rms_lngamma": 0.0008,
+    "max_lngamma": 0.003,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1791,6 +2332,17 @@
     "alpha": 0.3013,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.01643,
+    "b12": 163.089,
+    "a21": 0.02257,
+    "b21": 158.775,
+    "Tmin": 325.8,
+    "Tmax": 355.8,
+    "rms_lngamma": 0.0001,
+    "max_lngamma": 0.0005,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1802,6 +2354,17 @@
     "alpha": 0.2946,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.00872,
+    "b12": 415.227,
+    "a21": 0.29038,
+    "b21": 211.728,
+    "Tmin": 307.7,
+    "Tmax": 351.4,
+    "rms_lngamma": 0.0007,
+    "max_lngamma": 0.0028,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1813,6 +2376,17 @@
     "alpha": 0.3015,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.0198,
+    "b12": 217.01,
+    "a21": 0.20256,
+    "b21": 79.127,
+    "Tmin": 330.3,
+    "Tmax": 360.3,
+    "rms_lngamma": 0.0009,
+    "max_lngamma": 0.0039,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1824,6 +2398,17 @@
     "alpha": 0.2909,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.00712,
+    "b12": 492.051,
+    "a21": 0.56114,
+    "b21": 44.855,
+    "Tmin": 327.9,
+    "Tmax": 357.9,
+    "rms_lngamma": 0.0055,
+    "max_lngamma": 0.0216,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1835,6 +2420,17 @@
     "alpha": 0.3057,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": -0.01853,
+    "b12": 599.819,
+    "a21": 0.64687,
+    "b21": 74.44,
+    "Tmin": 312.8,
+    "Tmax": 351.4,
+    "rms_lngamma": 0.004,
+    "max_lngamma": 0.0166,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1846,6 +2442,17 @@
     "alpha": 0.3057,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.01952,
+    "b12": -17.941,
+    "a21": 0.01536,
+    "b21": -15.389,
+    "Tmin": 347.9,
+    "Tmax": 377.9,
+    "rms_lngamma": 0.0,
+    "max_lngamma": 0.0,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1857,6 +2464,17 @@
     "alpha": 0.3016,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.0254,
+    "b12": 163.713,
+    "a21": 0.01322,
+    "b21": 172.78,
+    "Tmin": 346.5,
+    "Tmax": 376.5,
+    "rms_lngamma": 0.0001,
+    "max_lngamma": 0.0005,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1868,6 +2486,17 @@
     "alpha": 0.3003,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.05566,
+    "b12": 91.368,
+    "a21": 0.14414,
+    "b21": 20.486,
+    "Tmin": 339.1,
+    "Tmax": 370.3,
+    "rms_lngamma": 0.0008,
+    "max_lngamma": 0.0032,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1879,6 +2508,17 @@
     "alpha": 0.631,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.70439,
+    "b12": 589.388,
+    "a21": 1.0416,
+    "b21": 20.366,
+    "Tmin": 345.0,
+    "Tmax": 375.0,
+    "rms_lngamma": 0.0553,
+    "max_lngamma": 0.23,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1890,6 +2530,17 @@
     "alpha": 0.4447,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.72407,
+    "b12": 1118.804,
+    "a21": 1.43016,
+    "b21": -89.062,
+    "Tmin": 367.0,
+    "Tmax": 397.0,
+    "rms_lngamma": 0.0601,
+    "max_lngamma": 0.2326,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1901,6 +2552,17 @@
     "alpha": 0.5663,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.08078,
+    "b12": 167.79,
+    "a21": 0.88466,
+    "b21": 464.767,
+    "Tmin": 329.2,
+    "Tmax": 373.2,
+    "rms_lngamma": 0.0635,
+    "max_lngamma": 0.2804,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1912,6 +2574,17 @@
     "alpha": 0.3536,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.13905,
+    "b12": 251.505,
+    "a21": 0.51548,
+    "b21": 908.98,
+    "Tmin": 348.0,
+    "Tmax": 378.0,
+    "rms_lngamma": 0.0359,
+    "max_lngamma": 0.1458,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1923,6 +2596,17 @@
     "alpha": 0.4393,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.38665,
+    "b12": 314.539,
+    "a21": 1.27314,
+    "b21": 499.81,
+    "Tmin": 346.7,
+    "Tmax": 376.7,
+    "rms_lngamma": 0.0879,
+    "max_lngamma": 0.3691,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1934,6 +2618,17 @@
     "alpha": 0.3792,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.98855,
+    "b12": 221.679,
+    "a21": 1.87777,
+    "b21": 510.94,
+    "Tmin": 307.7,
+    "Tmax": 373.2,
+    "rms_lngamma": 0.1433,
+    "max_lngamma": 0.6891,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1945,6 +2640,17 @@
     "alpha": 0.4522,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 1.31672,
+    "b12": 179.217,
+    "a21": 0.98958,
+    "b21": 652.964,
+    "Tmin": 339.1,
+    "Tmax": 373.2,
+    "rms_lngamma": 0.0718,
+    "max_lngamma": 0.3058,
+    "source": "vanlaar_fit"
    }
   },
   {
@@ -1956,6 +2662,17 @@
     "alpha": 0.3054,
     "unit": "K",
     "source": "chemsep_nrtl"
+   },
+   "vanlaar": {
+    "a12": 0.41084,
+    "b12": -428.813,
+    "a21": 0.06124,
+    "b21": -216.995,
+    "Tmin": 316.8,
+    "Tmax": 346.8,
+    "rms_lngamma": 0.0009,
+    "max_lngamma": 0.0035,
+    "source": "vanlaar_fit"
    }
   }
  ]

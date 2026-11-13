@@ -310,42 +310,64 @@ class IdealGasPhase:
 # --------------------------------------------------------------------------
 # Activity-coefficient models (excess Gibbs energy)
 # --------------------------------------------------------------------------
+def _at(A, T):
+    """A parameter given as a number, or as a function of T (K)."""
+    return float(A(T)) if callable(A) else A
+
+
 class Margules:
-    """Two-parameter Margules model for a binary; A12, A21 dimensionless."""
+    """Two-parameter Margules model for a binary; A12, A21 dimensionless,
+    each a constant or a function of T in K."""
     name = "Margules"
 
     def __init__(self, A12, A21):
         self.A12, self.A21 = A12, A21
 
+    def params(self, T):
+        return _at(self.A12, T), _at(self.A21, T)
+
     def ge_rt(self, T, x):
         x1, x2 = x
-        return x1 * x2 * (self.A21 * x1 + self.A12 * x2)
+        A12, A21 = self.params(T)
+        return x1 * x2 * (A21 * x1 + A12 * x2)
 
     def ln_gamma(self, T, x):
         x1, x2 = x
-        A12, A21 = self.A12, self.A21
+        A12, A21 = self.params(T)
         return np.array([x2 ** 2 * (A12 + 2 * (A21 - A12) * x1),
                          x1 ** 2 * (A21 + 2 * (A12 - A21) * x2)])
 
 
 class VanLaar:
     """van Laar model for a binary; A12, A21 dimensionless and positive
-    (or both negative)."""
+    (or both negative). Each is a constant or a function of T in K, such as
+    the database form A_ij(T) = a_ij + b_ij/T."""
     name = "van Laar"
 
     def __init__(self, A12, A21):
-        if A12 * A21 <= 0:
+        for A in (A12, A21):
+            if not callable(A) and not np.isfinite(A):
+                raise ValueError("van Laar parameters must be finite")
+        if not callable(A12) and not callable(A21) and A12 * A21 <= 0:
             raise ValueError("van Laar needs A12 and A21 of the same sign")
         self.A12, self.A21 = A12, A21
 
+    def params(self, T):
+        A12, A21 = _at(self.A12, T), _at(self.A21, T)
+        if A12 * A21 <= 0:
+            raise ValueError(f"van Laar needs A12 and A21 of the same sign "
+                             f"(at {T:.1f} K they are {A12:.4g} and {A21:.4g})")
+        return A12, A21
+
     def ge_rt(self, T, x):
         x1, x2 = x
-        d = self.A12 * x1 + self.A21 * x2
-        return self.A12 * self.A21 * x1 * x2 / d
+        A12, A21 = self.params(T)
+        d = A12 * x1 + A21 * x2
+        return A12 * A21 * x1 * x2 / d
 
     def ln_gamma(self, T, x):
         x1, x2 = x
-        A12, A21 = self.A12, self.A21
+        A12, A21 = self.params(T)
         d = A12 * x1 + A21 * x2
         return np.array([A12 * (A21 * x2 / d) ** 2, A21 * (A12 * x1 / d) ** 2])
 
@@ -733,6 +755,14 @@ if __name__ == "__main__":
     report("infinite dilution: ln gamma_1(x1 -> 0) = A12",
            abs(vl.ln_gamma(340.0, [0.0, 1.0])[0] - 1.68) < 1e-12
            and abs(Margules(1.2, 0.7).ln_gamma(340.0, [0.0, 1.0])[0] - 1.2) < 1e-12, "")
+    from input_checker import TFunction
+    vt = VanLaar(TFunction("-0.0065 + 598.8/T"), TFunction("0.5206 + 159.91/T"))
+    ok_t = all(abs(vt.ln_gamma(T, [0.0, 1.0])[0] - (-0.0065 + 598.8 / T)) < 1e-12
+               and np.allclose(vt.ln_gamma(T, [0.3, 0.7]),
+                               VanLaar(-0.0065 + 598.8 / T, 0.5206 + 159.91 / T).ln_gamma(T, [0.3, 0.7]),
+                               rtol=0, atol=1e-14)
+               for T in (330.0, 360.0, 390.0))
+    report("temperature-dependent A(T) = a + b/T is evaluated at each T", ok_t, "")
 
     print("\n5. Field potential (centrifuge, 20000 rpm, r from 0.05 to 0.10 m)")
     sysc = build_system(DEMOS["5. Ethanol / water, user Psat relations, centrifuge"])

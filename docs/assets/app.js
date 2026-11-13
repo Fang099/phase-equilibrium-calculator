@@ -62,7 +62,8 @@
   var PAIRED = { K: ["K1", "K2"], gamma: ["gamma1", "gamma2"], lngamma: ["gamma1", "gamma2"], f: ["f1", "f2"], phiL: ["phiL1", "phiL2"], phiV: ["phiV1", "phiV2"] };
   var SINGLE = { alpha: "alpha", GE: "GE_RT", Gmix: "Gmix_RT", stab: "stability", y1: "y1", P: "P", T: "T" };
   var SOURCE_LABEL = { chemsep_nrtl: "ChemSep NRTL library", chemsep_pr: "ChemSep Peng–Robinson library",
-    nrtl_infinite_dilution: "matched to the NRTL model at infinite dilution", none: "no database value" };
+    nrtl_infinite_dilution: "matched to the NRTL model at infinite dilution", none: "no database value",
+    vanlaar_fit: "database, A = a + b/T fitted to the DECHEMA NRTL parameters" };
 
   /* the edition (set at build time in site/edition.json) limits what is offered */
   var ED = window.PEC_EDITION || {};
@@ -85,7 +86,7 @@
     ["a", "b", "model", "compare", "x", "y", "hold"].forEach(function (k) { if (h.get(k) != null) state[k] = h.get(k); });
     ["T", "P", "x1"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) state[k] = +h.get(k); });
     var p = {};
-    ["kij", "A12", "A21", "dg12", "dg21", "alpha"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) p[k] = +h.get(k); });
+    ["kij", "A12", "A21", "tdep", "dg12", "dg21", "alpha"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) p[k] = +h.get(k); });
     p.__hasT = h.get("T") != null;
     return p;
   }
@@ -106,13 +107,15 @@
   function isComp(x) { return x === "xy" || x === "x1" || x === "y1"; }
   function activeParams() {
     if (EOS.indexOf(state.model) >= 0) return ["kij"];
-    if (state.model === "margules" || state.model === "vanlaar") return ["A12", "A21"];
+    if (state.model === "margules") return ["A12", "A21"];
+    if (state.model === "vanlaar") return pair.vanlaar ? ["A12", "A21", "tdep"] : [];
     if (state.model === "nrtl") return ["dg12", "dg21", "alpha"];
     return [];
   }
   function defaults() {
     var n = pair.nrtl || { dg12: 0, dg21: 0, alpha: 0.3 };
-    return { kij: state.model === "PR" ? pair.kij.value : 0, A12: pair.A.A12, A21: pair.A.A21, dg12: n.dg12, dg21: n.dg21, alpha: n.alpha };
+    var A = (state.model === "vanlaar" && pair.vanlaar) ? pair.vanlaar : pair.A;
+    return { kij: state.model === "PR" ? pair.kij.value : 0, A12: A.A12, A21: A.A21, tdep: 1, dg12: n.dg12, dg21: n.dg21, alpha: n.alpha };
   }
   function seg(host, items, current, onPick, disabled) {
     host.innerHTML = "";
@@ -178,24 +181,31 @@
   function drawModels() {
     function pick(m) { state.model = m; state.params = defaults(); if (state.compare === m) state.compare = ""; drawModels(); drawParams(); drawCompare(); schedule(0); }
     seg($("models-eos"), EOS.map(function (m) { return [m, MODEL_SHORT[m]]; }), state.model, pick);
-    seg($("models-act"), ACT.map(function (m) { return [m, MODEL_SHORT[m]]; }), state.model, pick);
+    seg($("models-act"), ACT.map(function (m) { return [m, MODEL_SHORT[m]]; }), state.model, pick,
+      function (m) { return m === "vanlaar" && !pair.vanlaar; });
+    var vb = [].slice.call($("models-act").children).filter(function (b) { return b.textContent === MODEL_SHORT.vanlaar; })[0];
+    if (vb && vb.disabled) vb.title = "The database has no van Laar parameters for this pair";
   }
   function drawCompare() {
     var sel = $("compare");
-    sel.innerHTML = "<option value=''>Nothing</option>" + catalog.models.filter(function (m) { return m.id !== state.model && offered("models", m.id); })
+    sel.innerHTML = "<option value=''>Nothing</option>" + catalog.models.filter(function (m) { return m.id !== state.model && offered("models", m.id) && (m.id !== "vanlaar" || pair.vanlaar); })
       .map(function (m) { return "<option value='" + m.id + "'>" + m.label + "</option>"; }).join("");
     sel.value = state.compare;
   }
   var PARAM_META = {
     kij: { label: function () { return "Binary interaction parameter k₁₂"; }, min: -0.3, max: 0.3, step: 0.005 },
-    A12: { label: function () { return "A₁₂ = ln γ∞ of " + lower(nameA()) + " in " + lower(nameB()); }, min: -3, max: 5, step: 0.01 },
-    A21: { label: function () { return "A₂₁ = ln γ∞ of " + lower(nameB()) + " in " + lower(nameA()); }, min: -3, max: 5, step: 0.01 },
+    A12: { label: function () { return "A₁₂ = ln γ∞ of " + lower(nameA()) + " in " + lower(nameB()) + atRef(); }, min: -3, max: 5, step: 0.01 },
+    A21: { label: function () { return "A₂₁ = ln γ∞ of " + lower(nameB()) + " in " + lower(nameA()) + atRef(); }, min: -3, max: 5, step: 0.01 },
     dg12: { label: function () { return "Δg₁₂ (J/mol)"; }, min: -6000, max: 16000, step: 10 },
     dg21: { label: function () { return "Δg₂₁ (J/mol)"; }, min: -6000, max: 16000, step: 10 },
     alpha: { label: function () { return "Non-randomness α"; }, min: 0.05, max: 0.9, step: 0.005 }
   };
+  function atRef() {
+    return (state.model === "vanlaar" && pair.vanlaar && state.params.tdep) ? ", at " + PEC.fmt(pair.vanlaar.T_ref, 1) + " K" : "";
+  }
   function paramSource() {
     if (state.model === "PR") return pair.kij.source;
+    if (state.model === "vanlaar") return pair.vanlaar ? pair.vanlaar.source : "none";
     if (state.model === "SRK" || state.model === "vdW") return "none";
     if (state.model === "nrtl") return pair.nrtl ? pair.nrtl.source : "none";
     if (state.model === "ideal") return null;
@@ -205,6 +215,16 @@
     var host = $("params"), keys = activeParams();
     host.innerHTML = "";
     keys.forEach(function (k) {
+      if (k === "tdep") {                                   // a switch, not a slider
+        var row0 = document.createElement("div"); row0.className = "param";
+        row0.innerHTML = "<label class='check'><input type='checkbox' id='p-tdep'" + (state.params.tdep ? " checked" : "") +
+          "> Vary with temperature</label>";
+        host.appendChild(row0);
+        row0.querySelector("input").addEventListener("change", function () {
+          state.params.tdep = this.checked ? 1 : 0; drawParams(); schedule(0);
+        });
+        return;
+      }
       var meta = PARAM_META[k], row = document.createElement("div");
       row.className = "param";
       row.innerHTML = "<label for='p-" + k + "'>" + meta.label() + "</label>" +
@@ -225,7 +245,15 @@
     if (!note) return;
     if (src == null) { note.textContent = ""; return; }
     var edited = activeParams().some(function (k) { return state.params[k] !== def[k]; });
-    note.innerHTML = (edited ? "Edited. " : "") + "Starting values: " + (SOURCE_LABEL[src] || src) + "." +
+    var extra = "";
+    if (state.model === "vanlaar" && pair.vanlaar) {
+      var v = pair.vanlaar;
+      extra = state.params.tdep
+        ? " A changes with temperature as a + b/T (b₁₂ = " + PEC.fmt(v.b12, 1) + " K, b₂₁ = " + PEC.fmt(v.b21, 1) + " K), fitted from " +
+          PEC.fmt(v.Tmin, 0) + " to " + PEC.fmt(v.Tmax, 0) + " K."
+        : " A is held constant at these values.";
+    }
+    note.innerHTML = (edited ? "Edited. " : "") + "Starting values: " + (SOURCE_LABEL[src] || src) + "." + extra +
       (edited ? " <button class='linkbtn' type='button' id='reset-params'>Reset</button>" : "");
     var b = $("reset-params");
     if (b) b.addEventListener("click", function () { state.params = defaults(); drawParams(); schedule(0); });
@@ -298,6 +326,8 @@
     overlay("Loading " + lower(nameA()) + " and " + lower(nameB()), "");
     return engine.call({ op: "pair", a: state.a, b: state.b }).then(function (p) {
       pair = p;
+      if (state.model === "vanlaar" && !pair.vanlaar) state.model = "PR";      // no database values for this pair
+      if (state.compare === "vanlaar" && !pair.vanlaar) state.compare = "";
       if (urlParams.__hasT) state.T = Math.min(Math.max(state.T, p.ranges.T[0]), p.ranges.T[1]);
       else state.T = p.ranges.T_default;
       state.params = defaults();
@@ -528,9 +558,14 @@
     var h = "<table><thead><tr><th>Property</th><th>" + A.name + "</th><th>" + B.name + "</th><th>Source</th></tr></thead><tbody>" +
       rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td><td>" + r[3] + "</td></tr>"; }).join("");
     var pr = [];
+    var V = pair.vanlaar;
+    if (V) {
+      var tr = function (a, b) { return PEC.fmt(a, 4) + (b < 0 ? " − " : " + ") + PEC.fmt(Math.abs(b), 1) + "/T"; };
+      pr.push(["van Laar A₁₂(T), A₂₁(T), T in K", tr(V.A12 - V.b12 / V.T_ref, V.b12) + ";  " + tr(V.A21 - V.b21 / V.T_ref, V.b21) +
+        " (fitted " + PEC.fmt(V.Tmin, 0) + "–" + PEC.fmt(V.Tmax, 0) + " K, rms error in ln γ " + V.rms_lngamma + ")", src("vanlaar_fit")]);
+      src("chemsep_nrtl");
+    } else pr.push(["van Laar parameters", "not in the database", ""]);
     if (!offered("models", "nrtl")) {
-      if (pair.A.source !== "none") pr.push(["van Laar A₁₂, A₂₁ (starting values)", pair.A.A12 + ", " + pair.A.A21, SOURCE_LABEL[pair.A.source] + " (" + src("chemsep_nrtl") + ")"]);
-      else pr.push(["van Laar A₁₂, A₂₁", "no database value (0 used: an ideal solution)", ""]);
     } else if (pair.nrtl) { pr.push(["NRTL Δg₁₂, Δg₂₁ (J/mol), α", pair.nrtl.dg12 + ", " + pair.nrtl.dg21 + ", " + pair.nrtl.alpha, src(pair.nrtl.source)]); }
     else pr.push(["NRTL parameters", "not in the database", ""]);
     if (pair.kij.source !== "none") pr.push(["Peng–Robinson k₁₂", pair.kij.value, src(pair.kij.source)]);

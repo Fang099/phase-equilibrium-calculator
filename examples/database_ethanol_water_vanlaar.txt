@@ -1,0 +1,8 @@
+# Ethanol / water at 1 atm with the van Laar model, everything from the
+# built-in database: the van Laar parameters vary with temperature as
+# A(i, j) = a + b/T (T in K)
+components = ethanol, water
+database = builtin
+activity = vanlaar
+P = 1 atm
+sweep = x

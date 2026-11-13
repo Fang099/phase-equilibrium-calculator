@@ -45,13 +45,13 @@ cd phase-equilibrium-calculator
 <!--full-->pip install -r requirements.txt<!--/full--><!--reduced-->pip install numpy matplotlib<!--/reduced--></code></pre>
         <p>Each stage can be run on an input file:</p>
 <pre><code># is the information sufficient, and what would be calculated?
-python input_checker.py examples/<!--full-->database_ethanol_water_nrtl.txt<!--/full--><!--reduced-->ethanol_water_vanlaar.txt<!--/reduced-->
+python input_checker.py examples/<!--full-->database_ethanol_water_nrtl.txt<!--/full--><!--reduced-->database_ethanol_water_vanlaar.txt<!--/reduced-->
 
 # check, solve and print tables
-python equilibrium_solver.py examples/<!--full-->database_ethanol_water_nrtl.txt<!--/full--><!--reduced-->ethanol_water_vanlaar.txt<!--/reduced-->
+python equilibrium_solver.py examples/<!--full-->database_ethanol_water_nrtl.txt<!--/full--><!--reduced-->database_ethanol_water_vanlaar.txt<!--/reduced-->
 
 # check, solve and save every figure as PNG in plots/
-python plotter.py examples/<!--full-->database_ethanol_water_nrtl.txt<!--/full--><!--reduced-->ethanol_water_vanlaar.txt<!--/reduced--></code></pre>
+python plotter.py examples/<!--full-->database_ethanol_water_nrtl.txt<!--/full--><!--reduced-->database_ethanol_water_vanlaar.txt<!--/reduced--></code></pre>
         <p>To run the test suites:</p>
 <pre><code>python thermo_models.py
 python equilibrium_solver.py
@@ -120,7 +120,7 @@ sweep = x                       # draw the diagram over all compositions</code><
               <tr><td><code>name.Tm</code>, <code>.dHfus</code>, <code>.dCp_fus</code></td><td>Melting point, enthalpy of fusion, heat-capacity change on melting</td></tr>
               <tr><td><code>name.M</code>, <code>.V_L</code>, <code>.V_S</code>, <code>.nonvolatile</code></td><td>Molar mass; liquid and solid molar volumes; the compound never enters the vapor</td></tr>
               <tr><td><code>kij(name1, name2)</code></td><td>Binary interaction parameter of the equation of state</td></tr>
-              <tr><td><code>A(name1, name2)</code></td><td><!--full-->Margules or van Laar<!--/full--><!--reduced-->van Laar<!--/reduced--> parameter: \(\ln\gamma\) of name1 at infinite dilution in name2. Give both orders.</td></tr>
+              <tr><td><code>A(name1, name2)</code></td><td><!--full-->Margules or van Laar<!--/full--><!--reduced-->van Laar<!--/reduced--> parameter: \(\ln\gamma\) of name1 at infinite dilution in name2. Give both orders. A number, or a formula in <code>T</code> (in K), for example <code>A(ethanol, water) = -0.0065 + 598.8/T</code>.</td></tr>
               <!--full--><tr><td><code>dg(name1, name2)</code>, <code>alpha(name1, name2)</code></td><td>NRTL energy \(g_{12} - g_{22}\) (both orders), and non-randomness (default 0.3)</td></tr><!--/full-->
               <tr><td><code>field</code>, <code>g</code>, <code>omega</code>, <code>height</code>, <code>radius</code>, <code>reference</code></td><td>Gravity or centrifugal field: strength, extent, and the position where the given state applies</td></tr>
             </tbody>
@@ -138,7 +138,7 @@ from thermo_models import build_system
 from equilibrium_solver import solve, print_results
 from plotter import plot_results
 
-text = open("examples/<!--full-->database_ethanol_water_nrtl.txt<!--/full--><!--reduced-->ethanol_water_vanlaar.txt<!--/reduced-->").read()
+text = open("examples/<!--full-->database_ethanol_water_nrtl.txt<!--/full--><!--reduced-->database_ethanol_water_vanlaar.txt<!--/reduced-->").read()
 print(check_input(text))            # verdict and what is missing
 
 system = build_system(text)         # phase models (raises if insufficient)
@@ -208,7 +208,7 @@ out["input_text"]       # the input file this request stands for</code></pre>
       <section id="data" class="wide">
         <div class="measure">
           <h2>Compound data and sources</h2>
-          <p>The database holds <span data-v="database.n_compounds" data-d="0"></span> compounds<!--full-->, NRTL parameters for <span data-v="database.n_nrtl" data-d="0"></span> pairs<!--/full--> and a Peng–Robinson \(k_{12}\) for <span data-v="database.n_kij" data-d="0"></span> pairs. It was generated on <span id="db-date"></span> from the tables cited below. Every value in <code>data/compounds.json</code> carries a tag naming its source, and the calculator shows the values and sources for the selected pair under "Compound data and sources".</p>
+          <p>The database holds <span data-v="database.n_compounds" data-d="0"></span> compounds<!--full-->, NRTL parameters for <span data-v="database.n_nrtl" data-d="0"></span> pairs<!--/full-->, temperature-dependent van Laar parameters for <span data-v="database.n_vanlaar" data-d="0"></span> pairs and a Peng–Robinson \(k_{12}\) for <span data-v="database.n_kij" data-d="0"></span> pairs. It was generated on <span id="db-date"></span> from the tables cited below. Every value in <code>data/compounds.json</code> carries a tag naming its source, and the calculator shows the values and sources for the selected pair under "Compound data and sources".</p>
           <p class="note">The values are reproduced from the cited sources for teaching use. Check them against the original publication before relying on them.</p>
         </div>
         <div class="table-wrap" id="compound-table"></div>
@@ -223,7 +223,12 @@ out["input_text"]       # the input file this request stands for</code></pre>
           </div>
           <p>The tables were read from the data files of two open-source libraries, which compile them from the original publications:</p>
           <p id="source-libraries" class="note"></p>
-          <p><!--full-->Parameters for Margules and van Laar are not in any of these tables. The calculator's starting values for those two models are computed from the NRTL parameters (the infinite-dilution activity coefficients at the mean boiling point of the pair), and are labeled as such.<!--/full--><!--reduced-->van Laar parameters are not in any of these tables. The calculator's starting values are computed from the ChemSep binary interaction parameters (the infinite-dilution activity coefficients at the mean boiling point of the pair), and are labeled as such.<!--/reduced--></p>
+          <!--full--><p>Margules parameters are not in any of these tables. The calculator's starting values for Margules are computed from the NRTL parameters (the infinite-dilution activity coefficients at the mean boiling point of the pair), and are labeled as such.</p><!--/full-->
+          <h3 id="vanlaar-fit">The van Laar parameters</h3>
+          <p>No open table of van Laar constants covers these pairs with a temperature dependence. <code>scripts/fit_vanlaar.py</code> therefore regresses them from the DECHEMA NRTL parameters of the same pair: NRTL gives \(\ln\gamma_1\) and \(\ln\gamma_2\) at 49 compositions (\(x_1\) = 0.01 to 0.99) and 7 temperatures spanning the two normal boiling points (at least 30 K), and the four constants of \(A_{ij}(T) = a_{ij} + b_{ij}/T\) are fitted to all of them by least squares. Each pair's entry stores the constants, the temperature range and the root-mean-square and largest error in \(\ln\gamma\). A pair whose two infinite-dilution \(\ln\gamma\) have opposite signs cannot be described by van Laar and has no entry.</p>
+          <h3 id="vanlaar-check">Check against published constants</h3>
+          <p>A widely reproduced table of van Laar constants (the one in the Wikipedia article "Van Laar equation", which refers to the DECHEMA collection and to <i>Perry's Chemical Engineers' Handbook</i>, 7th ed.) gives single values without a temperature. The fitted parameters, evaluated at the mean normal boiling point of each pair, compare as follows:</p>
+          <div class="table-wrap" id="vanlaar-check-table"></div>
         </div>
       </section>
 
@@ -237,6 +242,7 @@ acetonitrile,Acetonitrile,C2H3N,75-05-8,nitrile</code></pre>
 <pre><code>git clone --depth 1 https://github.com/CalebBell/chemicals
 git clone --depth 1 https://github.com/CalebBell/thermo
 python scripts/build_compound_db.py --chemicals chemicals --thermo thermo
+python scripts/fit_vanlaar.py
 python scripts/build_site.py</code></pre>
         <p>The source tables cover about a thousand compounds for critical constants and several hundred for Antoine constants, so most common liquids can be added this way. A compound that is in neither can still be used by writing its properties directly in an input file.</p>
       </section>
@@ -257,6 +263,9 @@ python scripts/build_site.py --pages   # only the pages, after editing text</cod
           <li>Tester, J. W., and Modell, M. <i>Thermodynamics and Its Applications</i>, 3rd ed. Prentice Hall, 1997.</li>
           <li>Poling, B. E., Prausnitz, J. M., and O'Connell, J. P. <i>The Properties of Gases and Liquids</i>, 5th ed. McGraw-Hill, 2001.</li>
           <li>Horstmann, S., Jabłoniec, A., Krafczyk, J., Fischer, K., and Gmehling, J. PSRK group contribution equation of state: comprehensive revision and extension IV, including critical constants and α-function parameters for 1000 components. <i>Fluid Phase Equilibria</i> 227 (2005) 157–164.</li>
+          <li>Gmehling, J., Onken, U., and co-workers. <i>Vapor–Liquid Equilibrium Data Collection</i>. DECHEMA Chemistry Data Series, Vol. I. DECHEMA, Frankfurt, 1977 onward. (The source of the NRTL parameters in the ChemSep library.)</li>
+          <li>van Laar, J. J. Über Dampfspannungen von binären Gemischen. <i>Zeitschrift für physikalische Chemie</i> 72 (1910) 723–751.</li>
+          <li>Wikipedia, "Van Laar equation", table of van Laar coefficients (used only for the check above). <a href="https://en.wikipedia.org/wiki/Van_Laar_equation">en.wikipedia.org/wiki/Van_Laar_equation</a>.</li>
           <li>Kooijman, H. A., and Taylor, R. <i>ChemSep</i> binary interaction parameter library. <a href="http://www.chemsep.org/">chemsep.org</a>.</li>
           <li>Bell, C., and contributors. <i>chemicals</i> and <i>thermo</i>: Chemical properties components of the Chemical Engineering Design Library (ChEDL). <a href="https://github.com/CalebBell/chemicals">github.com/CalebBell/chemicals</a>, <a href="https://github.com/CalebBell/thermo">github.com/CalebBell/thermo</a>.</li>
           <li>Peng, D.-Y., and Robinson, D. B. A new two-constant equation of state. <i>Industrial &amp; Engineering Chemistry Fundamentals</i> 15 (1976) 59–64.</li>
@@ -297,6 +306,7 @@ python scripts/build_site.py --pages   # only the pages, after editing text</cod
     ["Critical temperature, critical pressure, acentric factor", "psrk4"],
     ["Antoine constants and their temperature range", "poling"],
     [<!--full-->"NRTL parameters for pairs"<!--/full--><!--reduced-->"Binary interaction parameters for pairs (the van Laar starting values)"<!--/reduced-->, "chemsep_nrtl"],
+    ["van Laar A<sub>ij</sub>(T) = a<sub>ij</sub> + b<sub>ij</sub>/T for pairs", "vanlaar_fit"],
     ["Peng–Robinson k<sub>12</sub> for pairs", "chemsep_pr"],
     ["Molar mass", "iupac_aw"],
     ["Normal boiling point", "derived"]];
@@ -304,5 +314,11 @@ python scripts/build_site.py --pages   # only the pages, after editing text</cod
     return "<tr><td>" + r[0] + "</td><td>" + db.sources[r[1]] + "</td></tr>";
   }).join("");
   $("source-libraries").textContent = db.sources.libraries;
+
+  var nm = {}; db.compounds.forEach(function (c) { nm[c.id] = c.name; });
+  PEC.dataTable("vanlaar-check-table", ["Pair (1, 2)", "T (K)", "A<sub>12</sub> published", "A<sub>12</sub> database", "A<sub>21</sub> published", "A<sub>21</sub> database"],
+    D.vanlaar_check.map(function (r) {
+      return [nm[r.a] + ", " + nm[r.b], fmt(r.T, 1), fmt(r.quoted[0], 3), fmt(r.fit[0], 3), fmt(r.quoted[1], 3), fmt(r.fit[1], 3)];
+    }));
 })();
 </script>
