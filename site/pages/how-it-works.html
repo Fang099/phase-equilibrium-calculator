@@ -178,7 +178,7 @@
 <!--code file="thermo_models.py" def="Field.potential"-->
         <p><code>column_profile()</code> marches along height or radius. At each position it solves for the pressure and composition that put every compound's fugacity on its target:</p>
 <!--code file="equilibrium_solver.py" def="_solve_at" to="target = c - M[idx]"-->
-        <p>and switches phase where the fluid reaches saturation.</p>
+        <p>and switches phase where the fluid reaches saturation. The calculator's field panel uses exactly this: <code>build_input()</code> writes the field, the system's extent and the state at the reference position (the bottom, or the inner radius) into the input, a flash at that state gives the phase there, and <code>column_profile()</code> marches from it. On the activity route the liquid's pressure dependence needs its molar volume, which the database does not hold; <code>web_api.rackett_VL()</code> estimates it from \(T_c\), \(P_c\) and \(\omega\) with the Rackett equation, and the input file says so.</p>
       </section>
 
       <!-- ============================================================ -->
@@ -259,7 +259,7 @@
           <li>Comparison with experimental data sets, with deviations reported and parameters fitted.</li>
           <li>Full liquid–liquid equilibrium.</li>
           <li>Ternary diagrams.</li>
-          <li>A larger compound database, and gravity and centrifugal fields in the calculator page.</li>
+          <li>A larger compound database.</li>
         </ul>
       </section>
     </main>

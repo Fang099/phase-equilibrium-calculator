@@ -167,14 +167,79 @@ def build_input(req):
         lines += [f"P = {float(req['P']):g} bar", "sweep = x"]
     elif hold == "x":
         lines += [f"x(L) = {float(req['x1']):g}", "sweep = T"]
+    elif hold == "field":
+        lines += _field_lines(req, a, b, model)
     else:
-        raise ValueError("hold must be 'T', 'P' or 'x'")
+        raise ValueError("hold must be 'T', 'P', 'x' or 'field'")
     return "\n".join(lines) + "\n"
 
 
 # --------------------------------------------------------------------------
 # Compute
 # --------------------------------------------------------------------------
+def rackett_VL(name, T):
+    """Saturated-liquid molar volume (m3/mol) from the Rackett equation,
+    V = (R Tc/Pc) Z_RA^[1 + (1 - Tr)^(2/7)], with the Yamada-Gunn estimate
+    Z_RA = 0.29056 - 0.08775 omega (needs only Tc, Pc, omega from the
+    database). Used for the pressure dependence of the liquid in a field
+    on the activity route."""
+    rec = compound_db.find(name)
+    Tc, Pc, w = rec["Tc"]["value"], rec["Pc"]["value"], rec["omega"]["value"]
+    Tr = min(T / Tc, 0.99)
+    return 8.314462618 * Tc / Pc * (0.29056 - 0.08775 * w) ** (1 + (1 - Tr) ** (2 / 7))
+
+
+def _field_lines(req, a, b, model):
+    """Input lines for a column in a field: the state (T, P, feed z) at the
+    reference position (the bottom of a gravity column, the inner radius of
+    a centrifuge) and the field itself."""
+    f = req["field"]
+    T, P, z1 = float(req["T"]), float(req["P"]), float(req["z1"])
+    lines = [f"T = {T:g} K", f"P = {P:g} bar", f"z = {z1:g}"]
+    if f["kind"] == "gravity":
+        H = float(f["height"])
+        lines += ["field = gravity", f"g = {float(f['g']):g} m/s2", f"height = 0, {H:g} m",
+                  "reference = 0 m"]
+    elif f["kind"] == "centrifugal":
+        r1, r2 = float(f["r_in"]), float(f["r_out"])
+        if not 0 <= r1 < r2:
+            raise ValueError("the outer radius must be larger than the inner radius")
+        lines += ["field = centrifugal", f"omega = {float(f['rpm']):g} rpm",
+                  f"radius = {r1:g}, {r2:g} m", f"reference = {r1:g} m"]
+    else:
+        raise ValueError("field must be 'gravity' or 'centrifugal'")
+    if model in ACTIVITY_MODELS:
+        for c in (a, b):
+            lines.append(f"{c}.V_L = {rackett_VL(c, T) * 1e6:.4g} cm3/mol   "
+                         f"# Rackett equation (Yamada-Gunn), at {T:g} K")
+    return lines
+
+
+def _profile(req, text, out):
+    """Equilibrium at the reference position (a flash at T, P, z), then the
+    profile of pressure, composition and phase along the field."""
+    system = build_system(text)
+    eq = next(e for e in system.equilibria if e.phase_names[1] == "V")
+    L, V = eq.phases
+    z1, P = float(req["z1"]), float(req["P"]) * 1e5
+    point = es.flash_TP(L, V, float(req["T"]), P, np.array([z1, 1 - z1]))
+    prof = es.column_profile(system, L, V, point, npts=int(req.get("npts", 61)))
+    out.update(route=eq.route, calculation=eq.calculation, names=list(system.names),
+               hold="field", azeotrope=None, three_phase=None, unstable=None,
+               field=dict(req["field"]), fixed={"T": float(req["T"])})
+    out["columns"] = {"position": _clean(prof.position), "P": _clean(prof.P / 1e5),
+                      "x1": _clean(prof.x[:, 0]), "rho": _clean(prof.density),
+                      "phase": list(prof.phase)}
+    fin = lambda v: float(v) if np.isfinite(v) else None
+    out["reference"] = {"phase": point.phase, "beta": fin(point.beta),
+                        "x1": fin(point.x[0]), "y1": fin(point.y[0])}
+    out["contacts"] = [{"position": float(c["position"]), "P": float(c["P"]) / 1e5}
+                       for c in prof.extra.get("contacts", [])]
+    out["notes"] = [n for n in prof.notes if not n.startswith("single phase")]
+    out["ok"] = True
+    return out
+
+
 def _clean(arr, digits=7):
     """Arrays -> JSON-safe lists (NaN and inf become null)."""
     out = []
@@ -202,6 +267,8 @@ def _solve(req):
         out["ok"] = False
         out["error"] = "The checker did not accept this input: " + rep.status
         return out
+    if req.get("hold") == "field":
+        return _profile(req, text, out)
     system = build_system(text)
     eq = next(e for e in system.equilibria if e.phase_names[1] == "V")
     L, V = eq.phases
@@ -450,6 +517,20 @@ if __name__ == "__main__":
                  "params": {"A12": 1.0, "A21": -1.0}})
     report("invalid parameters give a readable error, not a crash",
            not r["ok"] and "same sign" in r["error"], r.get("error", ""))
+
+    # field: the 500 m propane / n-butane column forms a gas cap near 306 m
+    r = compute({"components": ["propane", "n-butane"], "model": "PR", "hold": "field", "T": 320,
+                 "P": 25, "z1": 0.4, "npts": 41,
+                 "field": {"kind": "gravity", "g": 9.80665, "height": 500}})
+    report("gravity column in the calculator: gas-liquid contact", r["ok"] and len(r["contacts"]) == 1
+           and abs(r["contacts"][0]["position"] - 306.1) < 1.5 and r["columns"]["phase"][-1] == "vapor",
+           str(r.get("contacts")))
+    r = compute({"components": ["ethanol", "water"], "model": "vanlaar", "hold": "field", "T": 350,
+                 "P": 1.0, "z1": 0.3, "npts": 21,
+                 "field": {"kind": "centrifugal", "rpm": 20000, "r_in": 0.05, "r_out": 0.10}})
+    report("centrifuge with an activity model: Rackett liquid volumes, P rises outward",
+           r["ok"] and "Rackett" in r["input_text"] and r["columns"]["P"][-1] > r["columns"]["P"][0] > 0.99,
+           f"{r['columns']['P'][-1] if r.get('ok') else r.get('error')} bar at the rim")
 
     # 3D: each layer of a surface is the ordinary diagram at that pressure
     sv = surface({"components": ["ethanol", "water"], "model": "nrtl", "hold": "P",

@@ -77,7 +77,11 @@
     SOURCE_LABEL.nrtl_infinite_dilution = "infinite-dilution activity coefficients from the ChemSep interaction data";
   var DEF = ED["default"] || { a: "ethanol", b: "water", model: "nrtl" };
 
-  var state = { a: DEF.a, b: DEF.b, model: DEF.model, compare: "", x: "xy", y: "T", hold: "P", T: 350, P: 1.01325, x1: 0.5, view: "2d", shade: true, params: {} };
+  var state = { a: DEF.a, b: DEF.b, model: DEF.model, compare: "", x: "xy", y: "T", hold: "P", T: 350, P: 1.01325, x1: 0.5, view: "2d", shade: true, params: {},
+    /* external field: kind, its parameters, the overall composition z1 at the reference
+       position, and which profile is plotted */
+    field: "none", g: 9.80665, H: 500, rpm: 20000, ri: 0.05, ro: 0.10, z1: 0.4, fy: "P" };
+  var FIELD_PRESETS = [["P", "Pressure"], ["x1", "Composition"], ["rho", "Density"]];
   var LAYERS = 15, LAYER_PTS = 31;                 // 3D surface: diagrams stacked along the fixed variable
   var surfaceCache = { key: null, res: null };
   var catalog = null, pair = null, last = null, engine, busy = false, dirty = false, timer = null;
@@ -88,6 +92,8 @@
     ["a", "b", "model", "compare", "x", "y", "hold", "view"].forEach(function (k) { if (h.get(k) != null) state[k] = h.get(k); });
     ["T", "P", "x1"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) state[k] = +h.get(k); });
     if (h.get("shade") === "0") state.shade = false;
+    ["field", "fy"].forEach(function (k) { if (h.get(k) != null) state[k] = h.get(k); });
+    ["g", "H", "rpm", "ri", "ro", "z1"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) state[k] = +h.get(k); });
     var p = {};
     ["kij", "A12", "A21", "tdep", "dg12", "dg21", "alpha"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) p[k] = +h.get(k); });
     p.__hasT = h.get("T") != null;
@@ -100,6 +106,10 @@
     if (state.compare) h.set("compare", state.compare);
     if (state.view === "3d") h.set("view", "3d");
     if (!state.shade) h.set("shade", "0");
+    if (state.field !== "none") {
+      h.set("field", state.field); h.set("fy", state.fy); h.set("z1", state.z1); h.set("T", state.T); h.set("P", state.P);
+      (state.field === "gravity" ? ["g", "H"] : ["rpm", "ri", "ro"]).forEach(function (k) { h.set(k, state[k]); });
+    }
     activeParams().forEach(function (k) { if (state.params[k] !== defaults()[k]) h.set(k, state.params[k]); });
     history.replaceState(null, "", "#" + h.toString());
   }
@@ -113,10 +123,11 @@
   /* a surface stacks Pxy or Txy-type diagrams along the fixed T or P */
   /* liquid, vapor and two-phase regions exist on diagrams of T or P */
   function canShade() {
+    if (state.field !== "none") return true;
     return (isComp(state.x) && state.x !== "y1" && (state.y === "T" || state.y === "P")) ||
       (state.hold === "x" && ((state.x === "T" && state.y === "P") || (state.x === "P" && state.y === "T")));
   }
-  function can3d() { return (state.hold === "T" || state.hold === "P") && isComp(state.x); }
+  function can3d() { return state.field === "none" && (state.hold === "T" || state.hold === "P") && isComp(state.x); }
   function activeParams() {
     if (EOS.indexOf(state.model) >= 0) return ["kij"];
     if (state.model === "margules") return ["A12", "A21"];
@@ -278,6 +289,14 @@
     if (b) b.addEventListener("click", function () { state.params = defaults(); drawParams(); schedule(0); });
   }
   function drawAxes() {
+    var fm = state.field !== "none";
+    document.querySelector(".axes").hidden = fm;
+    $("view").hidden = fm;
+    if (fm) {
+      seg($("presets"), FIELD_PRESETS, state.fy, function (k) { state.fy = k; drawAxes(); if (last) redraw(); });
+      var sh0 = $("shade"); sh0.checked = state.shade; sh0.disabled = false; sh0.parentNode.title = "";
+      return;
+    }
     resolve();
     var ys = $("axis-y"), xs = $("axis-x");
     ys.innerHTML = Y_OPTS.map(function (o) { return "<option value='" + o[0] + "'>" + o[1] + "</option>"; }).join("");
@@ -363,7 +382,7 @@
       else state.T = p.ranges.T_default;
       state.params = defaults();
       Object.keys(urlParams).forEach(function (k) { if (k.indexOf("__") !== 0) state.params[k] = urlParams[k]; });
-      drawModels(); drawParams(); drawCompare(); drawAxes(); drawSources();
+      drawModels(); drawParams(); drawCompare(); drawField(); drawAxes(); drawSources();
       schedule(0);
     });
   }
@@ -374,6 +393,11 @@
   function request() {
     var p = {};
     activeParams().forEach(function (k) { p[k] = state.params[k]; });
+    if (state.field !== "none")
+      return { components: [state.a, state.b], model: state.model, params: p, hold: "field", npts: 61,
+        T: state.T, P: state.P, z1: state.z1,
+        field: state.field === "gravity" ? { kind: "gravity", g: state.g, height: state.H }
+                                         : { kind: "centrifugal", rpm: state.rpm, r_in: state.ri, r_out: state.ro } };
     var req = { components: [state.a, state.b], model: state.model, params: p, hold: state.hold,
       npts: state.hold === "x" ? 61 : 81, compare: state.compare || null };
     if (state.hold === "T") req.T = state.T; else if (state.hold === "P") req.P = state.P; else req.x1 = state.x1;
@@ -443,20 +467,144 @@
     var is3d = !!sres;
     $("chart").classList.toggle("is-3d", is3d);
     $("chart-hint").hidden = !is3d;
+    var isField = res.hold === "field";
     if (is3d && !sres.ok) { overlay("The surface could not be calculated", sres.error || "", true); }
     else if (is3d) plot3d(res, view, sres);
+    else if (isField) plotField(res);
     else plot(res, view);
-    $("about-plot").href = "concepts.html#" + aboutAnchor(view);
+    $("about-plot").href = "concepts.html#" + (isField ? "beyond" : aboutAnchor(view));
     $("route").textContent = res.route.charAt(0).toUpperCase() + res.route.slice(1);
     $("timing").className = "";
     $("timing").textContent = (is3d && sres.ok
       ? sres.layers.length + " diagrams × " + LAYER_PTS + " points · " + sres.ms + " ms"
-      : res.columns.x1.length + " points · " + res.ms + " ms") + " · " +
+      : (isField ? res.columns.position.length : res.columns.x1.length) + " points · " + res.ms + " ms") + " · " +
       (engine.local ? "local Python engine" : "Python running in your browser");
-    drawFacts(res);
-    var notes = (res.notes || []).filter(function (n) { return n.indexOf("azeotrope at") !== 0; });
+    if (isField) drawFieldFacts(res); else drawFacts(res);
+    var notes = (res.notes || []).filter(function (n) { return n.indexOf("azeotrope at") !== 0 && n.indexOf("gas-liquid contact") !== 0; });
     $("notice").hidden = !notes.length; $("notice").textContent = notes.join(" ");
-    drawTable(res);
+    if (isField) drawFieldTable(res); else drawTable(res);
+  }
+  function redraw() { if (last) show(last.res, last.req, last.view, last.sres); }
+
+  /* ------------------------------------------------------------ external field */
+  function sliderRow(host, label, o) {
+    var row = document.createElement("div"); row.className = "param";
+    row.innerHTML = "<label>" + label + "</label><input type='range' aria-label='" + label + "'><input type='number' aria-label='" + label + "'>";
+    host.appendChild(row);
+    var r = row.children[1], n = row.children[2];
+    r.min = o.log ? Math.log10(o.min) : o.min; r.max = o.log ? Math.log10(o.max) : o.max;
+    r.step = o.log ? 0.005 : o.step; n.step = o.step;
+    function show(v) { r.value = o.log ? Math.log10(v) : v; n.value = +(+v).toPrecision(5); }
+    show(o.value);
+    r.addEventListener("input", function () {
+      var v = o.log ? +Math.pow(10, +r.value).toPrecision(4) : +r.value; n.value = v; o.set(v); schedule(150);
+    });
+    n.addEventListener("change", function () {
+      var v = +n.value; if (!isFinite(v) || v < o.min * (o.min > 0 ? 0.999 : 1) || v > o.max * 1.001) { show(o.value); return; }
+      show(v); o.set(v); schedule(0);
+    });
+  }
+  function drawField() {
+    seg($("field-kind"), [["none", "None"], ["gravity", "Gravity"], ["centrifugal", "Centrifuge"]], state.field, function (k) {
+      state.field = k; if (k !== "none") state.view = "2d"; drawField(); drawAxes(); schedule(0);
+    });
+    var host = $("field-params"); host.innerHTML = "";
+    if (state.field === "none") { $("field-note").hidden = false; return; }
+    $("field-note").hidden = true;
+    if (state.field === "gravity") {
+      sliderRow(host, "g (m/s²)", { min: 0.1, max: 100, step: 0.01, log: true, value: state.g, set: function (v) { state.g = v; } });
+      sliderRow(host, "Height of the column (m)", { min: 1, max: 5000, step: 1, log: true, value: state.H, set: function (v) { state.H = v; } });
+    } else {
+      sliderRow(host, "Speed (rpm)", { min: 100, max: 100000, step: 10, log: true, value: state.rpm, set: function (v) { state.rpm = v; } });
+      sliderRow(host, "Inner radius (cm)", { min: 0, max: 50, step: 0.1, value: +(state.ri * 100).toFixed(2), set: function (v) { state.ri = v / 100; } });
+      sliderRow(host, "Outer radius (cm)", { min: 1, max: 100, step: 0.1, value: +(state.ro * 100).toFixed(2), set: function (v) { state.ro = v / 100; } });
+    }
+    var h = document.createElement("p"); h.className = "label"; h.style.margin = "0.9rem 0 0.2rem";
+    h.textContent = state.field === "gravity" ? "State at the bottom" : "State at the inner radius";
+    host.appendChild(h);
+    sliderRow(host, "Temperature (K), uniform", { min: pair.ranges.T[0], max: pair.ranges.T[1], step: 1, value: state.T, set: function (v) { state.T = v; } });
+    sliderRow(host, "Pressure (bar)", { min: pair.ranges.P[0], max: pair.ranges.P[1] * 10, step: 0.01, log: true, value: state.P, set: function (v) { state.P = v; } });
+    sliderRow(host, "Overall mole fraction of " + lower(nameA()), { min: 0.01, max: 0.99, step: 0.01, value: state.z1, set: function (v) { state.z1 = v; } });
+  }
+  function fieldPos(res) {                                   // m for gravity, cm for a centrifuge
+    var g = res.field.kind === "gravity";
+    return { g: g, k: g ? 1 : 100, title: g ? "Height (m)" : "Radius (cm)" };
+  }
+  function plotField(res) {
+    var c = res.columns, F = fieldPos(res), Y = state.fy, n = c.position.length;
+    var qTitle = { P: "Pressure (bar)", x1: "x of " + lower(nameA()) + " (local phase)", rho: "Density (kg/m³)" }[Y];
+    var cfg = { series: [], areas: [], points: [], hlines: [], vlines: [], regions: [], maxHeight: 460, ratio: 0.6,
+      aria: qTitle + " along the " + (F.g ? "height of the column" : "radius of the centrifuge") };
+    /* one line per stretch of the same phase, coloured by phase */
+    var runs = [], cur = null;
+    for (var i = 0; i < n; i++) {
+      var ph = c.phase[i], v = c[Y][i], pos = c.position[i] * F.k;
+      if (v == null) { cur = null; continue; }
+      if (!cur || cur.phase !== ph) { cur = { phase: ph, pts: [] }; runs.push(cur); }
+      cur.pts.push(F.g ? [v, pos, i] : [pos, v, i]);
+    }
+    var names = { liquid: "Liquid", vapor: "Vapor" };
+    runs.forEach(function (r) {
+      cfg.series.push({ name: names[r.phase] || r.phase, color: r.phase === "vapor" ? "--vapor" : "--liquid", pts: r.pts, width: 2.5 });
+    });
+    var posD = [c.position[0] * F.k, c.position[n - 1] * F.k];
+    var qs = []; runs.forEach(function (r) { r.pts.forEach(function (p) { qs.push(F.g ? p[0] : p[1]); }); });
+    var qD = PEC.niceDomain(qs, Y === "x1" ? { pad: 0.08 } : {});
+    if (F.g) { cfg.xDomain = qD; cfg.yDomain = posD; cfg.xTitle = qTitle; cfg.yTitle = F.title; }
+    else { cfg.xDomain = posD; cfg.yDomain = qD; cfg.xTitle = F.title; cfg.yTitle = qTitle; }
+    var items = [];
+    if (runs.some(function (r) { return r.phase !== "vapor"; })) items.push({ name: "Liquid", color: "--liquid" });
+    if (runs.some(function (r) { return r.phase === "vapor"; })) items.push({ name: "Vapor", color: "--vapor" });
+    /* phase bands along the field direction */
+    if (state.shade) {
+      var bands = [], b0 = null;
+      for (var k = 0; k < n; k++) {
+        var p0 = c.position[k] * F.k;
+        if (!b0 || b0.phase !== c.phase[k]) { if (b0) b0.end = p0; b0 = { phase: c.phase[k], start: p0 }; bands.push(b0); }
+      }
+      if (b0) b0.end = posD[1];
+      (res.contacts || []).forEach(function (ct, j) {             // band edges at the exact contacts
+        if (bands[j + 1]) { bands[j].end = ct.position * F.k; bands[j + 1].start = ct.position * F.k; }
+      });
+      bands.forEach(function (bd) {
+        var col = bd.phase === "vapor" ? "--vapor" : "--liquid";
+        var poly = F.g ? [[qD[0], bd.start], [qD[1], bd.start], [qD[1], bd.end], [qD[0], bd.end]]
+                       : [[bd.start, qD[0]], [bd.end, qD[0]], [bd.end, qD[1]], [bd.start, qD[1]]];
+        cfg.areas.push({ color: col, opacity: 0.13, poly: poly });
+      });
+      items.push({ name: "Liquid region", color: "--liquid", area: true });
+      if (bands.some(function (bd) { return bd.phase === "vapor"; })) items.push({ name: "Vapor region", color: "--vapor", area: true });
+    }
+    (res.contacts || []).forEach(function (ct) {
+      var p = ct.position * F.k, t = "contact, " + PEC.sig(p, 4) + (F.g ? " m" : " cm");
+      if (F.g) cfg.hlines.push({ y: p, text: t }); else cfg.vlines.push({ x: p, text: t });
+    });
+    cfg.tip = function (s, p) {
+      var i = p[2];
+      return "<b>" + (F.g ? PEC.sig(c.position[i], 4) + " m" : PEC.sig(c.position[i] * 100, 4) + " cm") + "</b> · " + c.phase[i] +
+        "<br><span class='dim'>" + PEC.sig(c.P[i], 5) + " bar · x " + PEC.fmt(c.x1[i], 4) +
+        (c.rho[i] != null ? " · " + PEC.sig(c.rho[i], 4) + " kg/m³" : "") + "</span>";
+    };
+    PEC.legend("legend", items);
+    PEC.drawChart($("chart"), cfg);
+  }
+  function drawFieldFacts(res) {
+    var c = res.columns, n = c.position.length, F = fieldPos(res), out = [], unit = F.g ? " m" : " cm";
+    function add(k, v) { out.push("<li><span class='k'>" + k + "</span><span class='v'>" + v + "</span></li>"); }
+    var ref = res.reference, where = F.g ? "bottom" : "inner radius";
+    add("At the " + where, ref.phase === "two-phase" ? "liquid + vapor, " + PEC.fmt(ref.beta * 100, 0) + "% vapor" : ref.phase);
+    (res.contacts || []).forEach(function (ct) { add("Gas–liquid contact", PEC.sig(ct.position * F.k, 4) + unit + ", " + PEC.sig(ct.P, 4) + " bar"); });
+    add("Pressure at the " + (F.g ? "top" : "outer radius"), PEC.sig(c.P[n - 1], 4) + " bar");
+    var xs = c.x1.filter(function (v) { return v != null; });
+    if (xs.length) add("x of " + lower(nameA()) + " from " + where + " to " + (F.g ? "top" : "rim"), PEC.fmt(xs[0], 4) + " → " + PEC.fmt(xs[xs.length - 1], 4));
+    $("facts").innerHTML = out.join("");
+  }
+  function drawFieldTable(res) {
+    var c = res.columns, F = fieldPos(res);
+    PEC.dataTable("data-table", [F.title, "Phase", "P (bar)", "x₁ (local phase)", "ρ (kg/m³)"],
+      c.position.map(function (_, i) {
+        return [PEC.sig(c.position[i] * F.k, 5), c.phase[i], PEC.sig(c.P[i], 6), PEC.fmt(c.x1[i], 5), PEC.sig(c.rho[i], 5)]; }));
+    $("data-caption").textContent = "Subscript 1 is " + lower(nameA()) + ". The composition is that of the phase present at each position; T is uniform.";
   }
   /* the section of the Concepts page that explains the current plot */
   function aboutAnchor(view) {
@@ -712,9 +860,11 @@
   function downloadCsv() {
     if (!last) return;
     var c = last.res.columns, use = TABLE_COLS.filter(function (t) { return c[t[0]]; });
+    if (last.res.hold === "field")
+      use = [["position", "position (m)"], ["phase", "phase"], ["P", "P (bar)"], ["x1", "x1"], ["rho", "rho (kg/m3)"]];
     var lines = ["# " + nameA() + " (1) / " + nameB() + " (2); model " + last.req.model + "; T in K, P and f in bar",
       use.map(function (t) { return t[0]; }).join(",")];
-    c.x1.forEach(function (_, i) { lines.push(use.map(function (t) { var v = c[t[0]][i]; return v == null ? "" : v; }).join(",")); });
+    (c.x1 || c.position).forEach(function (_, i) { lines.push(use.map(function (t) { var v = c[t[0]][i]; return v == null ? "" : v; }).join(",")); });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" }));
     a.download = state.a + "_" + state.b + "_" + state.model + ".csv";

@@ -289,7 +289,7 @@
       <!-- ============================================================ -->
       <section id="beyond">
         <h2>Solids and fields</h2>
-        <p>The calculator page covers vapor–liquid equilibrium. The Python program applies the same equal-fugacity idea in two more directions.</p>
+        <p>The same equal-fugacity idea extends in two more directions. Solids are handled by the Python program; fields are also in the calculator.</p>
         <h3>Solids</h3>
         <p>A pure solid has a fugacity too. Relative to the pure liquid, it follows from the melting point and the enthalpy of fusion:</p>
         \[ \ln\frac{f_i^{S}}{f_i^{L}} = -\frac{\Delta H_{\mathrm{fus}}}{R}\left(\frac1T - \frac1{T_m}\right) . \]
@@ -298,7 +298,8 @@
         <p>In a field, a molecule also has potential energy, so the quantity that must be uniform becomes \(\mu_i + M_i\Phi\), with \(M_i\) the molar mass and \(\Phi\) the potential (\(gz\) for gravity). In fugacity terms,</p>
         \[ \ln\hat f_i + \frac{M_i\,\Phi}{RT} = \text{constant throughout the system}. \]
         <p>Two phases touching at one height share the same \(\Phi\), so the phase diagram at any one position is unchanged. What the field changes is how pressure and composition vary from place to place.</p>
-        <p class="note"><a href="examples.html">See both in the worked examples</a></p>
+        <p>In the calculator, choose Gravity or Centrifuge under "External field" and set the field, the size of the system and the state (temperature, pressure and overall composition) at the bottom of the column or at the inner radius. The plot then shows pressure, composition or density along the height or radius, coloured by phase. Where the pressure falls to the saturation pressure of the local fluid, a second phase appears: a gas cap above a liquid, for example. On the activity route the liquid's molar volume is needed for this and is estimated with the Rackett equation.</p>
+        <p class="note"><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;field=gravity&amp;fy=P&amp;z1=0.4&amp;T=320&amp;P=25&amp;g=9.80665&amp;H=500">A 500 m column with a gas cap in the calculator</a> · <a href="examples.html">Worked examples</a></p>
       </section>
     </main>
   </div>
