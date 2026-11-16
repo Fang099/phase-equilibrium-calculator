@@ -4,7 +4,8 @@ A Python program that calculates and plots the phase equilibrium of mixtures. It
 
 **Website:** https://fang099.github.io/phase-equilibrium-calculator/
 
-- **Calculator:** pick any two of 24 compounds and a model, and plot their vapor–liquid equilibrium between any two variables.
+- **Calculator:** pick two compounds and a model, and plot their vapor–liquid equilibrium between any two variables. Peng–Robinson and van der Waals are offered for 20 gases and hydrocarbons, every pair with a temperature-dependent k₁₂ predicted by E-PPR78; NRTL and the ideal solution for 16 liquids, wherever measured NRTL parameters exist.
+- **Three or four components:** a flash of a mixture at T and P (phase compositions, K-values, bubble and dew points), with a triangle diagram of bubble temperatures and tie lines for three.
 - **Is there equilibrium here?** on the calculator page: give T, P and an overall composition and it says whether the mixture splits into liquid and vapor, the two compositions, and the bubble and dew points that bound it; or paste any input file to have it checked and solved as from the command line.
 - **Concepts:** chemical potential, fugacity, activity coefficients and the models, in plain language.
 - **How it works:** one calculation followed through the code.
@@ -26,7 +27,8 @@ cd phase-equilibrium-calculator
 pip install -r requirements.txt
 
 python input_checker.py examples/database_ethanol_water_nrtl.txt      # is the input sufficient?
-python equilibrium_solver.py examples/database_ethanol_water_vanlaar.txt  # van Laar with A(T) from the database
+python equilibrium_solver.py examples/acetone_methanol_water_flash.txt     # a three-component flash (NRTL)
+python equilibrium_solver.py examples/natural_gas_flash_ppr78.txt         # a four-component flash (PR, E-PPR78 kij)
 python equilibrium_solver.py examples/database_ethanol_water_nrtl.txt # check and solve
 python plotter.py examples/database_ethanol_water_nrtl.txt            # solve and save plots to plots/
 
@@ -67,7 +69,7 @@ naphthalene.dHfus = 19.01 kJ/mol
 |---|---|
 | `Tc`, `Pc`, `omega` (or vdW `a`, `b`) | both phases from one cubic equation of state (vdW, SRK, PR) |
 | Antoine constants, a typed `Psat(T)` relation, or `Tb` with `dHvap` | vapor–liquid equilibrium through the pure-liquid fugacity |
-| activity-model parameters (Margules, van Laar, NRTL) | non-ideal liquids: azeotropes, and the three-phase line when the model predicts two liquid layers |
+| activity-model parameters (Margules, van Laar, NRTL; NRTL from the database) | non-ideal liquids: azeotropes, and the three-phase line when the model predicts two liquid layers |
 | `Tm` with `dHfus` (and optionally `dCp_fus`) | solid–liquid equilibrium: crystallization curves and the eutectic |
 | `nonvolatile = yes` | keeps a compound out of the vapor |
 | molar masses (plus liquid volumes without an EOS) | profiles in a gravity or centrifugal field |
@@ -79,26 +81,28 @@ The checker reports every equilibrium it can decide, names the calculation, and 
 | Module | Purpose |
 |---|---|
 | `input_checker.py` | Parses free-form input, converts units, applies the phase rule (`F = n + 2 + m − π`, or Duhem's theorem with a known feed), and decides which equilibria can be calculated and what is missing |
-| `compound_db.py` | The built-in database (`data/compounds.json`) and `database = builtin` |
+| `compound_db.py` | The built-in database (`data/compounds.json`), `database = builtin`, and the E-PPR78 k₁₂(T) |
 | `thermo_models.py` | Fugacity models for each phase: vdW, SRK and PR as a residual Helmholtz energy; liquid solution with Margules, van Laar or NRTL; ideal gas; pure solid from latent heats; gravity and centrifugal potentials |
 | `equilibrium_solver.py` | Bubble and dew points, flash, Pxy/Txy and P–T diagrams, azeotropes, liquid stability and the three-phase line, activity coefficients and fugacities along a diagram, solid–liquid curves and eutectic, field profiles |
 | `plotter.py` | Matplotlib figures: diagrams, fugacity and activity plots, complete T–x diagrams, field profiles, 3D surfaces |
 | `web_api.py` | JSON interface used by the website's calculator; also usable from Python |
 | `numerics.py` | Root finders used when SciPy is not installed (as in the browser) |
 
-Next stages: systematic comparison with experimental data, liquid–liquid equilibrium as a calculation of its own, ternary diagrams.
+Next stages: systematic comparison with experimental data, liquid–liquid equilibrium as a calculation of its own, residue curves on the triangle diagram.
+
+Assumptions to keep in mind: on the activity route (ideal, NRTL) the vapor is an ideal gas, φ̂ᵢ = 1, which suits low to moderate pressure; on the equation-of-state route both phases come from the same cubic, with van der Waals one-fluid mixing rules.
 
 ## Compound data
 
-`data/compounds.json` holds 24 compounds, NRTL parameters for 66 pairs, temperature-dependent van Laar parameters for 65 pairs and Peng–Robinson k₁₂ for 23 pairs. It is generated by `scripts/build_compound_db.py` and `scripts/fit_vanlaar.py`, never typed by hand, and every value carries a tag naming its source:
+`data/compounds.json` holds 35 compounds, NRTL parameters for 78 pairs, E-PPR78 groups for 20 gases and hydrocarbons, and fixed DECHEMA Peng–Robinson k₁₂ for 104 pairs. It is generated by `scripts/build_compound_db.py`, never typed by hand, and every value carries a tag naming its source:
 
 - **Critical constants and acentric factors:** Horstmann, Jabłoniec, Krafczyk, Fischer, Gmehling, *Fluid Phase Equilibria* 227 (2005) 157–164 (PSRK revision IV).
 - **Antoine constants:** Poling, Prausnitz, O'Connell, *The Properties of Gases and Liquids*, 5th ed., 2001, Appendix A.
 - **NRTL parameters and Peng–Robinson k₁₂:** ChemSep interaction parameter data (H. Kooijman and R. Taylor, Artistic License 2.0).
-- **van Laar parameters** `A_ij(T) = a_ij + b_ij/T`: regressed by `scripts/fit_vanlaar.py` from the DECHEMA NRTL parameters of the same pair (ln γ over all compositions, between the two boiling points). No open van Laar table covers these pairs; the fits agree with commonly quoted constants (see the website's Reference page).
+- **Peng–Robinson k₁₂(T) from groups (E-PPR78):** Jaubert, Qian, Lasala, Privat, *Fluid Phase Equilibria* 560 (2022) 113456. Groups are assigned to each compound in `data/compound_list.csv`. Checked against the course values: k₁₂ = 0.127 for CO₂–ethane, and the CO₂–ethane azeotrope at 263.15 K (30.6 bar at 31 % ethane).
 - All read from the data files of the open-source `chemicals` and `thermo` libraries (C. Bell and contributors, MIT License).
 
-To add compounds, add rows to `data/compound_list.csv` (name, formula, CAS number) and run the script again, then `python scripts/fit_vanlaar.py`; it accepts any compound those tables cover.
+To add compounds, add rows to `data/compound_list.csv` (name, formula, CAS number, and optionally the E-PPR78 groups) and run the script again; it accepts any compound those tables cover.
 
 ## Tests
 
@@ -107,7 +111,7 @@ Each module verifies itself when run directly:
 ```bash
 python thermo_models.py        # EOS derivatives, activity models, latent-heat route
 python equilibrium_solver.py   # round trips, flash balances, azeotrope, eutectic, hydrostatics
-python web_api.py              # calculator requests: azeotropes, equal fugacities, three-phase line
+python web_api.py              # calculator requests: azeotropes, equal fugacities, E-PPR78, 3- and 4-component flashes
 python input_checker.py        # verdicts on the demo inputs
 ```
 

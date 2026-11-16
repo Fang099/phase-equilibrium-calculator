@@ -3,20 +3,145 @@
   "active": "reduced",
   "editions": {
     "full": {
-      "vars": {"act": "NRTL", "act_id": "nrtl"},
-      "default": {"a": "ethanol", "b": "water", "model": "nrtl"}
+      "vars": {
+        "act": "NRTL",
+        "act_id": "nrtl"
+      },
+      "default": {
+        "a": "ethanol",
+        "b": "water",
+        "model": "nrtl"
+      },
+      "compound_sets": null
     },
     "reduced": {
-      "vars": {"act": "van Laar", "act_id": "vanlaar"},
-      "default": {"a": "ethanol", "b": "water", "model": "vanlaar"},
-      "models": ["PR", "vdW", "ideal", "vanlaar", "nrtl"],
-      "compounds": ["propane", "n-butane", "n-hexane", "benzene", "toluene",
-                    "methanol", "ethanol", "water", "acetone", "chloroform"],
-      "presets": ["Pxy", "Txy", "xy", "P–T", "Activity coefficients"],
-      "x_axes": ["xy", "x1", "T"],
-      "y_axes": ["P", "T", "y1", "gamma"],
-      "gallery": ["txy_azeotrope.png", "phase_diagram_latent_heats.png", "pt_diagram.png", "gravity_profile.png"],
-      "hide_examples": ["database_ethanol_water_nrtl.txt", "missing_data_srk.txt"]
+      "vars": {
+        "act": "NRTL",
+        "act_id": "nrtl"
+      },
+      "default": {
+        "a": "ethanol",
+        "b": "water",
+        "model": "nrtl"
+      },
+      "models": [
+        "PR",
+        "vdW",
+        "ideal",
+        "nrtl"
+      ],
+      "compounds": [
+        "methane",
+        "ethane",
+        "ethylene",
+        "propane",
+        "propylene",
+        "n-butane",
+        "isobutane",
+        "n-pentane",
+        "n-hexane",
+        "n-heptane",
+        "n-octane",
+        "n-decane",
+        "cyclohexane",
+        "benzene",
+        "toluene",
+        "p-xylene",
+        "ethylbenzene",
+        "carbon-dioxide",
+        "nitrogen",
+        "hydrogen-sulfide",
+        "methanol",
+        "ethanol",
+        "1-propanol",
+        "2-propanol",
+        "water",
+        "acetone",
+        "2-butanone",
+        "ethyl-acetate",
+        "tetrahydrofuran",
+        "chloroform",
+        "tetrachloromethane"
+      ],
+      "presets": [
+        "Pxy",
+        "Txy",
+        "xy",
+        "P–T",
+        "Activity coefficients"
+      ],
+      "x_axes": [
+        "xy",
+        "x1",
+        "T"
+      ],
+      "y_axes": [
+        "P",
+        "T",
+        "y1",
+        "gamma"
+      ],
+      "gallery": [
+        "txy_azeotrope.png",
+        "phase_diagram_latent_heats.png",
+        "pt_diagram.png",
+        "gravity_profile.png"
+      ],
+      "hide_examples": [
+        "missing_data_srk.txt"
+      ],
+      "compound_sets": {
+        "eos": [
+          "methane",
+          "ethane",
+          "ethylene",
+          "propane",
+          "propylene",
+          "n-butane",
+          "isobutane",
+          "n-pentane",
+          "n-hexane",
+          "n-heptane",
+          "n-octane",
+          "n-decane",
+          "cyclohexane",
+          "benzene",
+          "toluene",
+          "p-xylene",
+          "ethylbenzene",
+          "carbon-dioxide",
+          "nitrogen",
+          "hydrogen-sulfide"
+        ],
+        "activity": [
+          "methanol",
+          "ethanol",
+          "1-propanol",
+          "2-propanol",
+          "water",
+          "acetone",
+          "2-butanone",
+          "ethyl-acetate",
+          "tetrahydrofuran",
+          "chloroform",
+          "tetrachloromethane",
+          "benzene",
+          "toluene",
+          "cyclohexane",
+          "n-hexane",
+          "n-heptane"
+        ]
+      },
+      "default_pairs": {
+        "eos": [
+          "carbon-dioxide",
+          "ethane"
+        ],
+        "activity": [
+          "ethanol",
+          "water"
+        ]
+      }
     }
   }
 }

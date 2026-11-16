@@ -1,4 +1,4 @@
-<!-- {"title": "Examples", "math": true, "data": true, "description": "Worked examples computed by the Python program: <!--full-->three<!--/full--><!--reduced-->two<!--/reduced--> equations of state, a complete phase diagram from latent heats, an azeotrope, a column in gravity, a centrifuge, and the plots it draws."} -->
+<!-- {"title": "Examples", "math": true, "data": true, "description": "Worked examples computed by the Python program: <!--full-->three<!--/full--><!--reduced-->two<!--/reduced--> equations of state, a complete phase diagram from latent heats, an azeotrope, flashes of three and four components, a column in gravity, a centrifuge, and the plots it draws."} -->
 <div class="wrap">
   <div class="page-head">
     <h1>Examples</h1>
@@ -10,7 +10,8 @@
       <ol>
         <li><a href="#eos"><!--full-->Three<!--/full--><!--reduced-->Two<!--/reduced--> equations of state</a></li>
         <li><a href="#latent">A diagram from latent heats</a></li>
-        <li><a href="#azeotrope">An azeotrope from two parameters</a></li>
+        <li><a href="#azeotrope">An azeotrope from the database</a></li>
+        <li><a href="#multicomponent">Three and four components</a></li>
         <li><a href="#database">Using the database</a></li>
         <li><a href="#gravity">A 500 m column in gravity</a></li>
         <li><a href="#centrifuge">A centrifuge</a></li>
@@ -24,7 +25,8 @@
         <ol>
           <li><a href="#eos"><!--full-->Three<!--/full--><!--reduced-->Two<!--/reduced--> equations of state</a></li>
           <li><a href="#latent">A diagram from latent heats</a></li>
-          <li><a href="#azeotrope">An azeotrope from two parameters</a></li>
+          <li><a href="#azeotrope">An azeotrope from the database</a></li>
+        <li><a href="#multicomponent">Three and four components</a></li>
           <li><a href="#database">Using the database</a></li>
           <li><a href="#gravity">A 500 m column in gravity</a></li>
           <li><a href="#centrifuge">A centrifuge</a></li>
@@ -89,14 +91,22 @@ naphthalene.dHfus = 19.01 kJ/mol</code></pre>
       <!-- ============================================================ -->
       <section id="azeotrope" class="wide">
         <div class="measure">
-          <h2>An azeotrope from two parameters</h2>
-          <p><code>examples/ethanol_water_vanlaar.txt</code> types the two vapor pressures as formulas and adds a van Laar model with \(A_{12} = 1.68\) and \(A_{21} = 0.92\). The solver finds the azeotrope at \(x_{\text{ethanol}}\) = <span data-v="azeo.azeotrope.x" data-d="3"></span> and <span data-v="azeo.azeotrope.T" data-d="2"></span> K. The measured one is at about 0.894 and 351.3 K.</p>
+          <h2>An azeotrope from the database</h2>
+          <p><code>examples/database_ethanol_water_nrtl.txt</code> asks for ethanol and water at 1 atm with NRTL and lets the database supply everything else: the Antoine constants and the three NRTL parameters measured for this pair (DECHEMA, via ChemSep). The solver finds the azeotrope at \(x_{\text{ethanol}}\) = <span data-v="azeo.azeotrope.x" data-d="3"></span> and <span data-v="azeo.azeotrope.T" data-d="2"></span> K. The measured one is at about 0.894 and 351.3 K.</p>
         </div>
         <figure class="chart-figure" aria-labelledby="azeo-cap">
           <ul class="legend" id="azeo-legend"></ul>
           <div class="chart" id="chart-azeo"></div>
-          <figcaption id="azeo-cap"><b>Ethanol–water Txy diagram at 1 atm.</b> The van Laar model gives a minimum-boiling azeotrope. The same vapor pressures with an ideal solution (gray) give none.</figcaption>
+          <figcaption id="azeo-cap"><b>Ethanol–water Txy diagram at 1 atm.</b> NRTL gives a minimum-boiling azeotrope. The same vapor pressures with an ideal solution (gray) give none.</figcaption>
         </figure>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="multicomponent">
+        <h2>Three and four components</h2>
+        <p>The solver works with any number of compounds; a flash is the natural question for more than two. <code>examples/acetone_methanol_water_flash.txt</code> splits an acetone–methanol–water feed at 345 K and 1 atm with NRTL, all three pairs from the database. <code>examples/natural_gas_flash_ppr78.txt</code> splits a methane–ethane–propane–n-butane feed at 250 K and 30 bar with Peng–Robinson, every \(k_{ij}\) predicted by E-PPR78 at 250 K. The same examples are in the calculator's "Three or four components" panel, with a triangle diagram for the ternary.</p>
+        <div class="table-wrap"><table id="mix-table"></table></div>
+        <p>In each case the feed lies between the liquid and the vapor (\(z_i = (1-\beta)x_i + \beta y_i\) for every compound) and the temperature lies between the bubble and dew temperatures of the feed, as it must for two phases. The lightest compound is enriched in the vapor (\(K > 1\)), the heaviest in the liquid.</p>
       </section>
 
       <!-- ============================================================ -->
@@ -159,7 +169,7 @@ sweep = T</code></pre>
         <div class="measure">
           <h2>Plots from the Python program</h2>
           <p><code>plotter.py</code> solves an input file and saves every figure its results contain:</p>
-<pre><code>python plotter.py examples/<!--full-->database_ethanol_water_nrtl.txt<!--/full--><!--reduced-->ethanol_water_vanlaar.txt<!--/reduced--></code></pre>
+<pre><code>python plotter.py examples/database_ethanol_water_nrtl.txt</code></pre>
         </div>
         <div class="gallery">
           <!--full--><figure><a href="img/fugacity_activity.png"><img src="img/fugacity_activity.png" alt="Four panels for ethanol and water: activity coefficients, fugacities, K-values and excess Gibbs energy against composition" loading="lazy"></a><figcaption><b>Fugacity and activity.</b> Activity coefficients, fugacities, K-values and excess Gibbs energy along a diagram.</figcaption></figure><!--/full-->
@@ -223,16 +233,28 @@ sweep = T</code></pre>
 
   /* azeotrope with and without an activity model */
   var Az = D.azeo;
-  PEC.legend("azeo-legend", [{ name: "Bubble curve, van Laar", color: "--liquid" }, { name: "Dew curve, van Laar", color: "--vapor" },
+  /* three and four components */
+  (function () {
+    var rows = [], f = function (v) { return v == null ? "–" : PEC.fmt(v, 3); };
+    D.mixtures.forEach(function (m) {
+      rows.push("<tr><th colspan='5'>" + m.label + ": " + PEC.fmt(m.T, 0) + " K, " + PEC.sig(m.P, 4) + " bar, vapor fraction " + PEC.fmt(m.beta, 3) +
+        "; bubble T " + PEC.fmt(m.bounds.T_bubble, 1) + " K, dew T " + PEC.fmt(m.bounds.T_dew, 1) + " K</th></tr>");
+      m.names.forEach(function (n, i) {
+        rows.push("<tr><td>" + n + "</td><td>" + f(m.z[i]) + "</td><td>" + f(m.x[i]) + "</td><td>" + f(m.y[i]) + "</td><td>" + (m.K ? PEC.sig(m.K[i], 3) : "–") + "</td></tr>");
+      });
+    });
+    document.getElementById("mix-table").innerHTML = "<thead><tr><th>Compound</th><th>Feed z</th><th>Liquid x</th><th>Vapor y</th><th>K</th></tr></thead><tbody>" + rows.join("") + "</tbody>";
+  })();
+  PEC.legend("azeo-legend", [{ name: "Bubble curve, NRTL", color: "--liquid" }, { name: "Dew curve, NRTL", color: "--vapor" },
     { name: "Ideal solution", color: "--muted" }, { name: "Azeotrope", color: "--ink-2", dot: true }]);
   PEC.drawChart($("chart-azeo"), {
-    aria: "Temperature against ethanol mole fraction at 1 atm, van Laar and ideal solution",
+    aria: "Temperature against ethanol mole fraction at 1 atm, NRTL and ideal solution",
     ratio: 0.5,
     series: [
       { name: "Ideal bubble curve", color: "--muted", width: 1.5, pts: zip(Az.ideal.x, Az.ideal.T) },
       { name: "Ideal dew curve", color: "--muted", width: 1.5, pts: zip(Az.ideal.y, Az.ideal.T) },
-      { name: "Bubble curve, van Laar", color: "--liquid", pts: zip(Az.x, Az.T) },
-      { name: "Dew curve, van Laar", color: "--vapor", pts: zip(Az.y, Az.T) }],
+      { name: "Bubble curve, NRTL", color: "--liquid", pts: zip(Az.x, Az.T) },
+      { name: "Dew curve, NRTL", color: "--vapor", pts: zip(Az.y, Az.T) }],
     areas: [{ color: "--liquid", poly: zip(Az.x, Az.T).concat(zip(Az.y, Az.T).reverse()) }],
     points: [{ x: Az.azeotrope.x, y: Az.azeotrope.T, color: "--ink-2" }],
     xDomain: [0, 1], yDomain: [348, 375], xDec: 1, yDec: 0,

@@ -1,6 +1,6 @@
 {
  "meta": {
-  "generated": "2026-11-12",
+  "generated": "2026-11-16",
   "generator": "scripts/build_compound_db.py",
   "upstream": {
    "chemicals": "e79047588b30cfabc564c79fb26d760c746877d7 2026-08-03",
@@ -13,11 +13,10 @@
    "chemsep_pr": "ChemSep interaction parameter data, file 'DECHEMA Peng-Robinson Parameters' (copyright 2009 H. Kooijman and R. Taylor, Artistic License 2.0). Read from the thermo library data files.",
    "iupac_aw": "Molar mass from the molecular formula and IUPAC abridged standard atomic weights (2021).",
    "derived": "Calculated here: temperature at which the Antoine equation gives 101 325 Pa.",
-   "libraries": "Bell, C. and contributors. chemicals: Chemical properties component of Chemical Engineering Design Library (ChEDL), and thermo: Chemical properties component of ChEDL. https://github.com/CalebBell/chemicals, https://github.com/CalebBell/thermo (MIT License).",
-   "vanlaar_fit": "van Laar parameters A_ij(T) = a_ij + b_ij/T regressed in this project (scripts/fit_vanlaar.py) to ln(gamma) from the DECHEMA NRTL parameters of the same pair (ChemSep file 'DECHEMA NRTL at P = 1 atm', see chemsep_nrtl), over x1 = 0.01 to 0.99 and the temperature range given with each pair."
+   "eppr78": "Jaubert, J.-N., Qian, J.-W., Lasala, S., Privat, R. The impressive impact of including enthalpy and heat capacity of mixing data when parameterising equations of state. Application to the development of the E-PPR78 (Enhanced-Predictive-Peng-Robinson-78) model. Fluid Phase Equilibria 560 (2022) 113456. Group-interaction parameters A_kl and B_kl (MPa) read from the thermo library (group_contribution/ppr78.py); the groups of each molecule are assigned in data/compound_list.csv.",
+   "libraries": "Bell, C. and contributors. chemicals: Chemical properties component of Chemical Engineering Design Library (ChEDL), and thermo: Chemical properties component of ChEDL. https://github.com/CalebBell/chemicals, https://github.com/CalebBell/thermo (MIT License)."
   },
-  "notes": "Values are reproduced from the cited sources for teaching use. Check them against the original publication before relying on them.",
-  "vanlaar_fitted": "2026-11-13"
+  "notes": "Values are reproduced from the cited sources for teaching use. Check them against the original publication before relying on them."
  },
  "compounds": [
   {
@@ -61,6 +60,13 @@
     "value": 231.08,
     "unit": "K",
     "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CH3": 2,
+     "CH2": 1
+    },
+    "source": "eppr78"
    }
   },
   {
@@ -104,6 +110,13 @@
     "value": 272.66,
     "unit": "K",
     "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CH3": 2,
+     "CH2": 2
+    },
+    "source": "eppr78"
    }
   },
   {
@@ -147,6 +160,13 @@
     "value": 309.21,
     "unit": "K",
     "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CH3": 2,
+     "CH2": 3
+    },
+    "source": "eppr78"
    }
   },
   {
@@ -190,6 +210,13 @@
     "value": 341.87,
     "unit": "K",
     "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CH3": 2,
+     "CH2": 4
+    },
+    "source": "eppr78"
    }
   },
   {
@@ -233,6 +260,13 @@
     "value": 371.55,
     "unit": "K",
     "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CH3": 2,
+     "CH2": 5
+    },
+    "source": "eppr78"
    }
   },
   {
@@ -276,6 +310,13 @@
     "value": 398.83,
     "unit": "K",
     "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CH3": 2,
+     "CH2": 6
+    },
+    "source": "eppr78"
    }
   },
   {
@@ -319,6 +360,12 @@
     "value": 353.93,
     "unit": "K",
     "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CH2cyclic": 6
+    },
+    "source": "eppr78"
    }
   },
   {
@@ -362,6 +409,12 @@
     "value": 353.16,
     "unit": "K",
     "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CHaro": 6
+    },
+    "source": "eppr78"
    }
   },
   {
@@ -405,6 +458,14 @@
     "value": 383.76,
     "unit": "K",
     "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CHaro": 5,
+     "Caro": 1,
+     "CH3": 1
+    },
+    "source": "eppr78"
    }
   },
   {
@@ -1051,6 +1112,539 @@
     "unit": "K",
     "source": "derived"
    }
+  },
+  {
+   "id": "methane",
+   "name": "Methane",
+   "formula": "CH4",
+   "cas": "74-82-8",
+   "family": "alkane",
+   "M": {
+    "value": 16.043,
+    "unit": "g/mol",
+    "source": "iupac_aw"
+   },
+   "Tc": {
+    "value": 190.6,
+    "unit": "K",
+    "source": "psrk4"
+   },
+   "Pc": {
+    "value": 4600155.0,
+    "unit": "Pa",
+    "source": "psrk4"
+   },
+   "omega": {
+    "value": 0.008,
+    "unit": "",
+    "source": "psrk4"
+   },
+   "antoine": {
+    "A": 8.7687,
+    "B": 395.744,
+    "C": -6.469,
+    "Tmin": 92.64,
+    "Tmax": 120.59,
+    "P_unit": "Pa",
+    "T_unit": "K",
+    "form": "log10(P/Pa) = A - B/(T/K + C)",
+    "source": "poling"
+   },
+   "Tb": {
+    "value": 111.64,
+    "unit": "K",
+    "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CH4": 1
+    },
+    "source": "eppr78"
+   }
+  },
+  {
+   "id": "ethane",
+   "name": "Ethane",
+   "formula": "C2H6",
+   "cas": "74-84-0",
+   "family": "alkane",
+   "M": {
+    "value": 30.07,
+    "unit": "g/mol",
+    "source": "iupac_aw"
+   },
+   "Tc": {
+    "value": 305.4,
+    "unit": "K",
+    "source": "psrk4"
+   },
+   "Pc": {
+    "value": 4883865.0,
+    "unit": "Pa",
+    "source": "psrk4"
+   },
+   "omega": {
+    "value": 0.098,
+    "unit": "",
+    "source": "psrk4"
+   },
+   "antoine": {
+    "A": 8.95405,
+    "B": 663.72,
+    "C": -16.469,
+    "Tmin": 133.8,
+    "Tmax": 198.16,
+    "P_unit": "Pa",
+    "T_unit": "K",
+    "form": "log10(P/Pa) = A - B/(T/K + C)",
+    "source": "poling"
+   },
+   "Tb": {
+    "value": 184.57,
+    "unit": "K",
+    "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "C2H6": 1
+    },
+    "source": "eppr78"
+   }
+  },
+  {
+   "id": "isobutane",
+   "name": "Isobutane",
+   "formula": "C4H10",
+   "cas": "75-28-5",
+   "family": "alkane",
+   "M": {
+    "value": 58.124,
+    "unit": "g/mol",
+    "source": "iupac_aw"
+   },
+   "Tc": {
+    "value": 408.8,
+    "unit": "K",
+    "source": "psrk4"
+   },
+   "Pc": {
+    "value": 3639594.0,
+    "unit": "Pa",
+    "source": "psrk4"
+   },
+   "omega": {
+    "value": 0.176,
+    "unit": "",
+    "source": "psrk4"
+   },
+   "antoine": {
+    "A": 9.00272,
+    "B": 947.54,
+    "C": -24.28,
+    "Tmin": 190.4,
+    "Tmax": 280.25,
+    "P_unit": "Pa",
+    "T_unit": "K",
+    "form": "log10(P/Pa) = A - B/(T/K + C)",
+    "source": "poling"
+   },
+   "Tb": {
+    "value": 261.34,
+    "unit": "K",
+    "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CH3": 3,
+     "CH": 1
+    },
+    "source": "eppr78"
+   }
+  },
+  {
+   "id": "n-decane",
+   "name": "n-Decane",
+   "formula": "C10H22",
+   "cas": "124-18-5",
+   "family": "alkane",
+   "M": {
+    "value": 142.286,
+    "unit": "g/mol",
+    "source": "iupac_aw"
+   },
+   "Tc": {
+    "value": 617.9,
+    "unit": "K",
+    "source": "psrk4"
+   },
+   "Pc": {
+    "value": 2099454.0,
+    "unit": "Pa",
+    "source": "psrk4"
+   },
+   "omega": {
+    "value": 0.49,
+    "unit": "",
+    "source": "psrk4"
+   },
+   "antoine": {
+    "A": 9.06853,
+    "B": 1495.17,
+    "C": -79.292,
+    "Tmin": 338.53,
+    "Tmax": 476.15,
+    "P_unit": "Pa",
+    "T_unit": "K",
+    "form": "log10(P/Pa) = A - B/(T/K + C)",
+    "source": "poling"
+   },
+   "Tb": {
+    "value": 447.31,
+    "unit": "K",
+    "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CH3": 2,
+     "CH2": 8
+    },
+    "source": "eppr78"
+   }
+  },
+  {
+   "id": "p-xylene",
+   "name": "p-Xylene",
+   "formula": "C8H10",
+   "cas": "106-42-3",
+   "family": "aromatic",
+   "M": {
+    "value": 106.168,
+    "unit": "g/mol",
+    "source": "iupac_aw"
+   },
+   "Tc": {
+    "value": 616.2,
+    "unit": "K",
+    "source": "psrk4"
+   },
+   "Pc": {
+    "value": 3515978.0,
+    "unit": "Pa",
+    "source": "psrk4"
+   },
+   "omega": {
+    "value": 0.324,
+    "unit": "",
+    "source": "psrk4"
+   },
+   "antoine": {
+    "A": 9.10494,
+    "B": 1446.832,
+    "C": -58.523,
+    "Tmin": 307.81,
+    "Tmax": 438.88,
+    "P_unit": "Pa",
+    "T_unit": "K",
+    "form": "log10(P/Pa) = A - B/(T/K + C)",
+    "source": "poling"
+   },
+   "Tb": {
+    "value": 411.48,
+    "unit": "K",
+    "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CHaro": 4,
+     "Caro": 2,
+     "CH3": 2
+    },
+    "source": "eppr78"
+   }
+  },
+  {
+   "id": "ethylbenzene",
+   "name": "Ethylbenzene",
+   "formula": "C8H10",
+   "cas": "100-41-4",
+   "family": "aromatic",
+   "M": {
+    "value": 106.168,
+    "unit": "g/mol",
+    "source": "iupac_aw"
+   },
+   "Tc": {
+    "value": 617.1,
+    "unit": "K",
+    "source": "psrk4"
+   },
+   "Pc": {
+    "value": 3607170.0,
+    "unit": "Pa",
+    "source": "psrk4"
+   },
+   "omega": {
+    "value": 0.301,
+    "unit": "",
+    "source": "psrk4"
+   },
+   "antoine": {
+    "A": 9.06861,
+    "B": 1415.77,
+    "C": -60.85,
+    "Tmin": 306.32,
+    "Tmax": 436.63,
+    "P_unit": "Pa",
+    "T_unit": "K",
+    "form": "log10(P/Pa) = A - B/(T/K + C)",
+    "source": "poling"
+   },
+   "Tb": {
+    "value": 409.31,
+    "unit": "K",
+    "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CHaro": 5,
+     "Caro": 1,
+     "CH2": 1,
+     "CH3": 1
+    },
+    "source": "eppr78"
+   }
+  },
+  {
+   "id": "ethylene",
+   "name": "Ethylene",
+   "formula": "C2H4",
+   "cas": "74-85-1",
+   "family": "alkene",
+   "M": {
+    "value": 28.054,
+    "unit": "g/mol",
+    "source": "iupac_aw"
+   },
+   "Tc": {
+    "value": 282.35,
+    "unit": "K",
+    "source": "psrk4"
+   },
+   "Pc": {
+    "value": 5041628.0,
+    "unit": "Pa",
+    "source": "psrk4"
+   },
+   "omega": {
+    "value": 0.085,
+    "unit": "",
+    "source": "psrk4"
+   },
+   "antoine": {
+    "A": 8.91382,
+    "B": 596.526,
+    "C": -16.78,
+    "Tmin": 123.06,
+    "Tmax": 181.9,
+    "P_unit": "Pa",
+    "T_unit": "K",
+    "form": "log10(P/Pa) = A - B/(T/K + C)",
+    "source": "poling"
+   },
+   "Tb": {
+    "value": 169.42,
+    "unit": "K",
+    "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "C2H4": 1
+    },
+    "source": "eppr78"
+   }
+  },
+  {
+   "id": "propylene",
+   "name": "Propylene",
+   "formula": "C3H6",
+   "cas": "115-07-1",
+   "family": "alkene",
+   "M": {
+    "value": 42.081,
+    "unit": "g/mol",
+    "source": "iupac_aw"
+   },
+   "Tc": {
+    "value": 365.0,
+    "unit": "K",
+    "source": "psrk4"
+   },
+   "Pc": {
+    "value": 4620420.0,
+    "unit": "Pa",
+    "source": "psrk4"
+   },
+   "omega": {
+    "value": 0.148,
+    "unit": "",
+    "source": "psrk4"
+   },
+   "antoine": {
+    "A": 8.95606,
+    "B": 789.624,
+    "C": -25.57,
+    "Tmin": 165.2,
+    "Tmax": 241.61,
+    "P_unit": "Pa",
+    "T_unit": "K",
+    "form": "log10(P/Pa) = A - B/(T/K + C)",
+    "source": "poling"
+   },
+   "Tb": {
+    "value": 225.46,
+    "unit": "K",
+    "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "CH2CHalkenic": 2,
+     "CH3": 1
+    },
+    "source": "eppr78"
+   }
+  },
+  {
+   "id": "carbon-dioxide",
+   "name": "Carbon dioxide",
+   "formula": "CO2",
+   "cas": "124-38-9",
+   "family": "gas",
+   "M": {
+    "value": 44.009,
+    "unit": "g/mol",
+    "source": "iupac_aw"
+   },
+   "Tc": {
+    "value": 304.2,
+    "unit": "K",
+    "source": "psrk4"
+   },
+   "Pc": {
+    "value": 7376460.0,
+    "unit": "Pa",
+    "source": "psrk4"
+   },
+   "omega": {
+    "value": 0.2252,
+    "unit": "",
+    "source": "psrk4"
+   },
+   "antoine": null,
+   "Tb": null,
+   "ppr78": {
+    "groups": {
+     "CO2": 1
+    },
+    "source": "eppr78"
+   }
+  },
+  {
+   "id": "nitrogen",
+   "name": "Nitrogen",
+   "formula": "N2",
+   "cas": "7727-37-9",
+   "family": "gas",
+   "M": {
+    "value": 28.014,
+    "unit": "g/mol",
+    "source": "iupac_aw"
+   },
+   "Tc": {
+    "value": 126.2,
+    "unit": "K",
+    "source": "psrk4"
+   },
+   "Pc": {
+    "value": 3394388.0,
+    "unit": "Pa",
+    "source": "psrk4"
+   },
+   "omega": {
+    "value": 0.04,
+    "unit": "",
+    "source": "psrk4"
+   },
+   "antoine": {
+    "A": 8.61947,
+    "B": 255.68,
+    "C": -6.6,
+    "Tmin": 60.81,
+    "Tmax": 83.65,
+    "P_unit": "Pa",
+    "T_unit": "K",
+    "form": "log10(P/Pa) = A - B/(T/K + C)",
+    "source": "poling"
+   },
+   "Tb": {
+    "value": 77.35,
+    "unit": "K",
+    "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "N2": 1
+    },
+    "source": "eppr78"
+   }
+  },
+  {
+   "id": "hydrogen-sulfide",
+   "name": "Hydrogen sulfide",
+   "formula": "H2S",
+   "cas": "7783-06-4",
+   "family": "gas",
+   "M": {
+    "value": 34.076,
+    "unit": "g/mol",
+    "source": "iupac_aw"
+   },
+   "Tc": {
+    "value": 372.8,
+    "unit": "K",
+    "source": "psrk4"
+   },
+   "Pc": {
+    "value": 8936865.0,
+    "unit": "Pa",
+    "source": "psrk4"
+   },
+   "omega": {
+    "value": 0.1,
+    "unit": "",
+    "source": "psrk4"
+   },
+   "antoine": {
+    "A": 9.22882,
+    "B": 806.933,
+    "C": -21.76,
+    "Tmin": 185.51,
+    "Tmax": 227.2,
+    "P_unit": "Pa",
+    "T_unit": "K",
+    "form": "log10(P/Pa) = A - B/(T/K + C)",
+    "source": "poling"
+   },
+   "Tb": {
+    "value": 212.84,
+    "unit": "K",
+    "source": "derived"
+   },
+   "ppr78": {
+    "groups": {
+     "H2S": 1
+    },
+    "source": "eppr78"
+   }
   }
  ],
  "pairs": [
@@ -1111,6 +1705,70 @@
    }
   },
   {
+   "a": "propane",
+   "b": "methane",
+   "kij_pr": {
+    "value": 0.0119,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "propane",
+   "b": "ethane",
+   "kij_pr": {
+    "value": 0.0011,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "propane",
+   "b": "isobutane",
+   "kij_pr": {
+    "value": -0.0078,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "propane",
+   "b": "n-decane",
+   "kij_pr": {
+    "value": 0.0,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "propane",
+   "b": "propylene",
+   "kij_pr": {
+    "value": 0.0078,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "propane",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.1315,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "propane",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": 0.0878,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "propane",
+   "b": "hydrogen-sulfide",
+   "kij_pr": {
+    "value": 0.0878,
+    "source": "chemsep_pr"
+   }
+  },
+  {
    "a": "n-butane",
    "b": "n-pentane",
    "kij_pr": {
@@ -1151,17 +1809,62 @@
     "alpha": 0.4647,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.49325,
-    "b12": 186.798,
-    "a21": 1.36946,
-    "b21": 401.661,
-    "Tmin": 272.7,
-    "Tmax": 337.7,
-    "rms_lngamma": 0.1017,
-    "max_lngamma": 0.4947,
-    "source": "vanlaar_fit"
+   }
+  },
+  {
+   "a": "n-butane",
+   "b": "methane",
+   "kij_pr": {
+    "value": 0.0185,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-butane",
+   "b": "ethane",
+   "kij_pr": {
+    "value": 0.0089,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-butane",
+   "b": "isobutane",
+   "kij_pr": {
+    "value": -0.0004,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-butane",
+   "b": "n-decane",
+   "kij_pr": {
+    "value": 0.0078,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-butane",
+   "b": "ethylene",
+   "kij_pr": {
+    "value": 0.0922,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-butane",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.1352,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-butane",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": 0.0711,
+    "source": "chemsep_pr"
    }
   },
   {
@@ -1205,17 +1908,46 @@
     "alpha": 0.2886,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.62514,
-    "b12": 342.934,
-    "a21": 0.17162,
-    "b21": 698.808,
-    "Tmin": 309.2,
-    "Tmax": 351.4,
-    "rms_lngamma": 0.0095,
-    "max_lngamma": 0.0399,
-    "source": "vanlaar_fit"
+   }
+  },
+  {
+   "a": "n-pentane",
+   "b": "methane",
+   "kij_pr": {
+    "value": 0.023,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-pentane",
+   "b": "ethane",
+   "kij_pr": {
+    "value": 0.0078,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-pentane",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.1252,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-pentane",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": 0.1,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-pentane",
+   "b": "hydrogen-sulfide",
+   "kij_pr": {
+    "value": 0.063,
+    "source": "chemsep_pr"
    }
   },
   {
@@ -1251,17 +1983,6 @@
     "alpha": 0.4365,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.76583,
-    "b12": 298.38,
-    "a21": 1.76536,
-    "b21": 299.898,
-    "Tmin": 324.8,
-    "Tmax": 354.8,
-    "rms_lngamma": 0.1325,
-    "max_lngamma": 0.5665,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1273,17 +1994,6 @@
     "alpha": 0.2882,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.63077,
-    "b12": 421.809,
-    "a21": 0.2584,
-    "b21": 732.39,
-    "Tmin": 331.6,
-    "Tmax": 361.6,
-    "rms_lngamma": 0.0127,
-    "max_lngamma": 0.0511,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1295,17 +2005,6 @@
     "alpha": 0.294,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.504,
-    "b12": 400.011,
-    "a21": 0.17665,
-    "b21": 672.466,
-    "Tmin": 341.1,
-    "Tmax": 371.1,
-    "rms_lngamma": 0.0083,
-    "max_lngamma": 0.033,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1313,6 +2012,38 @@
    "b": "2-propanol",
    "kij_pr": {
     "value": 0.0844,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-hexane",
+   "b": "methane",
+   "kij_pr": {
+    "value": 0.04,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-hexane",
+   "b": "ethane",
+   "kij_pr": {
+    "value": -0.04,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-hexane",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.11,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-hexane",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": 0.1496,
     "source": "chemsep_pr"
    }
   },
@@ -1333,17 +2064,6 @@
     "alpha": 0.4408,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.60404,
-    "b12": 334.23,
-    "a21": 1.5966,
-    "b21": 351.626,
-    "Tmin": 337.7,
-    "Tmax": 371.6,
-    "rms_lngamma": 0.1154,
-    "max_lngamma": 0.4938,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1355,17 +2075,6 @@
     "alpha": 0.4758,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.08891,
-    "b12": 346.204,
-    "a21": 1.00539,
-    "b21": 460.09,
-    "Tmin": 346.5,
-    "Tmax": 376.5,
-    "rms_lngamma": 0.0643,
-    "max_lngamma": 0.2665,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1377,17 +2086,6 @@
     "alpha": 0.5193,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.20736,
-    "b12": 291.746,
-    "a21": 1.15028,
-    "b21": 393.887,
-    "Tmin": 355.9,
-    "Tmax": 385.9,
-    "rms_lngamma": 0.0796,
-    "max_lngamma": 0.3335,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1399,17 +2097,46 @@
     "alpha": 0.9809,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.84529,
-    "b12": 68.372,
-    "a21": 0.82431,
-    "b21": 193.027,
-    "Tmin": 347.1,
-    "Tmax": 377.1,
-    "rms_lngamma": 0.0645,
-    "max_lngamma": 0.2811,
-    "source": "vanlaar_fit"
+   }
+  },
+  {
+   "a": "n-heptane",
+   "b": "methane",
+   "kij_pr": {
+    "value": 0.03,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-heptane",
+   "b": "ethane",
+   "kij_pr": {
+    "value": 0.0033,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-heptane",
+   "b": "ethylene",
+   "kij_pr": {
+    "value": 0.0144,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-heptane",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.1,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-heptane",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": 0.1441,
+    "source": "chemsep_pr"
    }
   },
   {
@@ -1429,17 +2156,6 @@
     "alpha": 0.4381,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.50574,
-    "b12": 421.967,
-    "a21": 1.55086,
-    "b21": 327.145,
-    "Tmin": 337.7,
-    "Tmax": 398.8,
-    "rms_lngamma": 0.1083,
-    "max_lngamma": 0.4988,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1451,17 +2167,6 @@
     "alpha": 0.4717,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.13711,
-    "b12": 361.724,
-    "a21": 1.0651,
-    "b21": 467.354,
-    "Tmin": 351.4,
-    "Tmax": 398.8,
-    "rms_lngamma": 0.0691,
-    "max_lngamma": 0.3011,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1473,17 +2178,30 @@
     "alpha": 0.2907,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.0841,
-    "b12": 667.0,
-    "a21": 0.4332,
-    "b21": 361.138,
-    "Tmin": 369.6,
-    "Tmax": 399.6,
-    "rms_lngamma": 0.0043,
-    "max_lngamma": 0.0171,
-    "source": "vanlaar_fit"
+   }
+  },
+  {
+   "a": "n-octane",
+   "b": "methane",
+   "kij_pr": {
+    "value": 0.0496,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-octane",
+   "b": "ethane",
+   "kij_pr": {
+    "value": 0.0185,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-octane",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": -0.4,
+    "source": "chemsep_pr"
    }
   },
   {
@@ -1503,17 +2221,6 @@
     "alpha": 0.441,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.70486,
-    "b12": 179.78,
-    "a21": 1.59307,
-    "b21": 473.128,
-    "Tmin": 330.8,
-    "Tmax": 360.8,
-    "rms_lngamma": 0.1207,
-    "max_lngamma": 0.5217,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1525,17 +2232,6 @@
     "alpha": 0.4376,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.99253,
-    "b12": 268.392,
-    "a21": 0.65011,
-    "b21": 644.023,
-    "Tmin": 337.7,
-    "Tmax": 367.7,
-    "rms_lngamma": 0.0423,
-    "max_lngamma": 0.1741,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1547,17 +2243,6 @@
     "alpha": 0.5914,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.01278,
-    "b12": -26.934,
-    "a21": 0.46309,
-    "b21": 754.957,
-    "Tmin": 347.1,
-    "Tmax": 377.1,
-    "rms_lngamma": 0.0385,
-    "max_lngamma": 0.1518,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1569,17 +2254,6 @@
     "alpha": 0.2925,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.277,
-    "b12": 383.615,
-    "a21": 0.13027,
-    "b21": 495.538,
-    "Tmin": 326.6,
-    "Tmax": 356.6,
-    "rms_lngamma": 0.0042,
-    "max_lngamma": 0.0167,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1591,17 +2265,30 @@
     "alpha": 0.2963,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.04098,
-    "b12": 395.66,
-    "a21": 0.18124,
-    "b21": 288.602,
-    "Tmin": 338.3,
-    "Tmax": 368.3,
-    "rms_lngamma": 0.0014,
-    "max_lngamma": 0.0053,
-    "source": "vanlaar_fit"
+   }
+  },
+  {
+   "a": "cyclohexane",
+   "b": "methane",
+   "kij_pr": {
+    "value": 0.0389,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "cyclohexane",
+   "b": "ethane",
+   "kij_pr": {
+    "value": 0.0178,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "cyclohexane",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.1052,
+    "source": "chemsep_pr"
    }
   },
   {
@@ -1613,17 +2300,6 @@
     "alpha": 0.3033,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.00669,
-    "b12": -10.081,
-    "a21": 0.00877,
-    "b21": -11.476,
-    "Tmin": 353.2,
-    "Tmax": 383.8,
-    "rms_lngamma": 0.0,
-    "max_lngamma": 0.0,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1635,17 +2311,6 @@
     "alpha": 0.4893,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.82015,
-    "b12": 299.744,
-    "a21": 0.63284,
-    "b21": 498.292,
-    "Tmin": 330.4,
-    "Tmax": 360.4,
-    "rms_lngamma": 0.0378,
-    "max_lngamma": 0.1557,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1657,17 +2322,6 @@
     "alpha": 0.297,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.4544,
-    "b12": 301.055,
-    "a21": 0.06714,
-    "b21": 612.89,
-    "Tmin": 337.3,
-    "Tmax": 367.3,
-    "rms_lngamma": 0.0039,
-    "max_lngamma": 0.0154,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1679,17 +2333,6 @@
     "alpha": 0.2899,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.3227,
-    "b12": 332.234,
-    "a21": 0.06381,
-    "b21": 540.73,
-    "Tmin": 346.7,
-    "Tmax": 376.7,
-    "rms_lngamma": 0.0029,
-    "max_lngamma": 0.0113,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1701,17 +2344,6 @@
     "alpha": 0.2971,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.31592,
-    "b12": -0.606,
-    "a21": 0.08839,
-    "b21": 183.252,
-    "Tmin": 326.2,
-    "Tmax": 356.2,
-    "rms_lngamma": 0.0034,
-    "max_lngamma": 0.0136,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1723,17 +2355,6 @@
     "alpha": 0.1563,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.19875,
-    "b12": -23.256,
-    "a21": 0.14139,
-    "b21": 28.891,
-    "Tmin": 337.9,
-    "Tmax": 367.9,
-    "rms_lngamma": 0.001,
-    "max_lngamma": 0.0044,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1745,17 +2366,6 @@
     "alpha": 0.3061,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.06269,
-    "b12": -97.683,
-    "a21": 0.01948,
-    "b21": -69.596,
-    "Tmin": 328.7,
-    "Tmax": 358.7,
-    "rms_lngamma": 0.0001,
-    "max_lngamma": 0.0003,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1767,17 +2377,68 @@
     "alpha": 0.3055,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.00427,
-    "b12": 36.767,
-    "a21": 1e-05,
-    "b21": 39.785,
-    "Tmin": 336.5,
-    "Tmax": 366.5,
-    "rms_lngamma": 0.0,
-    "max_lngamma": 0.0,
-    "source": "vanlaar_fit"
+   }
+  },
+  {
+   "a": "benzene",
+   "b": "methane",
+   "kij_pr": {
+    "value": 0.0807,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "benzene",
+   "b": "ethane",
+   "kij_pr": {
+    "value": 0.0322,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "benzene",
+   "b": "p-xylene",
+   "nrtl": {
+    "b_ab": -25.293575022015215,
+    "b_ba": 7.154775327285452,
+    "alpha": 0.3056,
+    "unit": "K",
+    "source": "chemsep_nrtl"
+   }
+  },
+  {
+   "a": "benzene",
+   "b": "ethylbenzene",
+   "nrtl": {
+    "b_ab": -35.64666273835877,
+    "b_ba": 28.72890381135124,
+    "alpha": 0.3034,
+    "unit": "K",
+    "source": "chemsep_nrtl"
+   }
+  },
+  {
+   "a": "benzene",
+   "b": "ethylene",
+   "kij_pr": {
+    "value": 0.0311,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "benzene",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.0774,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "benzene",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": 0.1641,
+    "source": "chemsep_pr"
    }
   },
   {
@@ -1789,17 +2450,6 @@
     "alpha": 0.4064,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.64462,
-    "b12": 459.052,
-    "a21": 0.57181,
-    "b21": 529.936,
-    "Tmin": 337.7,
-    "Tmax": 383.8,
-    "rms_lngamma": 0.027,
-    "max_lngamma": 0.1143,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1811,17 +2461,6 @@
     "alpha": 0.2937,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.27886,
-    "b12": 447.892,
-    "a21": 0.16966,
-    "b21": 538.153,
-    "Tmin": 351.4,
-    "Tmax": 383.8,
-    "rms_lngamma": 0.0051,
-    "max_lngamma": 0.0203,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1833,17 +2472,6 @@
     "alpha": 0.0175,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.026,
-    "b12": 457.166,
-    "a21": 3e-05,
-    "b21": 476.843,
-    "Tmin": 362.0,
-    "Tmax": 392.0,
-    "rms_lngamma": 0.0,
-    "max_lngamma": 0.0,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1855,17 +2483,6 @@
     "alpha": 0.295,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.22182,
-    "b12": 68.005,
-    "a21": 0.02925,
-    "b21": 219.063,
-    "Tmin": 329.2,
-    "Tmax": 383.8,
-    "rms_lngamma": 0.0012,
-    "max_lngamma": 0.0058,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1877,17 +2494,6 @@
     "alpha": 0.2996,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.01669,
-    "b12": 149.144,
-    "a21": 0.11259,
-    "b21": 73.699,
-    "Tmin": 352.7,
-    "Tmax": 383.8,
-    "rms_lngamma": 0.0004,
-    "max_lngamma": 0.0015,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1899,17 +2505,6 @@
     "alpha": 0.2974,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.25592,
-    "b12": -150.172,
-    "a21": 0.17921,
-    "b21": -114.661,
-    "Tmin": 334.3,
-    "Tmax": 383.8,
-    "rms_lngamma": 0.0002,
-    "max_lngamma": 0.0009,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1921,17 +2516,44 @@
     "alpha": 0.3041,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.005,
-    "b12": 9.228,
-    "a21": 0.00285,
-    "b21": 10.856,
-    "Tmin": 349.8,
-    "Tmax": 383.8,
-    "rms_lngamma": 0.0,
-    "max_lngamma": 0.0,
-    "source": "vanlaar_fit"
+   }
+  },
+  {
+   "a": "toluene",
+   "b": "methane",
+   "kij_pr": {
+    "value": 0.097,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "toluene",
+   "b": "p-xylene",
+   "nrtl": {
+    "b_ab": 113.9591962000372,
+    "b_ba": -121.65115837933259,
+    "alpha": 0.2874,
+    "unit": "K",
+    "source": "chemsep_nrtl"
+   }
+  },
+  {
+   "a": "toluene",
+   "b": "ethylbenzene",
+   "nrtl": {
+    "b_ab": 333.6766701846356,
+    "b_ba": -242.80891000606962,
+    "alpha": 0.3005,
+    "unit": "K",
+    "source": "chemsep_nrtl"
+   }
+  },
+  {
+   "a": "toluene",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.1056,
+    "source": "chemsep_pr"
    }
   },
   {
@@ -1943,17 +2565,6 @@
     "alpha": 0.3009,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.00283,
-    "b12": -3.583,
-    "a21": 0.0033,
-    "b21": -3.875,
-    "Tmin": 329.5,
-    "Tmax": 359.5,
-    "rms_lngamma": 0.0,
-    "max_lngamma": 0.0,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1965,17 +2576,6 @@
     "alpha": 0.3011,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.00038,
-    "b12": 17.063,
-    "a21": 6e-05,
-    "b21": 17.289,
-    "Tmin": 337.7,
-    "Tmax": 370.3,
-    "rms_lngamma": 0.0,
-    "max_lngamma": 0.0,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -1987,17 +2587,6 @@
     "alpha": 0.2483,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.21246,
-    "b12": -15.791,
-    "a21": 0.11604,
-    "b21": 70.268,
-    "Tmin": 337.7,
-    "Tmax": 390.9,
-    "rms_lngamma": 0.0017,
-    "max_lngamma": 0.0079,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2013,17 +2602,6 @@
    "kij_pr": {
     "value": -0.0778,
     "source": "chemsep_pr"
-   },
-   "vanlaar": {
-    "a12": 0.01234,
-    "b12": 293.293,
-    "a21": 0.26115,
-    "b21": 98.532,
-    "Tmin": 337.7,
-    "Tmax": 373.2,
-    "rms_lngamma": 0.0012,
-    "max_lngamma": 0.0052,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2035,17 +2613,6 @@
     "alpha": 0.3003,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.05422,
-    "b12": 171.402,
-    "a21": 0.01071,
-    "b21": 201.547,
-    "Tmin": 318.5,
-    "Tmax": 348.5,
-    "rms_lngamma": 0.0002,
-    "max_lngamma": 0.0008,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2057,17 +2624,6 @@
     "alpha": 0.3003,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.05628,
-    "b12": 224.827,
-    "a21": 0.0311,
-    "b21": 243.023,
-    "Tmin": 330.2,
-    "Tmax": 360.2,
-    "rms_lngamma": 0.0004,
-    "max_lngamma": 0.0017,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2079,17 +2635,6 @@
     "alpha": 0.2962,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.07575,
-    "b12": 333.491,
-    "a21": 0.10403,
-    "b21": 312.668,
-    "Tmin": 328.9,
-    "Tmax": 358.9,
-    "rms_lngamma": 0.0013,
-    "max_lngamma": 0.0053,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2101,17 +2646,6 @@
     "alpha": 0.2965,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.0793,
-    "b12": 313.12,
-    "a21": 0.09263,
-    "b21": 303.605,
-    "Tmin": 318.9,
-    "Tmax": 348.9,
-    "rms_lngamma": 0.0013,
-    "max_lngamma": 0.005,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2123,17 +2657,6 @@
     "alpha": 0.2953,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.04518,
-    "b12": 434.442,
-    "a21": 0.27384,
-    "b21": 271.996,
-    "Tmin": 307.7,
-    "Tmax": 337.7,
-    "rms_lngamma": 0.002,
-    "max_lngamma": 0.008,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2145,17 +2668,6 @@
     "alpha": 0.3002,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.02154,
-    "b12": 263.903,
-    "a21": 0.08603,
-    "b21": 217.975,
-    "Tmin": 323.4,
-    "Tmax": 353.4,
-    "rms_lngamma": 0.0005,
-    "max_lngamma": 0.0019,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2167,17 +2679,6 @@
     "alpha": 0.2873,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": -0.01368,
-    "b12": 624.43,
-    "a21": 0.6316,
-    "b21": 115.766,
-    "Tmin": 321.0,
-    "Tmax": 351.0,
-    "rms_lngamma": 0.0024,
-    "max_lngamma": 0.0096,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2189,17 +2690,6 @@
     "alpha": 0.6234,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.73066,
-    "b12": 594.209,
-    "a21": 1.09409,
-    "b21": -28.411,
-    "Tmin": 310.2,
-    "Tmax": 340.2,
-    "rms_lngamma": 0.0586,
-    "max_lngamma": 0.2419,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2211,17 +2701,52 @@
     "alpha": 0.4622,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.40305,
-    "b12": 668.349,
-    "a21": 0.8931,
-    "b21": 174.215,
-    "Tmin": 328.7,
-    "Tmax": 358.7,
-    "rms_lngamma": 0.0284,
-    "max_lngamma": 0.1161,
-    "source": "vanlaar_fit"
+   }
+  },
+  {
+   "a": "methanol",
+   "b": "ethane",
+   "kij_pr": {
+    "value": 0.027,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "methanol",
+   "b": "p-xylene",
+   "nrtl": {
+    "b_ab": 490.46518281247285,
+    "b_ba": 428.29366749753405,
+    "alpha": 0.2921,
+    "unit": "K",
+    "source": "chemsep_nrtl"
+   }
+  },
+  {
+   "a": "methanol",
+   "b": "ethylbenzene",
+   "nrtl": {
+    "b_ab": 543.5390425032408,
+    "b_ba": 522.4209818823849,
+    "alpha": 0.4251,
+    "unit": "K",
+    "source": "chemsep_nrtl"
+   }
+  },
+  {
+   "a": "methanol",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.0583,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "methanol",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": -0.2141,
+    "source": "chemsep_pr"
    }
   },
   {
@@ -2244,17 +2769,6 @@
     "alpha": 0.2937,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": -0.00645,
-    "b12": 598.802,
-    "a21": 0.52062,
-    "b21": 159.907,
-    "Tmin": 347.3,
-    "Tmax": 377.3,
-    "rms_lngamma": 0.001,
-    "max_lngamma": 0.004,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2266,17 +2780,6 @@
     "alpha": 0.3006,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.07933,
-    "b12": 155.542,
-    "a21": 0.00213,
-    "b21": 210.399,
-    "Tmin": 325.3,
-    "Tmax": 355.3,
-    "rms_lngamma": 0.0001,
-    "max_lngamma": 0.0004,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2288,17 +2791,6 @@
     "alpha": 0.3022,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.0986,
-    "b12": 164.213,
-    "a21": 0.0014,
-    "b21": 236.069,
-    "Tmin": 337.1,
-    "Tmax": 367.1,
-    "rms_lngamma": 0.0001,
-    "max_lngamma": 0.0004,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2310,17 +2802,6 @@
     "alpha": 0.2988,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.06426,
-    "b12": 274.519,
-    "a21": 0.05635,
-    "b21": 280.382,
-    "Tmin": 335.8,
-    "Tmax": 365.8,
-    "rms_lngamma": 0.0008,
-    "max_lngamma": 0.003,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2332,17 +2813,6 @@
     "alpha": 0.3013,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.01643,
-    "b12": 163.089,
-    "a21": 0.02257,
-    "b21": 158.775,
-    "Tmin": 325.8,
-    "Tmax": 355.8,
-    "rms_lngamma": 0.0001,
-    "max_lngamma": 0.0005,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2354,17 +2824,6 @@
     "alpha": 0.2946,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.00872,
-    "b12": 415.227,
-    "a21": 0.29038,
-    "b21": 211.728,
-    "Tmin": 307.7,
-    "Tmax": 351.4,
-    "rms_lngamma": 0.0007,
-    "max_lngamma": 0.0028,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2376,17 +2835,6 @@
     "alpha": 0.3015,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.0198,
-    "b12": 217.01,
-    "a21": 0.20256,
-    "b21": 79.127,
-    "Tmin": 330.3,
-    "Tmax": 360.3,
-    "rms_lngamma": 0.0009,
-    "max_lngamma": 0.0039,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2398,17 +2846,6 @@
     "alpha": 0.2909,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.00712,
-    "b12": 492.051,
-    "a21": 0.56114,
-    "b21": 44.855,
-    "Tmin": 327.9,
-    "Tmax": 357.9,
-    "rms_lngamma": 0.0055,
-    "max_lngamma": 0.0216,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2420,17 +2857,28 @@
     "alpha": 0.3057,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": -0.01853,
-    "b12": 599.819,
-    "a21": 0.64687,
-    "b21": 74.44,
-    "Tmin": 312.8,
-    "Tmax": 351.4,
-    "rms_lngamma": 0.004,
-    "max_lngamma": 0.0166,
-    "source": "vanlaar_fit"
+   }
+  },
+  {
+   "a": "ethanol",
+   "b": "p-xylene",
+   "nrtl": {
+    "b_ab": 513.7068801866468,
+    "b_ba": 447.5363295609467,
+    "alpha": 0.618,
+    "unit": "K",
+    "source": "chemsep_nrtl"
+   }
+  },
+  {
+   "a": "ethanol",
+   "b": "ethylbenzene",
+   "nrtl": {
+    "b_ab": 403.4407114990504,
+    "b_ba": 506.68324386979117,
+    "alpha": 0.4962,
+    "unit": "K",
+    "source": "chemsep_nrtl"
    }
   },
   {
@@ -2442,17 +2890,6 @@
     "alpha": 0.3057,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.01952,
-    "b12": -17.941,
-    "a21": 0.01536,
-    "b21": -15.389,
-    "Tmin": 347.9,
-    "Tmax": 377.9,
-    "rms_lngamma": 0.0,
-    "max_lngamma": 0.0,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2464,17 +2901,6 @@
     "alpha": 0.3016,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.0254,
-    "b12": 163.713,
-    "a21": 0.01322,
-    "b21": 172.78,
-    "Tmin": 346.5,
-    "Tmax": 376.5,
-    "rms_lngamma": 0.0001,
-    "max_lngamma": 0.0005,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2486,17 +2912,6 @@
     "alpha": 0.3003,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.05566,
-    "b12": 91.368,
-    "a21": 0.14414,
-    "b21": 20.486,
-    "Tmin": 339.1,
-    "Tmax": 370.3,
-    "rms_lngamma": 0.0008,
-    "max_lngamma": 0.0032,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2508,17 +2923,28 @@
     "alpha": 0.631,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.70439,
-    "b12": 589.388,
-    "a21": 1.0416,
-    "b21": 20.366,
-    "Tmin": 345.0,
-    "Tmax": 375.0,
-    "rms_lngamma": 0.0553,
-    "max_lngamma": 0.23,
-    "source": "vanlaar_fit"
+   }
+  },
+  {
+   "a": "1-propanol",
+   "b": "n-decane",
+   "nrtl": {
+    "b_ab": 475.70142620696595,
+    "b_ba": 261.82139945485994,
+    "alpha": 0.2895,
+    "unit": "K",
+    "source": "chemsep_nrtl"
+   }
+  },
+  {
+   "a": "1-propanol",
+   "b": "ethylbenzene",
+   "nrtl": {
+    "b_ab": 283.62323477783394,
+    "b_ba": 239.32949918559913,
+    "alpha": 0.2921,
+    "unit": "K",
+    "source": "chemsep_nrtl"
    }
   },
   {
@@ -2530,17 +2956,6 @@
     "alpha": 0.4447,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.72407,
-    "b12": 1118.804,
-    "a21": 1.43016,
-    "b21": -89.062,
-    "Tmin": 367.0,
-    "Tmax": 397.0,
-    "rms_lngamma": 0.0601,
-    "max_lngamma": 0.2326,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2552,17 +2967,6 @@
     "alpha": 0.5663,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.08078,
-    "b12": 167.79,
-    "a21": 0.88466,
-    "b21": 464.767,
-    "Tmin": 329.2,
-    "Tmax": 373.2,
-    "rms_lngamma": 0.0635,
-    "max_lngamma": 0.2804,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2574,17 +2978,6 @@
     "alpha": 0.3536,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.13905,
-    "b12": 251.505,
-    "a21": 0.51548,
-    "b21": 908.98,
-    "Tmin": 348.0,
-    "Tmax": 378.0,
-    "rms_lngamma": 0.0359,
-    "max_lngamma": 0.1458,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2596,17 +2989,6 @@
     "alpha": 0.4393,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.38665,
-    "b12": 314.539,
-    "a21": 1.27314,
-    "b21": 499.81,
-    "Tmin": 346.7,
-    "Tmax": 376.7,
-    "rms_lngamma": 0.0879,
-    "max_lngamma": 0.3691,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2618,17 +3000,6 @@
     "alpha": 0.3792,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.98855,
-    "b12": 221.679,
-    "a21": 1.87777,
-    "b21": 510.94,
-    "Tmin": 307.7,
-    "Tmax": 373.2,
-    "rms_lngamma": 0.1433,
-    "max_lngamma": 0.6891,
-    "source": "vanlaar_fit"
    }
   },
   {
@@ -2640,17 +3011,22 @@
     "alpha": 0.4522,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 1.31672,
-    "b12": 179.217,
-    "a21": 0.98958,
-    "b21": 652.964,
-    "Tmin": 339.1,
-    "Tmax": 373.2,
-    "rms_lngamma": 0.0718,
-    "max_lngamma": 0.3058,
-    "source": "vanlaar_fit"
+   }
+  },
+  {
+   "a": "water",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.0952,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "water",
+   "b": "hydrogen-sulfide",
+   "kij_pr": {
+    "value": 0.0394,
+    "source": "chemsep_pr"
    }
   },
   {
@@ -2662,18 +3038,639 @@
     "alpha": 0.3054,
     "unit": "K",
     "source": "chemsep_nrtl"
-   },
-   "vanlaar": {
-    "a12": 0.41084,
-    "b12": -428.813,
-    "a21": 0.06124,
-    "b21": -216.995,
-    "Tmin": 316.8,
-    "Tmax": 346.8,
-    "rms_lngamma": 0.0009,
-    "max_lngamma": 0.0035,
-    "source": "vanlaar_fit"
+   }
+  },
+  {
+   "a": "acetone",
+   "b": "ethane",
+   "kij_pr": {
+    "value": 0.1307,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "methyl-acetate",
+   "b": "ethane",
+   "kij_pr": {
+    "value": 0.1211,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "methyl-acetate",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": -0.0493,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "diethyl-ether",
+   "b": "ethane",
+   "kij_pr": {
+    "value": 0.0181,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "diethyl-ether",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.047,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "tetrachloromethane",
+   "b": "p-xylene",
+   "nrtl": {
+    "b_ab": -97.10561919386329,
+    "b_ba": 61.25152936379633,
+    "alpha": 0.3044,
+    "unit": "K",
+    "source": "chemsep_nrtl"
+   }
+  },
+  {
+   "a": "tetrachloromethane",
+   "b": "ethylbenzene",
+   "nrtl": {
+    "b_ab": -86.74307095028996,
+    "b_ba": 61.627132423599804,
+    "alpha": 0.3034,
+    "unit": "K",
+    "source": "chemsep_nrtl"
+   }
+  },
+  {
+   "a": "methane",
+   "b": "ethane",
+   "kij_pr": {
+    "value": -0.0059,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "methane",
+   "b": "isobutane",
+   "kij_pr": {
+    "value": 0.0256,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "methane",
+   "b": "n-decane",
+   "kij_pr": {
+    "value": 0.0411,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "methane",
+   "b": "ethylene",
+   "kij_pr": {
+    "value": 0.0244,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "methane",
+   "b": "propylene",
+   "kij_pr": {
+    "value": 0.033,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "methane",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.0978,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "methane",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": 0.0289,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "ethane",
+   "b": "isobutane",
+   "kij_pr": {
+    "value": -0.0067,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "ethane",
+   "b": "n-decane",
+   "kij_pr": {
+    "value": 0.0144,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "ethane",
+   "b": "ethylene",
+   "kij_pr": {
+    "value": 0.0078,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "ethane",
+   "b": "propylene",
+   "kij_pr": {
+    "value": 0.0089,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "ethane",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.13,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "ethane",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": 0.0533,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "ethane",
+   "b": "hydrogen-sulfide",
+   "kij_pr": {
+    "value": 0.0952,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "isobutane",
+   "b": "propylene",
+   "kij_pr": {
+    "value": -0.0144,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "isobutane",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.13,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "isobutane",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": 0.1033,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "isobutane",
+   "b": "hydrogen-sulfide",
+   "kij_pr": {
+    "value": 0.0474,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-decane",
+   "b": "ethylene",
+   "kij_pr": {
+    "value": 0.0253,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-decane",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.1141,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-decane",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": 0.1122,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "n-decane",
+   "b": "hydrogen-sulfide",
+   "kij_pr": {
+    "value": 0.0333,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "ethylene",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.0541,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "ethylene",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": 0.0856,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "propylene",
+   "b": "carbon-dioxide",
+   "kij_pr": {
+    "value": 0.0933,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "propylene",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": 0.09,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "carbon-dioxide",
+   "b": "nitrogen",
+   "kij_pr": {
+    "value": -0.0122,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "carbon-dioxide",
+   "b": "hydrogen-sulfide",
+   "kij_pr": {
+    "value": 0.0967,
+    "source": "chemsep_pr"
+   }
+  },
+  {
+   "a": "nitrogen",
+   "b": "hydrogen-sulfide",
+   "kij_pr": {
+    "value": 0.1652,
+    "source": "chemsep_pr"
    }
   }
- ]
+ ],
+ "ppr78": {
+  "groups": [
+   "C2H4",
+   "C2H6",
+   "CH",
+   "CH2",
+   "CH2CHalkenic",
+   "CH2cyclic",
+   "CH3",
+   "CH4",
+   "CHaro",
+   "CO2",
+   "Caro",
+   "H2S",
+   "N2"
+  ],
+  "unit": "MPa",
+  "source": "eppr78",
+  "form": "kij(T) = [-1/2 sum_k sum_l (a_ik - a_jk)(a_il - a_jl) A_kl (298.15/T)^(B_kl/A_kl - 1) - (sqrt(a_i)/b_i - sqrt(a_j)/b_j)^2] / [2 sqrt(a_i a_j)/(b_i b_j)]",
+  "AB": {
+   "C2H4|C2H6": [
+    7.5,
+    20.9
+   ],
+   "C2H4|CH": [
+    147.9,
+    -55.6
+   ],
+   "C2H4|CH2": [
+    59.7,
+    82.4
+   ],
+   "C2H4|CH2CHalkenic": [
+    14.8,
+    11.3
+   ],
+   "C2H4|CH2cyclic": [
+    35.3,
+    52.5
+   ],
+   "C2H4|CH3": [
+    7.9,
+    35.0
+   ],
+   "C2H4|CH4": [
+    19.2,
+    33.3
+   ],
+   "C2H4|CHaro": [
+    25.7,
+    78.9
+   ],
+   "C2H4|CO2": [
+    73.1,
+    106.7
+   ],
+   "C2H4|Caro": [
+    97.8,
+    67.9
+   ],
+   "C2H4|H2S": [
+    0.0,
+    0.0
+   ],
+   "C2H4|N2": [
+    45.3,
+    92.6
+   ],
+   "C2H6|CH": [
+    156.1,
+    96.8
+   ],
+   "C2H6|CH2": [
+    29.9,
+    65.9
+   ],
+   "C2H6|CH2CHalkenic": [
+    26.8,
+    -5.1
+   ],
+   "C2H6|CH2cyclic": [
+    12.7,
+    73.4
+   ],
+   "C2H6|CH3": [
+    3.8,
+    8.9
+   ],
+   "C2H6|CH4": [
+    10.0,
+    13.7
+   ],
+   "C2H6|CHaro": [
+    41.2,
+    50.8
+   ],
+   "C2H6|CO2": [
+    136.2,
+    235.7
+   ],
+   "C2H6|Caro": [
+    67.9,
+    210.7
+   ],
+   "C2H6|H2S": [
+    157.2,
+    217.1
+   ],
+   "C2H6|N2": [
+    61.6,
+    84.9
+   ],
+   "CH|CH2": [
+    39.0,
+    41.6
+   ],
+   "CH|CH2CHalkenic": [
+    84.8,
+    193.2
+   ],
+   "CH|CH2cyclic": [
+    73.1,
+    71.4
+   ],
+   "CH|CH3": [
+    214.9,
+    294.9
+   ],
+   "CH|CH4": [
+    131.4,
+    157.5
+   ],
+   "CH|CHaro": [
+    56.6,
+    129.7
+   ],
+   "CH|CO2": [
+    191.8,
+    380.9
+   ],
+   "CH|Caro": [
+    48.7,
+    -89.2
+   ],
+   "CH|H2S": [
+    192.5,
+    562.8
+   ],
+   "CH|N2": [
+    383.6,
+    375.4
+   ],
+   "CH2|CH2CHalkenic": [
+    9.6,
+    50.8
+   ],
+   "CH2|CH2cyclic": [
+    8.6,
+    27.8
+   ],
+   "CH2|CH3": [
+    65.5,
+    105.7
+   ],
+   "CH2|CH4": [
+    37.7,
+    74.8
+   ],
+   "CH2|CHaro": [
+    25.0,
+    64.5
+   ],
+   "CH2|CO2": [
+    141.4,
+    237.1
+   ],
+   "CH2|Caro": [
+    5.1,
+    -7.5
+   ],
+   "CH2|H2S": [
+    136.6,
+    124.6
+   ],
+   "CH2|N2": [
+    83.7,
+    188.7
+   ],
+   "CH2CHalkenic|CH2cyclic": [
+    -15.4,
+    24.4
+   ],
+   "CH2CHalkenic|CH3": [
+    48.7,
+    44.3
+   ],
+   "CH2CHalkenic|CH4": [
+    48.7,
+    68.3
+   ],
+   "CH2CHalkenic|CHaro": [
+    10.0,
+    19.9
+   ],
+   "CH2CHalkenic|CO2": [
+    60.7,
+    183.9
+   ],
+   "CH2CHalkenic|Caro": [
+    -48.4,
+    27.8
+   ],
+   "CH2CHalkenic|H2S": [
+    0.0,
+    0.0
+   ],
+   "CH2CHalkenic|N2": [
+    59.7,
+    227.2
+   ],
+   "CH2cyclic|CH3": [
+    43.6,
+    60.1
+   ],
+   "CH2cyclic|CH4": [
+    34.0,
+    5.5
+   ],
+   "CH2cyclic|CHaro": [
+    28.8,
+    65.5
+   ],
+   "CH2cyclic|CO2": [
+    144.1,
+    354.1
+   ],
+   "CH2cyclic|Caro": [
+    37.4,
+    53.5
+   ],
+   "CH2cyclic|H2S": [
+    117.4,
+    166.4
+   ],
+   "CH2cyclic|N2": [
+    179.5,
+    546.6
+   ],
+   "CH3|CH4": [
+    28.5,
+    20.2
+   ],
+   "CH3|CHaro": [
+    98.8,
+    136.2
+   ],
+   "CH3|CO2": [
+    144.8,
+    401.5
+   ],
+   "CH3|Caro": [
+    103.6,
+    103.6
+   ],
+   "CH3|H2S": [
+    159.6,
+    227.8
+   ],
+   "CH3|N2": [
+    38.1,
+    88.2
+   ],
+   "CH4|CHaro": [
+    67.3,
+    167.5
+   ],
+   "CH4|CO2": [
+    136.6,
+    214.8
+   ],
+   "CH4|Caro": [
+    106.7,
+    190.8
+   ],
+   "CH4|H2S": [
+    190.1,
+    307.5
+   ],
+   "CH4|N2": [
+    30.9,
+    37.1
+   ],
+   "CHaro|CO2": [
+    98.5,
+    253.6
+   ],
+   "CHaro|Caro": [
+    -16.5,
+    16.5
+   ],
+   "CHaro|H2S": [
+    21.3,
+    6.2
+   ],
+   "CHaro|N2": [
+    185.3,
+    490.7
+   ],
+   "CO2|Caro": [
+    154.4,
+    374.4
+   ],
+   "CO2|H2S": [
+    135.2,
+    199.0
+   ],
+   "CO2|N2": [
+    113.9,
+    212.4
+   ],
+   "Caro|H2S": [
+    9.6,
+    -36.7
+   ],
+   "Caro|N2": [
+    343.8,
+    1712.3
+   ],
+   "H2S|N2": [
+    319.5,
+    550.1
+   ]
+  },
+  "missing": [
+   "C2H4|H2S",
+   "CH2CHalkenic|H2S"
+  ]
+ }
 }

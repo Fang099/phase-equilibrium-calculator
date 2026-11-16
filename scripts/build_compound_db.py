@@ -35,6 +35,16 @@ Sources (all read from the data files shipped with the open-source
             weights (2021).
   derived   Normal boiling point: the temperature at which the Antoine
             equation gives 101 325 Pa.
+  eppr78    Group-interaction parameters A_kl, B_kl (MPa) of the E-PPR78
+            model, which predicts a temperature-dependent Peng-Robinson
+            k_ij(T) from the groups in each molecule.  Jaubert, Qian, Lasala,
+            Privat, Fluid Phase Equilibria 560 (2022) 113456.   [thermo:
+            group_contribution/ppr78.py, table EPPR78_INTERACTIONS]. The
+            groups of each compound are given in data/compound_list.csv.
+
+A compound needs critical constants; Antoine constants are optional (a gas
+such as CO2 has none in Poling's table and is then used with the equations of
+state only).
 """
 
 import argparse
@@ -69,6 +79,13 @@ SOURCES = {
     "iupac_aw": "Molar mass from the molecular formula and IUPAC abridged standard "
                 "atomic weights (2021).",
     "derived": "Calculated here: temperature at which the Antoine equation gives 101 325 Pa.",
+    "eppr78": "Jaubert, J.-N., Qian, J.-W., Lasala, S., Privat, R. The impressive impact of "
+              "including enthalpy and heat capacity of mixing data when parameterising "
+              "equations of state. Application to the development of the E-PPR78 "
+              "(Enhanced-Predictive-Peng-Robinson-78) model. Fluid Phase Equilibria 560 "
+              "(2022) 113456. Group-interaction parameters A_kl and B_kl (MPa) read from "
+              "the thermo library (group_contribution/ppr78.py); the groups of each "
+              "molecule are assigned in data/compound_list.csv.",
     "libraries": "Bell, C. and contributors. chemicals: Chemical properties component of "
                  "Chemical Engineering Design Library (ChEDL), and thermo: Chemical "
                  "properties component of ChEDL. https://github.com/CalebBell/chemicals, "
@@ -96,6 +113,26 @@ def commit(path):
         return "unknown"
 
 
+def eppr78_table(thermo_path):
+    """{(group_k, group_l): (A_kl, B_kl)} in MPa from the thermo source file."""
+    src = open(os.path.join(thermo_path, "thermo", "group_contribution", "ppr78.py"),
+               encoding="utf-8").read()
+    pat = re.compile(r'^EPPR78_INTERACTIONS\[\(EPPR78_GROUPS\["([^"]+)"\], '
+                     r'EPPR78_GROUPS\["([^"]+)"\]\)\] = \(([-0-9.eE]+), ([-0-9.eE]+)\)', re.M)
+    out = {}
+    for g1, g2, A, B in pat.findall(src):
+        out[(g1, g2)] = (float(A), float(B))
+    return out
+
+
+def parse_groups(text):
+    groups = {}
+    for part in filter(None, (t.strip() for t in (text or "").split(";"))):
+        g, n = part.split(":")
+        groups[g.strip()] = int(n)
+    return groups
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     ap.add_argument("--chemicals", required=True, help="path to a checkout of CalebBell/chemicals")
@@ -116,24 +153,48 @@ def main():
     compounds, skipped = [], []
     for w in wanted:
         cas = w["cas"]
-        if cas not in psrk or cas not in antoine:
-            skipped.append(f"{w['id']} ({'no critical constants' if cas not in psrk else 'no Antoine constants'})")
+        if cas not in psrk:
+            skipped.append(f"{w['id']} (no critical constants)")
             continue
-        c, an = psrk[cas], antoine[cas]
-        A, B, C = float(an["A"]), float(an["B"]), float(an["C"])
-        Tb = B / (A - math.log10(101325.0)) - C
-        compounds.append({
+        c, an = psrk[cas], antoine.get(cas)
+        rec = {
             "id": w["id"], "name": w["name"], "formula": w["formula"], "cas": cas,
             "family": w["family"],
             "M": {"value": molar_mass(w["formula"]), "unit": "g/mol", "source": "iupac_aw"},
             "Tc": {"value": float(c["Tc"]), "unit": "K", "source": "psrk4"},
             "Pc": {"value": float(c["Pc"]), "unit": "Pa", "source": "psrk4"},
             "omega": {"value": float(c["omega"]), "unit": "", "source": "psrk4"},
-            "antoine": {"A": A, "B": B, "C": C, "Tmin": float(an["Tmin"]),
-                        "Tmax": float(an["Tmax"]), "P_unit": "Pa", "T_unit": "K",
-                        "form": "log10(P/Pa) = A - B/(T/K + C)", "source": "poling"},
-            "Tb": {"value": round(Tb, 2), "unit": "K", "source": "derived"},
-        })
+            "antoine": None, "Tb": None,
+        }
+        if an is not None:
+            A, B, C = float(an["A"]), float(an["B"]), float(an["C"])
+            Tb = B / (A - math.log10(101325.0)) - C
+            rec["antoine"] = {"A": A, "B": B, "C": C, "Tmin": float(an["Tmin"]),
+                              "Tmax": float(an["Tmax"]), "P_unit": "Pa", "T_unit": "K",
+                              "form": "log10(P/Pa) = A - B/(T/K + C)", "source": "poling"}
+            rec["Tb"] = {"value": round(Tb, 2), "unit": "K", "source": "derived"}
+        groups = parse_groups(w.get("ppr78_groups"))
+        if groups:
+            rec["ppr78"] = {"groups": groups, "source": "eppr78"}
+        compounds.append(rec)
+
+    # E-PPR78 group interactions, only for the groups the compounds use
+    table = eppr78_table(a.thermo)
+    used = sorted({g for c in compounds for g in c.get("ppr78", {}).get("groups", {})})
+    unknown = [g for g in used if not any(g in k for k in table)]
+    if unknown:
+        raise SystemExit(f"E-PPR78 groups not in the table: {unknown}")
+    ppr78 = {"groups": used, "unit": "MPa", "source": "eppr78",
+             "form": "kij(T) = [-1/2 sum_k sum_l (a_ik - a_jk)(a_il - a_jl) A_kl (298.15/T)^(B_kl/A_kl - 1)"
+                     " - (sqrt(a_i)/b_i - sqrt(a_j)/b_j)^2] / [2 sqrt(a_i a_j)/(b_i b_j)]",
+             "AB": {}, "missing": []}
+    for i, g1 in enumerate(used):
+        for g2 in used[i + 1:]:
+            v = table.get((g1, g2)) or table.get((g2, g1))
+            if v is None:                      # not fitted by the authors
+                ppr78["missing"].append(f"{g1}|{g2}")
+                v = (0.0, 0.0)
+            ppr78["AB"][f"{g1}|{g2}"] = list(v)
 
     pairs = []
     for i, ci in enumerate(compounds):
@@ -162,6 +223,7 @@ def main():
         },
         "compounds": compounds,
         "pairs": pairs,
+        "ppr78": ppr78,
     }
     path = os.path.join(ROOT, "data", "compounds.json")
     with open(path, "w", encoding="utf-8") as f:

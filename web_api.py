@@ -34,10 +34,10 @@ from thermo_models import NRTL, R, build_system
 import equilibrium_solver as es
 
 EOS_MODELS = ("PR", "SRK", "vdW")
-ACTIVITY_MODELS = ("ideal", "margules", "vanlaar", "nrtl")
+ACTIVITY_MODELS = ("ideal", "margules", "nrtl")
 MODEL_LABELS = {"PR": "Peng-Robinson", "SRK": "Soave-Redlich-Kwong", "vdW": "van der Waals",
                 "ideal": "Ideal solution (Raoult's law)", "margules": "Margules",
-                "vanlaar": "van Laar", "nrtl": "NRTL"}
+                "nrtl": "NRTL"}
 
 
 # --------------------------------------------------------------------------
@@ -53,15 +53,17 @@ def catalog():
             "id": c["id"], "name": c["name"], "formula": c["formula"], "cas": c["cas"],
             "family": c["family"], "M": c["M"]["value"], "Tc": c["Tc"]["value"],
             "Pc_bar": c["Pc"]["value"] / 1e5, "omega": c["omega"]["value"],
-            "Tb": c["Tb"]["value"],
-            "antoine": {"A": a["A"], "B": a["B"], "C": a["C"], "Tmin": a["Tmin"],
-                        "Tmax": a["Tmax"], "form": a["form"]},
+            "Tb": c["Tb"]["value"] if c["Tb"] else None,
+            "antoine": ({"A": a["A"], "B": a["B"], "C": a["C"], "Tmin": a["Tmin"],
+                         "Tmax": a["Tmax"], "form": a["form"]} if a else None),
+            "ppr78": (c["ppr78"]["groups"] if "ppr78" in c else None),
             "sources": {"M": c["M"]["source"], "Tc": c["Tc"]["source"],
                         "Pc": c["Pc"]["source"], "omega": c["omega"]["source"],
-                        "antoine": a["source"], "Tb": c["Tb"]["source"]},
+                        "antoine": a["source"] if a else None,
+                        "Tb": c["Tb"]["source"] if c["Tb"] else None,
+                        "ppr78": "eppr78" if "ppr78" in c else None},
         })
-    pairs = [{"a": p["a"], "b": p["b"], "nrtl": "nrtl" in p, "kij_pr": "kij_pr" in p,
-              "vanlaar": "vanlaar" in p}
+    pairs = [{"a": p["a"], "b": p["b"], "nrtl": "nrtl" in p, "kij_pr": "kij_pr" in p}
              for p in db["pairs"]]
     return {"compounds": comps, "pairs": pairs, "sources": db["meta"]["sources"],
             "generated": db["meta"]["generated"],
@@ -73,28 +75,25 @@ def catalog():
 def pair_defaults(a, b):
     """Starting parameter values and sensible ranges for a pair of compounds.
 
-    NRTL parameters, the Peng-Robinson k_ij and the temperature-dependent van
-    Laar parameters A_ij(T) = a_ij + b_ij/T come from the database when it has
-    them ('vanlaar': A12 and A21 are given at T_ref, with the slopes b12, b21).
-    Margules has no database; its A12 and A21 are ln(gamma) at infinite
+    NRTL parameters come from the database when it has them. The Peng-Robinson
+    k_ij comes from E-PPR78 (a function of T; 'kij' then reports its value at
+    T_ref) or else the fixed DECHEMA value. Margules has no database; its A12 and A21 are ln(gamma) at infinite
     dilution, matched to the NRTL model's values at the mean boiling point
     when NRTL parameters exist, and zero (an ideal solution) otherwise."""
     ca, cb = compound_db.find(a), compound_db.find(b)
     if ca is None or cb is None:
         raise ValueError("unknown compound")
     pr = compound_db.pair(a, b)
-    T_ref = 0.5 * (ca["Tb"]["value"] + cb["Tb"]["value"])
-    out = {"a": ca["id"], "b": cb["id"], "T_ref": round(T_ref, 2),
-           "kij": {"value": pr.get("kij_pr", 0.0),
-                   "source": pr.get("kij_source", "none")},
-           "nrtl": None, "A": {"A12": 0.0, "A21": 0.0, "source": "none"}, "vanlaar": None}
-    if "vanlaar" in pr:
-        v = pr["vanlaar"]
-        out["vanlaar"] = {"A12": round(v["a_ab"] + v["b_ab"] / T_ref, 4),
-                          "A21": round(v["a_ba"] + v["b_ba"] / T_ref, 4),
-                          "b12": v["b_ab"], "b21": v["b_ba"], "T_ref": round(T_ref, 2),
-                          "Tmin": v["Tmin"], "Tmax": v["Tmax"],
-                          "rms_lngamma": v["rms_lngamma"], "source": v["source"]}
+    Tb_a, Tb_b = (_tb(c) for c in (ca, cb))
+    T_ref = 0.5 * (Tb_a + Tb_b)
+    if compound_db.ppr78_ready(a, b):
+        kij = {"value": round(compound_db.PPR78Kij(a, b)(T_ref), 4), "source": "eppr78",
+               "T_dependent": True}
+    else:
+        kij = {"value": pr.get("kij_pr", 0.0), "source": pr.get("kij_source", "none"),
+               "T_dependent": False}
+    out = {"a": ca["id"], "b": cb["id"], "T_ref": round(T_ref, 2), "kij": kij,
+           "nrtl": None, "A": {"A12": 0.0, "A21": 0.0, "source": "none"}}
     if "dg_ab" in pr:
         out["nrtl"] = {"dg12": round(pr["dg_ab"], 2), "dg21": round(pr["dg_ba"], 2),
                        "alpha": pr["alpha"], "source": pr["nrtl_source"]}
@@ -103,16 +102,23 @@ def pair_defaults(a, b):
         A12 = float(m.ln_gamma(T_ref, [0.0, 1.0])[0])
         A21 = float(m.ln_gamma(T_ref, [1.0, 0.0])[1])
         out["A"] = {"A12": round(A12, 4), "A21": round(A21, 4), "source": "nrtl_infinite_dilution"}
-    Tb_lo, Tb_hi = sorted((ca["Tb"]["value"], cb["Tb"]["value"]))
+    Tb_lo, Tb_hi = sorted((Tb_a, Tb_b))
     Tc_lo = min(ca["Tc"]["value"], cb["Tc"]["value"])
     out["ranges"] = {
         "T": [int(5 * math.floor((Tb_lo - 60) / 5)), int(5 * math.ceil(min(Tb_hi + 80, Tc_lo - 5) / 5))],
         "T_default": int(5 * round(T_ref / 5)),
         "P": [0.05, 30.0], "P_default": 1.01325,
-        "antoine_T": [max(ca["antoine"]["Tmin"], cb["antoine"]["Tmin"]),
-                      min(ca["antoine"]["Tmax"], cb["antoine"]["Tmax"])],
+        "antoine_T": ([max(ca["antoine"]["Tmin"], cb["antoine"]["Tmin"]),
+                       min(ca["antoine"]["Tmax"], cb["antoine"]["Tmax"])]
+                      if ca["antoine"] and cb["antoine"] else None),
     }
     return out
+
+
+def _tb(rec):
+    """Normal boiling point, or for a compound without Antoine constants (CO2,
+    which sublimes at 1 atm) a stand-in of 0.65 Tc for choosing ranges."""
+    return rec["Tb"]["value"] if rec["Tb"] else round(0.65 * rec["Tc"]["value"], 2)
 
 
 # --------------------------------------------------------------------------
@@ -129,27 +135,15 @@ def build_input(req):
     lines = [f"components = {a}, {b}", "database = builtin"]
     if model in EOS_MODELS:
         lines.append(f"model = {model}")
-        kij = par.get("kij", d["kij"]["value"] if model == "PR" else 0.0)
-        lines.append(f"kij({a}, {b}) = {float(kij):g}")
+        if "kij" in par:
+            lines.append(f"kij({a}, {b}) = {float(par['kij']):g}")
+        elif model == "PR" and d["kij"]["source"] == "eppr78":
+            lines.append(f"kij({a}, {b}) = PPR78")
+        else:
+            lines.append(f"kij({a}, {b}) = {float(d['kij']['value'] if model == 'PR' else 0.0):g}")
     elif model in ACTIVITY_MODELS:
         lines.append(f"activity = {model}")
-        if model == "vanlaar":
-            v = d["vanlaar"]
-            if v is None and not ("A12" in par and "A21" in par):
-                raise ValueError("the database has no van Laar parameters for this pair")
-            A12 = float(par.get("A12", v["A12"] if v else 0.0))
-            A21 = float(par.get("A21", v["A21"] if v else 0.0))
-            if A12 * A21 <= 0:
-                raise ValueError("van Laar needs A12 and A21 of the same sign")
-            if v is not None and par.get("tdep", 1):
-                # A_ij(T) = a_ij + b_ij/T, passing through the chosen value at T_ref
-                Tr = v["T_ref"]
-                lines.append(f"A({a}, {b}) = {compound_db.vanlaar_expr(A12 - v['b12'] / Tr, v['b12'])}")
-                lines.append(f"A({b}, {a}) = {compound_db.vanlaar_expr(A21 - v['b21'] / Tr, v['b21'])}")
-            else:
-                lines.append(f"A({a}, {b}) = {A12:g}")
-                lines.append(f"A({b}, {a}) = {A21:g}")
-        elif model == "margules":
+        if model == "margules":
             lines.append(f"A({a}, {b}) = {float(par.get('A12', d['A']['A12'])):g}")
             lines.append(f"A({b}, {a}) = {float(par.get('A21', d['A']['A21'])):g}")
         elif model == "nrtl":
@@ -362,12 +356,6 @@ def _solve(req):
         if Ts and (min(Ts) < lo - 10 or max(Ts) > hi + 10):
             notes.append(f"Vapor pressures are extrapolated: the Antoine constants of this "
                          f"pair are fitted from {lo:.0f} to {hi:.0f} K.")
-    if req.get("model") == "vanlaar" and (req.get("params") or {}).get("tdep", 1):
-        v = pair_defaults(*req["components"])["vanlaar"]
-        Ts = [t for t in out["columns"]["T"] if t is not None]
-        if v and Ts and (min(Ts) < v["Tmin"] - 5 or max(Ts) > v["Tmax"] + 5):
-            notes.append(f"The van Laar parameters are extrapolated: their temperature "
-                         f"dependence is fitted from {v['Tmin']:.0f} to {v['Tmax']:.0f} K.")
     out["notes"] = notes
     out["ok"] = True
     return out
@@ -476,6 +464,179 @@ def point(req):
     return out
 
 
+# --------------------------------------------------------------------------
+# Mixtures of three or four components
+# --------------------------------------------------------------------------
+MIXTURE_EXAMPLES = [
+    {"id": "nat-gas", "label": "Methane, ethane, propane, n-butane (Peng-Robinson)",
+     "components": ["methane", "ethane", "propane", "n-butane"], "model": "PR",
+     "T": 250.0, "P": 30.0, "z": [0.40, 0.25, 0.20, 0.15]},
+    {"id": "co2-gas", "label": "Carbon dioxide, methane, n-butane (Peng-Robinson)",
+     "components": ["carbon-dioxide", "methane", "n-butane"], "model": "PR",
+     "T": 260.0, "P": 30.0, "z": [0.30, 0.30, 0.40]},
+    {"id": "solvents", "label": "Acetone, methanol, water (NRTL)",
+     "components": ["acetone", "methanol", "water"], "model": "nrtl",
+     "T": 345.0, "P": 1.01325, "z": [0.30, 0.30, 0.40]},
+    {"id": "alcohols", "label": "Methanol, ethanol, acetone, water (NRTL)",
+     "components": ["methanol", "ethanol", "acetone", "water"], "model": "nrtl",
+     "T": 345.0, "P": 1.01325, "z": [0.25, 0.25, 0.20, 0.30]},
+]
+
+
+def mixture_input(req):
+    """Input file for a flash of 2 to 4 components at T, P and feed z."""
+    comps = [compound_db.find(c) for c in req["components"]]
+    if any(c is None for c in comps):
+        raise ValueError("unknown compound")
+    ids = [c["id"] for c in comps]
+    if not 2 <= len(ids) <= 4 or len(set(ids)) != len(ids):
+        raise ValueError("choose two to four different compounds")
+    model = req.get("model", "PR")
+    lines = [f"components = {', '.join(ids)}", "database = builtin"]
+    if model in EOS_MODELS:
+        lines.append(f"model = {model}")
+        for i, a in enumerate(ids):
+            for b in ids[i + 1:]:
+                if model == "PR" and compound_db.ppr78_ready(a, b):
+                    lines.append(f"kij({a}, {b}) = PPR78")
+                elif model == "PR" and "kij_pr" in compound_db.pair(a, b):
+                    lines.append(f"kij({a}, {b}) = {compound_db.pair(a, b)['kij_pr']:g}")
+                else:
+                    lines.append(f"kij({a}, {b}) = 0")
+    elif model in ("ideal", "nrtl"):
+        lines.append(f"activity = {model}")
+        missing = [f"{a} + {b}" for i, a in enumerate(ids) for b in ids[i + 1:]
+                   if model == "nrtl" and "dg_ab" not in compound_db.pair(a, b)]
+        if missing:
+            raise ValueError("the database has no NRTL parameters for " + ", ".join(missing))
+        for c in comps:
+            if c["antoine"] is None:
+                raise ValueError(f"{c['name']} has no vapor-pressure data; use an equation of state")
+    else:
+        raise ValueError(f"unknown model '{model}'")
+    z = [float(v) for v in req["z"]]
+    if len(z) != len(ids) or any(v <= 0 for v in z):
+        raise ValueError("give a positive amount of every component")
+    tot = sum(z)
+    z = [v / tot for v in z]
+    lines += [f"T = {float(req['T']):g} K", f"P = {float(req['P']):g} bar",
+              "z = " + ", ".join(f"{v:.6g}" for v in z)]
+    return "\n".join(lines) + "\n", ids, np.array(z)
+
+
+def mixture(req):
+    """Flash of a mixture of two to four components at T and P: is it liquid,
+    vapor or two-phase, the phase compositions and K-values, and the bubble
+    and dew points of the same feed. With 'map': true and three components,
+    also the bubble points over a grid of liquid compositions (bubble T at P
+    for an activity model, bubble P at T for an equation of state), with the
+    vapor in equilibrium with each, for a triangle diagram."""
+    t0 = time.time()
+    old_err = np.seterr(all="ignore")      # trial points near a critical point overflow harmlessly
+    try:
+        text, ids, z = mixture_input(req)
+        rep = check_input(text)
+        out = {"input_text": text, "report": str(rep), "status": rep.status, "names": ids}
+        if rep.status != "SUFFICIENT":
+            out.update(ok=False, error="The checker did not accept this input: " + rep.status)
+            return out
+        system = build_system(text)
+        eq = next(e for e in system.equilibria if e.phase_names[1] == "V")
+        L, V = eq.phases
+        T, P = float(req["T"]), float(req["P"])
+        fin = lambda v: None if v is None or not np.isfinite(v) else float(f"{v:.6g}")
+        vec = lambda a: [fin(v) for v in a]
+        pt = es.flash_TP(L, V, T, P * 1e5, z)
+        out.update(ok=True, route=eq.route, phase=pt.phase, beta=fin(pt.beta), T=T, P=P,
+                   z=vec(z), x=vec(pt.x), y=vec(pt.y))
+        if pt.phase == "two-phase":
+            out["K"] = vec(es.K_values(L, V, T, P * 1e5, pt.x, pt.y))
+            if hasattr(L, "ln_gamma"):
+                out["gamma"] = vec(np.exp(L.ln_gamma(T, pt.x)))
+            else:
+                out["phiL"] = vec(np.exp(L.ln_phi(T, P * 1e5, pt.x)))
+                out["phiV"] = vec(np.exp(V.ln_phi(T, P * 1e5, pt.y)))
+        kij = {}
+        for i, a in enumerate(ids):
+            for b in ids[i + 1:]:
+                k = rep.inputs.pairs.get(frozenset((a, b)), {}).get("kij")
+                if k is not None:
+                    kij[f"{a}|{b}"] = fin(k(T) if callable(k) else k)
+        if kij:
+            out["kij"] = kij
+        bounds = {}
+        for name, beta, kw in (("P_bubble", 0.0, {"T": T}), ("P_dew", 1.0, {"T": T}),
+                               ("T_bubble", 0.0, {"P": P * 1e5}), ("T_dew", 1.0, {"P": P * 1e5})):
+            try:
+                s_ = es.saturation(L, V, z, beta, **kw)
+                bounds[name] = fin(s_.P / 1e5) if name.startswith("P") else fin(s_.T)
+            except Exception:
+                bounds[name] = None
+        out["bounds"] = bounds
+        if req.get("map") and len(ids) == 3:
+            kind = "P" if req.get("model") in EOS_MODELS else "T"
+            out["map"] = _ternary_map(L, V, T, P * 1e5, int(req.get("divisions", 10)), t0, kind)
+    except Exception as e:
+        out = {"ok": False, "error": str(e) or type(e).__name__}
+    finally:
+        np.seterr(**old_err)
+    out["ms"] = round(1000 * (time.time() - t0))
+    return out
+
+
+def _ternary_map(L, V, T, P, n, t0, kind, limit=15.0):
+    """Bubble points on a triangular grid of liquid compositions (n divisions
+    per side), with the vapor each liquid boils into: the bubble temperature
+    at P (kind 'T', for the activity route) or the bubble pressure at T
+    (kind 'P', for an equation of state, where it is the more robust of the
+    two). The grid is solved outward from the corner of the heaviest
+    compound, each point starting from its solved neighbours."""
+    from collections import deque
+    pts = {}
+    heavy = int(np.argmax(L.eos.Tc)) if hasattr(L, "eos") else None
+    if heavy is None:
+        heavy = int(np.argmin([math.exp(v) for v in L.ln_f0(T, P)]))
+    start = tuple(n if k == heavy else 0 for k in range(3))
+    queue, seen = deque([start]), {start}
+    truncated = False
+    while queue:
+        ijk = queue.popleft()
+        if time.time() - t0 > limit:
+            truncated = True
+            break
+        x = np.clip(np.array(ijk, float) / n, 1e-6, None)
+        x /= x.sum()
+        nb = [(ijk[0] + a, ijk[1] + b, ijk[2] - a - b) for a, b in
+              ((1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1))]
+        nb = [q for q in nb if min(q) >= 0]
+        known = [pts[q]["v"] for q in nb if q in pts and pts[q]["v"] is not None]
+        guess = (math.exp(sum(math.log(v) for v in known) / len(known)) if known else None)
+        rec = {"x": [round(float(v), 4) for v in x], "v": None, "y": None}
+        try:
+            if kind == "T":
+                s_ = es.bubble_T(L, V, P, x, guess=guess)
+                val = float(s_.T)
+            else:
+                s_ = es.bubble_P(L, V, T, x, guess=guess)
+                val = float(s_.P)
+            if np.all(np.isfinite(s_.y)) and val > 0:
+                rec.update(v=val, y=[round(float(v), 4) for v in s_.y])
+        except Exception:
+            pass
+        pts[ijk] = rec
+        for q in nb:
+            if q not in seen:
+                seen.add(q)
+                queue.append(q)
+    out = []
+    for ijk, rec in pts.items():
+        v = rec["v"]
+        out.append({"x": rec["x"], "y": rec["y"],
+                    "T": round(v, 3) if kind == "T" and v is not None else None,
+                    "P": round(v / 1e5, 5) if kind == "P" and v is not None else None})
+    return {"points": out, "kind": kind, "T": T, "P": P / 1e5, "n": n, "truncated": truncated}
+
+
 def run_input(text, time_limit=20.0):
     """Check any input file and, if it is sufficient, solve it: exactly what
     `python equilibrium_solver.py file.txt` prints."""
@@ -521,6 +682,10 @@ def handle(message):
             res = point(msg["request"])
         elif op == "run_input":
             res = run_input(msg["text"])
+        elif op == "mixture":
+            res = mixture(msg["request"])
+        elif op == "mixture_examples":
+            res = {"ok": True, "examples": MIXTURE_EXAMPLES}
         else:
             res = {"ok": False, "error": f"unknown operation '{op}'"}
     except Exception as e:
@@ -540,7 +705,7 @@ if __name__ == "__main__":
         print(f"[{'PASS' if ok else 'FAIL'}] {name}" + (f": {detail}" if detail else ""))
 
     cat = catalog()
-    report("catalog", len(cat["compounds"]) >= 20 and len(cat["models"]) == 7,
+    report("catalog", len(cat["compounds"]) >= 20 and len(cat["models"]) == 6,
            f"{len(cat['compounds'])} compounds, {len(cat['pairs'])} pairs with parameters")
 
     r = compute({"components": ["ethanol", "water"], "model": "nrtl", "hold": "P", "P": 1.01325})
@@ -578,12 +743,6 @@ if __name__ == "__main__":
            r["ok"] and all(pb > pd for pb, pd in zip(c["P"], c["P_dew"]) if pb and pd),
            f"{len(c.get('T', []))} temperatures")
 
-    d = pair_defaults("ethanol", "water")
-    r1 = compute({"components": ["ethanol", "water"], "model": "vanlaar", "hold": "P", "P": 1.01325})
-    report("van Laar defaults matched to NRTL at infinite dilution give an azeotrope",
-           r1["ok"] and r1.get("azeotrope") is not None,
-           f"A12 = {d['A']['A12']}, A21 = {d['A']['A21']}, azeotrope {r1.get('azeotrope')}")
-
     A_ = 2.6
     r = compute({"components": ["ethanol", "water"], "model": "margules", "hold": "T", "T": 350,
                  "params": {"A12": A_, "A21": A_}})
@@ -601,10 +760,10 @@ if __name__ == "__main__":
     report("ideal solution: gamma = 1 and no azeotrope",
            r["ok"] and r["azeotrope"] is None and all(abs(v - 1) < 1e-12 for v in c["gamma1"]))
 
-    r = compute({"components": ["ethanol", "water"], "model": "vanlaar", "hold": "T", "T": 350,
-                 "params": {"A12": 1.0, "A21": -1.0}})
+    r = compute({"components": ["ethanol", "water"], "model": "nrtl", "hold": "T", "T": 350,
+                 "params": {"dg12": 100.0, "dg21": 100.0, "alpha": -1.0}})
     report("invalid parameters give a readable error, not a crash",
-           not r["ok"] and "same sign" in r["error"], r.get("error", ""))
+           not r["ok"] and r.get("error"), r.get("error", ""))
 
     # field: the 500 m propane / n-butane column forms a gas cap near 306 m
     r = compute({"components": ["propane", "n-butane"], "model": "PR", "hold": "field", "T": 320,
@@ -613,7 +772,7 @@ if __name__ == "__main__":
     report("gravity column in the calculator: gas-liquid contact", r["ok"] and len(r["contacts"]) == 1
            and abs(r["contacts"][0]["position"] - 306.1) < 1.5 and r["columns"]["phase"][-1] == "vapor",
            str(r.get("contacts")))
-    r = compute({"components": ["ethanol", "water"], "model": "vanlaar", "hold": "field", "T": 350,
+    r = compute({"components": ["ethanol", "water"], "model": "nrtl", "hold": "field", "T": 350,
                  "P": 1.0, "z1": 0.3, "npts": 21,
                  "field": {"kind": "centrifugal", "rpm": 20000, "r_in": 0.05, "r_out": 0.10}})
     report("centrifuge with an activity model: Rackett liquid volumes, P rises outward",
@@ -621,8 +780,8 @@ if __name__ == "__main__":
            f"{r['columns']['P'][-1] if r.get('ok') else r.get('error')} bar at the rim")
 
     # "is there equilibrium here?": a state inside the two-phase region, and one above it
-    r = point({"components": ["ethanol", "water"], "model": "vanlaar", "T": 360.0, "P": 1.01325, "z1": 0.4})
-    r2 = point({"components": ["ethanol", "water"], "model": "vanlaar", "T": 360.0, "P": 2.0, "z1": 0.4})
+    r = point({"components": ["ethanol", "water"], "model": "nrtl", "T": 360.0, "P": 1.01325, "z1": 0.4})
+    r2 = point({"components": ["ethanol", "water"], "model": "nrtl", "T": 360.0, "P": 2.0, "z1": 0.4})
     b_ = r.get("bounds", {})
     report("state check: two phases between the dew and bubble pressures, liquid above",
            r["ok"] and r["phase"] == "two-phase" and b_["P_dew"] < 1.01325 < b_["P_bubble"]
@@ -643,22 +802,42 @@ if __name__ == "__main__":
            and sv["layers"][0]["columns"]["T"][-1] < sv["layers"][2]["columns"]["T"][-1],
            f"{sv['ms']} ms")
 
-    # database van Laar: A_ij(T) = a + b/T, against the NRTL fit it came from
-    pdv = pair_defaults("ethanol", "water")["vanlaar"]
-    r = compute({"components": ["ethanol", "water"], "model": "vanlaar", "hold": "P", "P": 1.01325})
-    rn = compute({"components": ["ethanol", "water"], "model": "nrtl", "hold": "P", "P": 1.01325})
-    report("van Laar from the database: ethanol-water azeotrope near the NRTL one",
-           r["ok"] and abs(r["azeotrope"]["x1"] - rn["azeotrope"]["x1"]) < 0.03
-           and abs(r["azeotrope"]["T"] - rn["azeotrope"]["T"]) < 0.3
-           and "/T" in r["input_text"] and pdv["rms_lngamma"] < 0.01,
-           f"{r['azeotrope']} vs {rn['azeotrope']}")
-    g = [compute({"components": ["ethanol", "water"], "model": "vanlaar", "hold": "T", "T": T,
-                  "params": {"tdep": td}})["columns"]["gamma1"][0] for T in (340.0, 370.0) for td in (1, 0)]
-    report("temperature dependence: gamma(inf) changes with T only when it is switched on",
-           abs(g[0] - g[2]) > 0.1 and abs(g[1] - g[3]) < 1e-9, f"{g}")
-    r = compute({"components": ["propane", "n-butane"], "model": "vanlaar", "hold": "T", "T": 300})
-    report("a pair without database van Laar parameters is refused", not r["ok"]
-           and "no van Laar" in r["error"], r.get("error", ""))
+    # E-PPR78 k_ij(T): the CO2 / ethane azeotrope at 263.15 K (bubble-pressure maximum
+    # near 30.8 bar at 30-35 % ethane with k12 = 0.13, CL 202 mixtures slides)
+    kc = compound_db.PPR78Kij("carbon-dioxide", "ethane")
+    r = compute({"components": ["carbon-dioxide", "ethane"], "model": "PR", "hold": "T",
+                 "T": 263.15, "npts": 41})
+    az = r.get("azeotrope") or {}
+    report("E-PPR78: CO2-ethane k12 = 0.13 and its azeotrope at 263.15 K",
+           r["ok"] and abs(kc(263.15) - 0.13) < 0.01 and 0.62 < az.get("x1", 0) < 0.72
+           and abs(az.get("P", 0) - 30.8) < 0.6 and "PPR78" in r["input_text"],
+           f"k12 = {kc(263.15):.4f}, azeotrope {az}")
+    report("E-PPR78 k_ij varies with temperature", abs(kc(230.0) - kc(320.0)) > 1e-3,
+           f"{kc(230.0):.4f} at 230 K, {kc(320.0):.4f} at 320 K")
+    r = compute({"components": ["carbon-dioxide", "ethane"], "model": "PR", "hold": "T",
+                 "T": 263.15, "npts": 41, "params": {"kij": 0.0}})
+    report("with k12 = 0 the azeotrope disappears (the slide's point)",
+           r["ok"] and r["azeotrope"] is None, str(r.get("azeotrope")))
+
+    # mixtures of three and four components
+    for ex in MIXTURE_EXAMPLES:
+        m = mixture(dict(ex, map=len(ex["components"]) == 3))
+        ok = m["ok"] and m["phase"] == "two-phase"
+        if ok:
+            z_, x_, y_, b_ = np.array(m["z"]), np.array(m["x"]), np.array(m["y"]), m["beta"]
+            ok = (np.max(np.abs((1 - b_) * x_ + b_ * y_ - z_)) < 1e-5
+                  and abs(sum(x_) - 1) < 1e-5 and abs(sum(y_) - 1) < 1e-5
+                  and np.max(np.abs(np.array(m["K"]) - y_ / x_)) < 1e-3 * max(m["K"])
+                  and m["bounds"]["T_bubble"] < ex["T"] < m["bounds"]["T_dew"])
+            if "map" in m:
+                key = m["map"]["kind"]
+                ok = ok and sum(p[key] is not None for p in m["map"]["points"]) >= 30
+        report(f"flash, {ex['label']}: mass balance, K = y/x, between bubble and dew T", ok,
+               f"beta = {m.get('beta')}, {m.get('ms')} ms" if m.get("ok") else m.get("error"))
+    m = mixture({"components": ["acetone", "methanol", "n-heptane"], "model": "nrtl",
+                 "T": 340, "P": 1.0, "z": [1, 1, 1]})
+    report("a mixture with a pair missing from the NRTL database is refused",
+           not m["ok"] and "no NRTL" in m["error"], m.get("error", ""))
 
     rt = json.loads(handle(json.dumps({"op": "compute", "request": {
         "components": ["methanol", "water"], "model": "nrtl", "hold": "P", "P": 1.0}})))

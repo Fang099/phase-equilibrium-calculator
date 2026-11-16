@@ -2,7 +2,7 @@
 <header class="hero">
   <div class="hero-inner" id="main">
     <div>
-      <h1>Pick two liquids. See how they boil together.</h1>
+      <h1>Pick a mixture. See how it boils.</h1>
       <p class="lede">A Python program that calculates the equilibrium between a liquid mixture and its vapor, and plots it between any two variables you choose. The same code runs here in your browser.</p>
       <div class="actions">
         <a class="btn primary" href="app.html">Open the calculator</a>
@@ -29,16 +29,18 @@
       <!--/full-->
       <!--reduced-->
       <li><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;y=P&amp;x=xy&amp;hold=T&amp;T=300&amp;compare=vdW">Peng–Robinson against van der Waals</a></li>
+      <li><a href="app.html#a=carbon-dioxide&amp;b=ethane&amp;model=PR&amp;y=P&amp;x=xy&amp;hold=T&amp;T=263">Carbon dioxide + ethane: an azeotrope from k₁₂</a></li>
       <!--/reduced-->
       <li><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;y=P&amp;x=T&amp;hold=x&amp;x1=0.5">Propane + n-butane under pressure</a></li>
-      <li><a href="app.html#a=benzene&amp;b=toluene&amp;model=ideal&amp;y=P&amp;x=xy&amp;hold=T&amp;T=360&amp;compare=PR">Benzene + toluene: nearly ideal</a></li>
+      <li><a href="app.html#a=benzene&amp;b=toluene&amp;model=ideal&amp;y=P&amp;x=xy&amp;hold=T&amp;T=360&amp;compare=nrtl">Benzene + toluene: nearly ideal</a></li>
+      <li><a href="app.html#mix-panel">Three or four components: a flash</a></li>
     </ul>
   </section>
 
   <section class="home-section">
     <h2>What happens when you choose a mixture</h2>
     <ol class="flow">
-      <li><h3>Describe</h3><p>Two compounds, a model and one condition become a short input file. Properties come from a database of published values.</p></li>
+      <li><h3>Describe</h3><p>Two to four compounds, a model and the conditions become a short input file. Properties come from a database of published values.</p></li>
       <li><h3>Check</h3><p>The program decides whether that information is enough, which calculation it implies, and what is missing if not.</p></li>
       <li><h3>Model</h3><p>An equation of state or an activity model gives the fugacity of each compound in the liquid and in the vapor.</p></li>
       <li><h3>Solve and plot</h3><p>Equilibrium is where each compound's fugacity is the same in both phases. Sweeping that condition draws the diagram.</p></li>
@@ -60,11 +62,12 @@
     <div class="table-wrap">
       <table class="keep-first">
         <tbody>
-          <tr><td>Compounds</td><td><span data-v="database.n_compounds" data-d="0"></span> common liquids, any two at a time, with critical constants and vapor-pressure equations from published tables</td></tr>
-          <tr><td>Models</td><td><!--full-->Three equations of state (van der Waals, Soave–Redlich–Kwong, Peng–Robinson) and four liquid models (ideal, Margules, van Laar, NRTL)<!--/full--><!--reduced-->Two equations of state (van der Waals, Peng–Robinson) and three liquid models (ideal solution, van Laar, NRTL)<!--/reduced-->, with parameters you can change</td></tr>
+          <tr><td>Compounds</td><td><!--reduced--><span data-v="database.n_eos" data-d="0"></span> gases and hydrocarbons for the equations of state, any pair with a predicted k₁₂(T); <span data-v="database.n_act" data-d="0"></span> polar and nonpolar liquids for NRTL, wherever measured parameters exist<!--/reduced--><!--full--><span data-v="database.n_compounds" data-d="0"></span> compounds<!--/full-->. Critical constants and vapor-pressure equations from published tables</td></tr>
+          <tr><td>Models</td><td><!--full-->Three equations of state (van der Waals, Soave–Redlich–Kwong, Peng–Robinson) and three liquid models (ideal, Margules, NRTL)<!--/full--><!--reduced-->Two equations of state (van der Waals, Peng–Robinson) and two liquid models (ideal solution, NRTL)<!--/reduced-->, with parameters you can change</td></tr>
+          <tr><td>Mixtures</td><td>Two components on every diagram; three or four in a flash, with a triangle diagram for three</td></tr>
           <tr><td>Plots</td><td><!--full-->Pxy, Txy, xy and P–T diagrams, K-values, relative volatility, activity coefficients, fugacities and Gibbs energies, or any of these against another<!--/full--><!--reduced-->Pxy, Txy, xy and P–T diagrams, and activity coefficients, flat or as 3D surfaces over temperature or pressure<!--/reduced--></td></tr>
           <tr><td>Found automatically</td><td>Azeotropes<!--full-->, and the three-phase line when a model predicts two liquid layers<!--/full--></td></tr>
-          <tr><td>Beyond the calculator</td><td>The Python program also handles solids and eutectics, any number of components in a flash, and gravity and centrifugal fields</td></tr>
+          <tr><td>Beyond the calculator</td><td>The Python program also handles solids and eutectics, and gravity and centrifugal fields</td></tr>
           <tr><td>Checked</td><td>Every module tests itself against exact identities and hand calculations; see <a href="how-it-works.html#verification">verification</a></td></tr>
         </tbody>
       </table>

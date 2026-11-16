@@ -122,7 +122,11 @@ class CubicEOS:
         self.n = n
         self.Tc = np.array(Tc, float) if Tc is not None else None
         self.Pc = np.array(Pc, float) if Pc is not None else None
-        self.kij = np.zeros((n, n)) if kij is None else np.array(kij, float)
+        # k_ij may be a number or a function of T (E-PPR78, or a formula in T)
+        kij = np.zeros((n, n)) if kij is None else kij
+        self._kfun = [(i, j, kij[i][j]) for i in range(n) for j in range(n)
+                      if callable(kij[i][j])]
+        self.kij = np.array([[0.0 if callable(v) else float(v) for v in row] for row in kij])
 
         # b_i, and a_i at the critical point (temperature dependence via alpha)
         self.ac = np.zeros(n)
@@ -154,7 +158,12 @@ class CubicEOS:
         if cached is not None and cached[0] == T:      # it depends on T only
             return cached[1]
         a = self.a_pure(T)
-        aij = np.sqrt(np.outer(a, a)) * (1 - self.kij)
+        k = self.kij
+        if self._kfun:
+            k = k.copy()
+            for i, j, f in self._kfun:
+                k[i, j] = f(T)
+        aij = np.sqrt(np.outer(a, a)) * (1 - k)
         self._a_cache = (T, aij)
         return aij
 
@@ -380,6 +389,9 @@ class NRTL:
     def __init__(self, dg, alpha):
         self.dg = np.asarray(dg, float)
         self.alpha = np.asarray(alpha, float)
+        off = ~np.eye(len(self.alpha), dtype=bool)
+        if not np.all(np.isfinite(self.dg)) or np.any(self.alpha[off] <= 0):
+            raise ValueError("NRTL needs finite dg values and a non-randomness alpha above 0")
 
     def _tg(self, T):
         tau = self.dg / (R * T)
@@ -579,11 +591,11 @@ def build_system(text):
     # EOS (built once if any equilibrium uses it)
     eos = None
     if any(e.route_kind == "eos" for e in rep.equilibria if e.status == "SUFFICIENT"):
-        kij = np.zeros((n, n))
+        kij = [[0.0] * n for _ in range(n)]
         for i in range(n):
             for j in range(i + 1, n):
                 k = inp.pairs.get(frozenset((names[i], names[j])), {}).get("kij", 0.0)
-                kij[i, j] = kij[j, i] = k
+                kij[i][j] = kij[j][i] = k
         use_ab = [("a" in p and "b" in p and not ("Tc" in p and "Pc" in p))
                   for p in props]
         if inp.model == "vdW" and any(use_ab):

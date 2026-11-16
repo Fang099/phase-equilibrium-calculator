@@ -385,7 +385,9 @@ def parse_input(text):
                 unknown = [n for n in names if n.lower() not in known]
                 if unknown:
                     raise ValueError(f"'{unknown[0]}' is not in the component list")
-                if qty == "A" and re.search(r"\bT\b", raw):
+                if qty == "kij" and raw.strip().upper() == "PPR78":
+                    vals = ["PPR78"]                          # filled from the database
+                elif qty in ("A", "kij") and re.search(r"\bT\b", raw):
                     vals = [TFunction(raw)]                   # a function of T (K)
                 else:
                     vals = convert(qty, raw, dim, lineno)
@@ -574,8 +576,11 @@ def eos_route(inp):
             if absent:
                 missing.append(f"{c}: {', '.join(absent)}")
     for ci, cj in combinations(inp.components, 2):
-        if "kij" not in inp.pairs.get(frozenset((ci, cj)), {}):
+        k = inp.pairs.get(frozenset((ci, cj)), {}).get("kij")
+        if k is None:
             notes.append(f"kij({ci}, {cj}) not given; 0 will be used")
+        elif isinstance(k, str):
+            missing.append(f"kij({ci}, {cj}) = PPR78 needs 'database = builtin'")
     if not missing:
         notes.insert(0, f"{inp.model} with van der Waals one-fluid mixing rules")
     return (not missing), missing, notes
@@ -768,7 +773,8 @@ def evaluate(inp, phases, global_errors):
                 if "Tc" in inp.props[c] and inp.T > inp.props[c]["Tc"]:
                     res.notes.append(f"T is above Tc of {c}; Raoult's law is not "
                                      f"valid -- use an EOS")
-        res.notes += _antoine_range_notes(inp, vapor_comps)
+        if route_kind == "vp":
+            res.notes += _antoine_range_notes(inp, vapor_comps)
     res.criteria = _criteria(inp, phases, vapor_comps)
     res.route_kind = route_kind
 

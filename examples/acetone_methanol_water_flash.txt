@@ -1,0 +1,9 @@
+# A three-component flash with NRTL: acetone / methanol / water at 345 K and
+# 1.01325 bar. The database supplies the NRTL parameters of all three pairs,
+# the Antoine constants and the critical constants.
+components = acetone, methanol, water
+database = builtin
+activity = nrtl
+T = 345 K
+P = 1.01325 bar
+z = 0.3, 0.3, 0.4

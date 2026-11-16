@@ -59,9 +59,9 @@
         <h2>1. From choices to an input file</h2>
         <p>The calculator page does no thermodynamics. It collects the choices into a small request:</p>
         <pre id="walk-request"></pre>
-        <p><code>build_input()</code> turns the request into the same kind of input file a person would write for the command-line program. For van Laar it takes the pair's database entry and writes each parameter as a formula in \(T\):</p>
-<!--code file="web_api.py" def="build_input" from="if model == &quot;vanlaar&quot;:" to="lines.append(f&quot;A({b}, {a}) = {A21:g}&quot;)" title="web_api.build_input (van Laar part)"-->
-        <p>If a slider has moved, the new value is used at the reference temperature and the database slope \(b_{ij}\) is kept. If "Vary with temperature" is off, a plain number is written instead. The resulting file:</p>
+        <p><code>build_input()</code> turns the request into the same kind of input file a person would write for the command-line program. For an equation of state it writes the binary interaction parameter: a number if a slider has moved, otherwise the word <code>PPR78</code>, which asks for the predicted, temperature-dependent value. For NRTL it writes the pair's three parameters from the database:</p>
+<!--code file="web_api.py" def="build_input" from="if model in EOS_MODELS:" to="lines.append(f&quot;alpha({a}, {b}) = {float(par.get(&#x27;alpha&#x27;, n[&#x27;alpha&#x27;])):g}&quot;)" title="web_api.build_input (model part)"-->
+        <p>The resulting file:</p>
         <pre id="walk-input"></pre>
         <p>From here on, the website and the command line run exactly the same code. The calculator shows this file, and the report below, under "Input file and checker report".</p>
       </section>
@@ -73,17 +73,17 @@
         <ol>
           <li><b>Parse.</b> Each line is a quantity, an optional target (a compound or a pair) and a value with a unit. Unknown names get a spelling suggestion.</li>
           <li><b>Convert units</b> to SI: kelvin, pascal, joule per mole, kilogram per mole.</li>
-          <li><b>Fill from the database.</b> With <code>database = builtin</code>, any property the file does not give is looked up: \(T_c\), \(P_c\), \(\omega\), molar mass, Antoine constants, and the pair's NRTL parameters, van Laar parameters or Peng–Robinson \(k_{12}\). Values written in the file always win.</li>
+          <li><b>Fill from the database.</b> With <code>database = builtin</code>, any property the file does not give is looked up: \(T_c\), \(P_c\), \(\omega\), molar mass, Antoine constants, and the pair's NRTL parameters or Peng–Robinson \(k_{12}\). Values written in the file always win.</li>
           <li><b>Choose a route</b> for each possible equilibrium. If an equation of state was requested and its constants are complete, it is used for both phases. Otherwise the checker looks for a vapor-pressure source for each compound and uses the activity model for the liquid.</li>
           <li><b>Count degrees of freedom</b> and compare with what was specified.</li>
         </ol>
-        <h3>A parameter that depends on temperature</h3>
-        <p>A van Laar line such as <code>A(ethanol, water) = -0.0064882 + 598.8/T</code> is not a number, so the parser keeps it as a small object that is evaluated later, at whatever temperature the solver is trying:</p>
+        <h3>Filling from the database: a k<sub>12</sub> that depends on temperature</h3>
+        <p>For Peng–Robinson, when the file gives no \(k_{12}\) or writes <code>PPR78</code>, the database builds one from the groups in each molecule (E-PPR78, <a href="concepts.html#kij">Concepts</a>). The fixed DECHEMA value is the fallback for a compound without groups:</p>
+<!--code file="compound_db.py" def="apply_to_inputs" from="given = inp.pairs.get(key, {}).get(&quot;kij&quot;)" to="warnings.append(f&quot;E-PPR78 has no groups"-->
+        <p>What goes into the input is not a number but a small object that is called with the temperature whenever the solver needs \(k_{12}\). It keeps the double sum over groups as a list of terms, so a call costs a few multiplications:</p>
+<!--code file="compound_db.py" def="PPR78Kij.__call__"-->
+        <p>A line such as <code>kij(a, b) = 0.12 + 5/T</code> works the same way: the parser keeps any formula in \(T\) as a <code>TFunction</code>, read with the same safe formula reader used for a typed vapor-pressure relation:</p>
 <!--code file="input_checker.py" def="TFunction"-->
-        <p><code>compile_relation</code> is the same safe formula reader used for a typed vapor-pressure relation; it only accepts \(T\), numbers and a few functions.</p>
-        <h3>Filling from the database</h3>
-        <p>If the file asks for van Laar but gives no parameters, the database fills both orders of the pair, in the same formula form:</p>
-<!--code file="compound_db.py" def="apply_to_inputs" from="if inp.activity == &quot;vanlaar&quot;" to="f&quot; (fitted"-->
         <h3>The phase rule</h3>
         <p>With \(n\) compounds, \(\pi = 2\) phases and \(m\) field variables, \(F = n + 2 + m - \pi\). The checker counts what the file fixes (temperature, pressure, a swept composition, a given phase composition) and compares:</p>
 <!--code file="input_checker.py" def="evaluate" from="dof = n + 2 + m - 2" to="+ (&quot; (incl. swept variable)&quot; if sweep_n else &quot;&quot;))" title="input_checker.evaluate (degrees of freedom)"-->
@@ -116,11 +116,7 @@
 <!--code file="thermo_models.py" def="SolutionLiquid.ln_f0" from="out = np.zeros" to="out[i] = lps + VL"-->
         <p>The vapor on this route is an ideal gas, \(\hat f_i = y_i P\). A compound marked non-volatile gets \(\ln \hat f_i = -\infty\), so it never enters the vapor:</p>
 <!--code file="thermo_models.py" def="IdealGasPhase.ln_f"-->
-        <p>\(\ln\gamma_i\) comes from the activity model. The van Laar class reads its two parameters at the temperature asked for (a number, or a <code>TFunction</code> as above), checks that they have the same sign, and evaluates the two formulas from the <a href="concepts.html#models">Concepts</a> page:</p>
-<!--code file="thermo_models.py" def="_at"-->
-<!--code file="thermo_models.py" def="VanLaar.params"-->
-<!--code file="thermo_models.py" def="VanLaar.ln_gamma"-->
-        <p>NRTL is written for any number of compounds with matrices. <code>_tg</code> gives \(\tau_{ij} = \Delta g_{ij}/RT\) and \(G_{ij} = \exp(-\alpha_{ij}\tau_{ij})\); <code>ln_gamma</code> is the general NRTL expression, with the two sums built by matrix products:</p>
+        <p>\(\ln\gamma_i\) comes from the activity model. NRTL is written for any number of compounds with matrices. <code>_tg</code> gives \(\tau_{ij} = \Delta g_{ij}/RT\) and \(G_{ij} = \exp(-\alpha_{ij}\tau_{ij})\); <code>ln_gamma</code> is the general NRTL expression, with the two sums built by matrix products:</p>
 <!--code file="thermo_models.py" def="NRTL._tg"-->
 <!--code file="thermo_models.py" def="NRTL.ln_gamma"-->
         <p>Each model also has <code>ge_rt</code>, \(G^{E}/RT\). The tests differentiate \(nG^{E}/RT\) numerically and check that it reproduces <code>ln_gamma</code>, so the two cannot disagree.</p>
@@ -134,7 +130,9 @@
 <!--code file="thermo_models.py" def="CubicEOS.ln_phi_TV"-->
         <p>To work at a given \(T\) and \(P\), the cubic in \(Z\) is solved in closed form, and the smallest root is taken for a liquid, the largest for a vapor:</p>
 <!--code file="thermo_models.py" def="CubicEOS._volume"-->
-        <p>The tests compare the pressure and \(\ln\hat\varphi_i\) with numerical derivatives of <code>helmholtz_res</code>.</p>
+        <p>The mixture parameter \(a\) needs \(a_{ij} = \sqrt{a_i a_j}\,(1-k_{ij})\). A \(k_{ij}\) that is a function of temperature (E-PPR78 or a formula) is evaluated here, once per temperature:</p>
+<!--code file="thermo_models.py" def="CubicEOS.a_matrix"-->
+        <p>\(\ln\hat\varphi_i\) is a derivative with respect to \(n_i\) at fixed \(T\) and \(V\), so a temperature-dependent \(k_{ij}\) changes nothing in it. The tests compare the pressure and \(\ln\hat\varphi_i\) with numerical derivatives of <code>helmholtz_res</code>.</p>
       </section>
 
       <!-- ============================================================ -->
@@ -169,9 +167,16 @@
         <h3>Other calculations in the same module</h3>
         <dl class="terms">
           <dt>P–T diagram</dt><dd><code>pt_envelope()</code> holds the composition and steps through temperature, solving a bubble and a dew pressure at each. Each guess is extrapolated from the last two points, using the fact that \(\ln P\) is nearly linear in \(1/T\).</dd>
-          <dt>Flash</dt><dd><code>flash_TP()</code> fixes \(T\) and \(P\) and solves the Rachford–Rice equation for the vapor fraction, for any number of compounds.</dd>
+          <dt>Flash</dt><dd><code>flash_TP()</code> fixes \(T\) and \(P\) and solves the Rachford–Rice equation for the vapor fraction, for any number of compounds (below).</dd>
           <dt>Solid–liquid</dt><dd>One equation, liquid fugacity equals solid fugacity, solved for temperature or composition; the eutectic is where two such curves meet.</dd>
         </dl>
+
+        <h3 id="multicomponent">Three or four components</h3>
+        <p>Nothing in the solver is written for two compounds only: compositions, K-values and fugacities are arrays of length \(n\), and NRTL and the cubic mixing rules are matrix expressions. A mixture of three or four is a flash at the user's \(T\) and \(P\). Successive substitution updates the K-values from the fugacity coefficients, and each round solves Rachford–Rice for \(\beta\); only the converged K-values decide whether the feed is liquid, vapor or both:</p>
+<!--code file="equilibrium_solver.py" def="flash_TP" from="for _ in range(maxit):" to="if diff &lt; tol:"-->
+        <p><code>web_api.mixture()</code> writes the input file for the mixture (every pair needs NRTL parameters, or gets an E-PPR78 \(k_{ij}\)), runs the flash, and adds the bubble and dew points of the same feed with <code>saturation()</code>. For three compounds it also solves a bubble point at every node of a triangular grid of liquid compositions, which the page draws as a triangle diagram: the bubble temperature at the given pressure for NRTL, the bubble pressure at the given temperature for an equation of state (where solving for pressure is the more robust of the two). The grid is solved outward from the corner of the heaviest compound, and each node starts from the answers at its solved neighbours:</p>
+<!--code file="web_api.py" def="_ternary_map" from="while queue:" to="queue.append(q)"-->
+        <p>The 66 nodes take a fraction of a second with NRTL and one to three seconds with Peng–Robinson. Nodes where no bubble point exists, near or above the mixture's critical point, are left blank.</p>
 
         <h3>External fields</h3>
         <p>In a gravity or centrifugal field the equilibrium condition becomes \(\ln\hat f_i + M_i\Phi/RT = \text{constant}\) along the system. The potential per unit mass:</p>
@@ -248,18 +253,19 @@
         <h3>Limitations</h3>
         <ul>
           <li>On the activity route the vapor is an ideal gas, so that route is for low to moderate pressure.</li>
-          <li><!--full-->Margules parameters are constants. van Laar parameters vary as \(a + b/T\), fitted between the two boiling points and regressed from NRTL rather than directly from measurements.<!--/full--><!--reduced-->The van Laar parameters vary with temperature only as \(a + b/T\), fitted between the two boiling points. Outside that range they are extrapolated, and the calculator says so. They are regressed from NRTL rather than directly from measurements.<!--/reduced--></li>
+          <!--full--><li>Margules parameters are constants.</li><!--/full-->
+          <li>NRTL needs measured parameters for every pair, so not every combination of the polar liquids can be calculated; the calculator offers only the ones in the database.</li>
           <li>Antoine constants are fitted over a limited temperature range. Outside it the vapor pressure is extrapolated, and the calculator says so.</li>
-          <li>Equations of state use van der Waals mixing rules with one \(k_{12}\). That suits hydrocarbons and is poor for polar mixtures.</li>
+          <li>Equations of state use van der Waals mixing rules with one \(k_{12}\). That suits gases and hydrocarbons and is poor for polar mixtures, which is why the calculator offers the equations of state only for the first group. E-PPR78 predicts \(k_{12}\) from groups; it is not fitted to each pair, and for hydrogen and water its authors use a different temperature function for \(a\), so those two are left out.</li>
           <li>Near a mixture critical point, bubble and dew calculations with an equation of state can fail. The curves stop there and a note is shown.</li>
           <!--full--><li>When a model predicts two liquids, the three-phase line is calculated but the liquid–liquid boundary away from it is not.</li><!--/full-->
-          <li>Diagrams are for two compounds. Flash and single bubble or dew points work for any number.</li>
+          <li>Diagrams are for two compounds. A flash and its bubble and dew points work for three or four on the calculator (any number in the Python program), with a triangle diagram for three.</li>
         </ul>
         <h3>Next steps</h3>
         <ul>
           <li>Comparison with experimental data sets, with deviations reported and parameters fitted.</li>
           <li>Full liquid–liquid equilibrium.</li>
-          <li>Ternary diagrams.</li>
+          <li>Residue curves and distillation boundaries on the triangle diagram.</li>
           <li>A larger compound database.</li>
         </ul>
       </section>

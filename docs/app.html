@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="assets/site.css?v=5bb82a6716">
+<link rel="stylesheet" href="assets/site.css?v=cd5ae8d6ac">
 </head>
 <body class="app">
 <a class="skip" href="#main">Skip to content</a>
@@ -150,6 +150,28 @@
       </div>
     </section>
 
+    <section class="panel" id="mix-panel">
+      <h2>Three or four components</h2>
+      <div class="seg" id="mix-examples" role="group" aria-label="Examples"></div>
+      <div class="field mix-model">
+        <span class="label">Model</span>
+        <div class="seg" id="mix-model" role="group" aria-label="Model for the mixture"></div>
+      </div>
+      <div id="mix-rows" class="mix-rows"></div>
+      <div class="check-actions"><button type="button" class="linkbtn" id="mix-add">Add a component</button></div>
+      <div class="check-inputs mix-inputs">
+        <label>Temperature (K)<input type="number" id="mix-T" step="any"></label>
+        <label>Pressure (bar)<input type="number" id="mix-P" step="any"></label>
+        <span></span>
+        <button type="button" class="btn primary" id="mix-run">Flash</button>
+      </div>
+      <div id="mix-result" class="check-result" aria-live="polite"></div>
+      <div class="mix-figure" id="mix-figure" hidden>
+        <ul class="legend" id="mix-legend"></ul>
+        <div id="mix-chart"></div>
+      </div>
+    </section>
+
     <section class="panel">
       <div class="tabs" role="tablist">
         <button role="tab" id="tab-data" aria-controls="panel-data" aria-selected="true">Data</button>
@@ -182,9 +204,9 @@
   </div>
 </footer>
 
-<script src="assets/edition.js?v=5bb82a6716"></script>
-<script src="assets/charts.js?v=5bb82a6716"></script>
-<script src="assets/app.js?v=5bb82a6716"></script>
+<script src="assets/edition.js?v=cd5ae8d6ac"></script>
+<script src="assets/charts.js?v=cd5ae8d6ac"></script>
+<script src="assets/app.js?v=cd5ae8d6ac"></script>
 
 </body>
 </html>

@@ -118,6 +118,28 @@
       </div>
     </section>
 
+    <section class="panel" id="mix-panel">
+      <h2>Three or four components</h2>
+      <div class="seg" id="mix-examples" role="group" aria-label="Examples"></div>
+      <div class="field mix-model">
+        <span class="label">Model</span>
+        <div class="seg" id="mix-model" role="group" aria-label="Model for the mixture"></div>
+      </div>
+      <div id="mix-rows" class="mix-rows"></div>
+      <div class="check-actions"><button type="button" class="linkbtn" id="mix-add">Add a component</button></div>
+      <div class="check-inputs mix-inputs">
+        <label>Temperature (K)<input type="number" id="mix-T" step="any"></label>
+        <label>Pressure (bar)<input type="number" id="mix-P" step="any"></label>
+        <span></span>
+        <button type="button" class="btn primary" id="mix-run">Flash</button>
+      </div>
+      <div id="mix-result" class="check-result" aria-live="polite"></div>
+      <div class="mix-figure" id="mix-figure" hidden>
+        <ul class="legend" id="mix-legend"></ul>
+        <div id="mix-chart"></div>
+      </div>
+    </section>
+
     <section class="panel">
       <div class="tabs" role="tablist">
         <button role="tab" id="tab-data" aria-controls="panel-data" aria-selected="true">Data</button>

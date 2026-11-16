@@ -22,7 +22,7 @@ Draws the results of equilibrium_solver.py with matplotlib:
 Everything is chosen from the input automatically:
 
     python plotter.py examples/benzene_naphthalene.txt            # saves PNGs to plots/
-    python plotter.py examples/ethanol_water_vanlaar.txt --show   # also opens windows
+    python plotter.py examples/database_ethanol_water_nrtl.txt --show   # also opens windows
     python plotter.py examples/propane_butane_pr_pxy.txt --no-3d  # skip the 3D surfaces
 
 From Python:

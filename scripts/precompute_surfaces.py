@@ -7,7 +7,8 @@ computing it in the browser.
     python scripts/precompute_surfaces.py --force    # everything again
     python scripts/precompute_surfaces.py --edition=full
 
-For every ordered pair of the edition's compounds, every offered model that
+For every pair of the edition's compounds (one order; the page mirrors it for
+the other), every offered model that
 has database parameters for that pair, and both fixed variables (T for Pxy
 surfaces, P for Txy surfaces), it runs web_api.surface() with exactly the
 request the page would send with the database parameters (no slider moved):
@@ -47,7 +48,8 @@ Y_COLUMNS = {"T": ["T"], "P": ["P"], "y1": ["y1"], "gamma": ["gamma1", "gamma2"]
              "lngamma": ["gamma1", "gamma2"], "K": ["K1", "K2"], "f": ["f1", "f2"],
              "phiL": ["phiL1", "phiL2"], "phiV": ["phiV1", "phiV2"], "alpha": ["alpha"],
              "GE": ["GE_RT"], "Gmix": ["Gmix_RT"], "stab": ["stability"]}
-ALL_MODELS = ["PR", "SRK", "vdW", "ideal", "margules", "vanlaar", "nrtl"]
+ALL_MODELS = ["PR", "SRK", "vdW", "ideal", "margules", "nrtl"]
+EOS = ("PR", "SRK", "vdW")
 
 
 def edition():
@@ -93,12 +95,10 @@ def layer_values(pd, hold):
 
 def default_params(pd, model):
     """What the page sends when no slider has been moved."""
-    if model == "PR":
-        return {"kij": pd["kij"]["value"]}
+    if model == "PR":                    # E-PPR78 k12(T) is the default: nothing is sent
+        return {} if pd["kij"]["source"] == "eppr78" else {"kij": pd["kij"]["value"]}
     if model in ("SRK", "vdW"):
         return {"kij": 0}
-    if model == "vanlaar":
-        return {"A12": pd["vanlaar"]["A12"], "A21": pd["vanlaar"]["A21"], "tdep": 1}
     if model == "margules":
         return {"A12": pd["A"]["A12"], "A21": pd["A"]["A21"]}
     if model == "nrtl":
@@ -111,16 +111,23 @@ def jobs(ed):
     cat = web_api.catalog()
     ids = [c["id"] for c in cat["compounds"] if c["id"] in ed.get("compounds", [c["id"]])]
     models = [m for m in ALL_MODELS if m in ed.get("models", ALL_MODELS)]
+    sets = ed.get("compound_sets")
+    # gases and hydrocarbons go with the equations of state, polar liquids with the
+    # activity models (the page offers only those); one order of each pair is
+    # computed, the page mirrors it for the other
+    def offered_pair(a, b, m):
+        if not sets:
+            return True
+        fam = sets["eos" if m in EOS else "activity"]
+        return a in fam and b in fam
     keep = keep_columns(ed)
     out = []
-    for a in ids:
-        for b in ids:
-            if a == b:
-                continue
+    for i, a in enumerate(ids):
+        for b in ids[i + 1:]:
             pd = web_api.pair_defaults(a, b)
             for m in models:
-                if (m == "vanlaar" and not pd["vanlaar"]) or (m == "nrtl" and not pd["nrtl"]):
-                    continue                      # the page does not offer these without data
+                if not offered_pair(a, b, m) or (m == "nrtl" and not pd["nrtl"]):
+                    continue                      # the page does not offer these
                 for hold in ("T", "P"):
                     req = {"components": [a, b], "model": m, "params": default_params(pd, m),
                            "hold": hold, "npts": LAYER_PTS, "values": layer_values(pd, hold),

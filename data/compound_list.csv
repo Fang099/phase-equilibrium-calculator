@@ -1,25 +1,36 @@
-id,name,formula,cas,family
-propane,Propane,C3H8,74-98-6,alkane
-n-butane,n-Butane,C4H10,106-97-8,alkane
-n-pentane,n-Pentane,C5H12,109-66-0,alkane
-n-hexane,n-Hexane,C6H14,110-54-3,alkane
-n-heptane,n-Heptane,C7H16,142-82-5,alkane
-n-octane,n-Octane,C8H18,111-65-9,alkane
-cyclohexane,Cyclohexane,C6H12,110-82-7,alkane
-benzene,Benzene,C6H6,71-43-2,aromatic
-toluene,Toluene,C7H8,108-88-3,aromatic
-methanol,Methanol,CH4O,67-56-1,alcohol
-ethanol,Ethanol,C2H6O,64-17-5,alcohol
-1-propanol,1-Propanol,C3H8O,71-23-8,alcohol
-2-propanol,2-Propanol,C3H8O,67-63-0,alcohol
-1-butanol,1-Butanol,C4H10O,71-36-3,alcohol
-water,Water,H2O,7732-18-5,water
-acetone,Acetone,C3H6O,67-64-1,ketone
-2-butanone,2-Butanone,C4H8O,78-93-3,ketone
-ethyl-acetate,Ethyl acetate,C4H8O2,141-78-6,ester
-methyl-acetate,Methyl acetate,C3H6O2,79-20-9,ester
-diethyl-ether,Diethyl ether,C4H10O,60-29-7,ether
-tetrahydrofuran,Tetrahydrofuran,C4H8O,109-99-9,ether
-chloroform,Chloroform,CHCl3,67-66-3,chlorinated
-dichloromethane,Dichloromethane,CH2Cl2,75-09-2,chlorinated
-tetrachloromethane,Tetrachloromethane,CCl4,56-23-5,chlorinated
+id,name,formula,cas,family,ppr78_groups
+propane,Propane,C3H8,74-98-6,alkane,CH3:2;CH2:1
+n-butane,n-Butane,C4H10,106-97-8,alkane,CH3:2;CH2:2
+n-pentane,n-Pentane,C5H12,109-66-0,alkane,CH3:2;CH2:3
+n-hexane,n-Hexane,C6H14,110-54-3,alkane,CH3:2;CH2:4
+n-heptane,n-Heptane,C7H16,142-82-5,alkane,CH3:2;CH2:5
+n-octane,n-Octane,C8H18,111-65-9,alkane,CH3:2;CH2:6
+cyclohexane,Cyclohexane,C6H12,110-82-7,alkane,CH2cyclic:6
+benzene,Benzene,C6H6,71-43-2,aromatic,CHaro:6
+toluene,Toluene,C7H8,108-88-3,aromatic,CHaro:5;Caro:1;CH3:1
+methanol,Methanol,CH4O,67-56-1,alcohol,
+ethanol,Ethanol,C2H6O,64-17-5,alcohol,
+1-propanol,1-Propanol,C3H8O,71-23-8,alcohol,
+2-propanol,2-Propanol,C3H8O,67-63-0,alcohol,
+1-butanol,1-Butanol,C4H10O,71-36-3,alcohol,
+water,Water,H2O,7732-18-5,water,
+acetone,Acetone,C3H6O,67-64-1,ketone,
+2-butanone,2-Butanone,C4H8O,78-93-3,ketone,
+ethyl-acetate,Ethyl acetate,C4H8O2,141-78-6,ester,
+methyl-acetate,Methyl acetate,C3H6O2,79-20-9,ester,
+diethyl-ether,Diethyl ether,C4H10O,60-29-7,ether,
+tetrahydrofuran,Tetrahydrofuran,C4H8O,109-99-9,ether,
+chloroform,Chloroform,CHCl3,67-66-3,chlorinated,
+dichloromethane,Dichloromethane,CH2Cl2,75-09-2,chlorinated,
+tetrachloromethane,Tetrachloromethane,CCl4,56-23-5,chlorinated,
+methane,Methane,CH4,74-82-8,alkane,CH4:1
+ethane,Ethane,C2H6,74-84-0,alkane,C2H6:1
+isobutane,Isobutane,C4H10,75-28-5,alkane,CH3:3;CH:1
+n-decane,n-Decane,C10H22,124-18-5,alkane,CH3:2;CH2:8
+p-xylene,p-Xylene,C8H10,106-42-3,aromatic,CHaro:4;Caro:2;CH3:2
+ethylbenzene,Ethylbenzene,C8H10,100-41-4,aromatic,CHaro:5;Caro:1;CH2:1;CH3:1
+ethylene,Ethylene,C2H4,74-85-1,alkene,C2H4:1
+propylene,Propylene,C3H6,115-07-1,alkene,CH2CHalkenic:2;CH3:1
+carbon-dioxide,Carbon dioxide,CO2,124-38-9,gas,CO2:1
+nitrogen,Nitrogen,N2,7727-37-9,gas,N2:1
+hydrogen-sulfide,Hydrogen sulfide,H2S,7783-06-4,gas,H2S:1

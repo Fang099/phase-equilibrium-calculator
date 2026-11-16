@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="assets/site.css?v=5bb82a6716">
+<link rel="stylesheet" href="assets/site.css?v=cd5ae8d6ac">
 </head>
 <body class="">
 <a class="skip" href="#main">Skip to content</a>
@@ -34,7 +34,7 @@
 <header class="hero">
   <div class="hero-inner" id="main">
     <div>
-      <h1>Pick two liquids. See how they boil together.</h1>
+      <h1>Pick a mixture. See how it boils.</h1>
       <p class="lede">A Python program that calculates the equilibrium between a liquid mixture and its vapor, and plots it between any two variables you choose. The same code runs here in your browser.</p>
       <div class="actions">
         <a class="btn primary" href="app.html">Open the calculator</a>
@@ -53,18 +53,20 @@
   <section class="home-section">
     <h2>Start with one of these</h2>
     <ul class="tryit">
-      <li><a href="app.html#a=ethanol&amp;b=water&amp;model=vanlaar&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325">Ethanol + water: an azeotrope</a></li>
-      <li><a href="app.html#a=acetone&amp;b=chloroform&amp;model=vanlaar&amp;y=gamma&amp;x=x1&amp;hold=T&amp;T=323">Acetone + chloroform: molecules that attract</a></li>
+      <li><a href="app.html#a=ethanol&amp;b=water&amp;model=nrtl&amp;y=T&amp;x=xy&amp;hold=P&amp;P=1.01325">Ethanol + water: an azeotrope</a></li>
+      <li><a href="app.html#a=acetone&amp;b=chloroform&amp;model=nrtl&amp;y=gamma&amp;x=x1&amp;hold=T&amp;T=323">Acetone + chloroform: molecules that attract</a></li>
       <li><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;y=P&amp;x=xy&amp;hold=T&amp;T=300&amp;compare=vdW">Peng–Robinson against van der Waals</a></li>
+      <li><a href="app.html#a=carbon-dioxide&amp;b=ethane&amp;model=PR&amp;y=P&amp;x=xy&amp;hold=T&amp;T=263">Carbon dioxide + ethane: an azeotrope from k₁₂</a></li>
       <li><a href="app.html#a=propane&amp;b=n-butane&amp;model=PR&amp;y=P&amp;x=T&amp;hold=x&amp;x1=0.5">Propane + n-butane under pressure</a></li>
-      <li><a href="app.html#a=benzene&amp;b=toluene&amp;model=ideal&amp;y=P&amp;x=xy&amp;hold=T&amp;T=360&amp;compare=PR">Benzene + toluene: nearly ideal</a></li>
+      <li><a href="app.html#a=benzene&amp;b=toluene&amp;model=ideal&amp;y=P&amp;x=xy&amp;hold=T&amp;T=360&amp;compare=nrtl">Benzene + toluene: nearly ideal</a></li>
+      <li><a href="app.html#mix-panel">Three or four components: a flash</a></li>
     </ul>
   </section>
 
   <section class="home-section">
     <h2>What happens when you choose a mixture</h2>
     <ol class="flow">
-      <li><h3>Describe</h3><p>Two compounds, a model and one condition become a short input file. Properties come from a database of published values.</p></li>
+      <li><h3>Describe</h3><p>Two to four compounds, a model and the conditions become a short input file. Properties come from a database of published values.</p></li>
       <li><h3>Check</h3><p>The program decides whether that information is enough, which calculation it implies, and what is missing if not.</p></li>
       <li><h3>Model</h3><p>An equation of state or an activity model gives the fugacity of each compound in the liquid and in the vapor.</p></li>
       <li><h3>Solve and plot</h3><p>Equilibrium is where each compound's fugacity is the same in both phases. Sweeping that condition draws the diagram.</p></li>
@@ -86,11 +88,12 @@
     <div class="table-wrap">
       <table class="keep-first">
         <tbody>
-          <tr><td>Compounds</td><td><span data-v="database.n_compounds" data-d="0"></span> common liquids, any two at a time, with critical constants and vapor-pressure equations from published tables</td></tr>
-          <tr><td>Models</td><td>Two equations of state (van der Waals, Peng–Robinson) and three liquid models (ideal solution, van Laar, NRTL), with parameters you can change</td></tr>
+          <tr><td>Compounds</td><td><span data-v="database.n_eos" data-d="0"></span> gases and hydrocarbons for the equations of state, any pair with a predicted k₁₂(T); <span data-v="database.n_act" data-d="0"></span> polar and nonpolar liquids for NRTL, wherever measured parameters exist. Critical constants and vapor-pressure equations from published tables</td></tr>
+          <tr><td>Models</td><td>Two equations of state (van der Waals, Peng–Robinson) and two liquid models (ideal solution, NRTL), with parameters you can change</td></tr>
+          <tr><td>Mixtures</td><td>Two components on every diagram; three or four in a flash, with a triangle diagram for three</td></tr>
           <tr><td>Plots</td><td>Pxy, Txy, xy and P–T diagrams, and activity coefficients, flat or as 3D surfaces over temperature or pressure</td></tr>
           <tr><td>Found automatically</td><td>Azeotropes</td></tr>
-          <tr><td>Beyond the calculator</td><td>The Python program also handles solids and eutectics, any number of components in a flash, and gravity and centrifugal fields</td></tr>
+          <tr><td>Beyond the calculator</td><td>The Python program also handles solids and eutectics, and gravity and centrifugal fields</td></tr>
           <tr><td>Checked</td><td>Every module tests itself against exact identities and hand calculations; see <a href="how-it-works.html#verification">verification</a></td></tr>
         </tbody>
       </table>
@@ -106,9 +109,9 @@
   </div>
 </footer>
 
-<script src="assets/edition.js?v=5bb82a6716"></script>
-<script src="assets/charts.js?v=5bb82a6716"></script>
-<script src="assets/data.js?v=5bb82a6716"></script>
+<script src="assets/edition.js?v=cd5ae8d6ac"></script>
+<script src="assets/charts.js?v=cd5ae8d6ac"></script>
+<script src="assets/data.js?v=cd5ae8d6ac"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, Az = D.azeo, zip = PEC.zip;

@@ -50,7 +50,7 @@
 
   /* ------------------------------------------------------------ definitions */
   var EOS = ["PR", "SRK", "vdW"];
-  var MODEL_SHORT = { PR: "Peng–Robinson", SRK: "SRK", vdW: "van der Waals", ideal: "Ideal", margules: "Margules", vanlaar: "van Laar", nrtl: "NRTL" };
+  var MODEL_SHORT = { PR: "Peng–Robinson", SRK: "SRK", vdW: "van der Waals", ideal: "Ideal", margules: "Margules", nrtl: "NRTL" };
   var X_OPTS = [["xy", "Composition, liquid x and vapor y"], ["x1", "Liquid composition x"], ["y1", "Vapor composition y"], ["T", "Temperature"], ["P", "Pressure"]];
   var Y_OPTS = [["P", "Pressure"], ["T", "Temperature"], ["y1", "Vapor composition y"], ["K", "K-values, y/x"],
     ["alpha", "Relative volatility"], ["gamma", "Activity coefficients γ"], ["lngamma", "ln γ"], ["f", "Fugacities"],
@@ -63,13 +63,18 @@
   var SINGLE = { alpha: "alpha", GE: "GE_RT", Gmix: "Gmix_RT", stab: "stability", y1: "y1", P: "P", T: "T" };
   var SOURCE_LABEL = { chemsep_nrtl: "ChemSep NRTL library", chemsep_pr: "ChemSep Peng–Robinson library",
     nrtl_infinite_dilution: "matched to the NRTL model at infinite dilution", none: "no database value",
-    vanlaar_fit: "database, A = a + b/T fitted to the DECHEMA NRTL parameters" };
+    eppr78: "E-PPR78 group contribution" };
 
   /* the edition (set at build time in site/edition.json) limits what is offered */
   var ED = window.PEC_EDITION || {};
   function offered(kind, v) { return !ED[kind] || ED[kind].indexOf(v) >= 0; }
-  var ACT = ["ideal", "margules", "vanlaar", "nrtl"].filter(function (m) { return offered("models", m); });
+  var ACT = ["ideal", "margules", "nrtl"].filter(function (m) { return offered("models", m); });
   EOS = EOS.filter(function (m) { return offered("models", m); });
+  /* gases and hydrocarbons go with the equations of state, polar liquids with the
+     activity models; each family offers its own compounds */
+  var SETS = ED.compound_sets || null, DEFPAIRS = ED.default_pairs || {};
+  function familyOf(m) { return ["PR", "SRK", "vdW"].indexOf(m) >= 0 ? "eos" : "activity"; }
+  function inSet(id, fam) { return !SETS || SETS[fam].indexOf(id) >= 0; }
   PRESETS = PRESETS.filter(function (p) { return offered("presets", p[0]); });
   X_OPTS = X_OPTS.filter(function (o) { return offered("x_axes", o[0]); });
   Y_OPTS = Y_OPTS.filter(function (o) { return offered("y_axes", o[0]); });
@@ -95,7 +100,7 @@
     ["field", "fy"].forEach(function (k) { if (h.get(k) != null) state[k] = h.get(k); });
     ["g", "H", "rpm", "ri", "ro", "z1"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) state[k] = +h.get(k); });
     var p = {};
-    ["kij", "A12", "A21", "tdep", "dg12", "dg21", "alpha"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) p[k] = +h.get(k); });
+    ["kij", "ppr78", "A12", "A21", "dg12", "dg21", "alpha"].forEach(function (k) { if (h.get(k) != null && isFinite(+h.get(k))) p[k] = +h.get(k); });
     p.__hasT = h.get("T") != null;
     return p;
   }
@@ -129,16 +134,17 @@
   }
   function can3d() { return state.field === "none" && (state.hold === "T" || state.hold === "P") && isComp(state.x); }
   function activeParams() {
+    if (state.model === "PR" && pair.kij.source === "eppr78") return state.params.ppr78 ? ["ppr78"] : ["ppr78", "kij"];
     if (EOS.indexOf(state.model) >= 0) return ["kij"];
     if (state.model === "margules") return ["A12", "A21"];
-    if (state.model === "vanlaar") return pair.vanlaar ? ["A12", "A21", "tdep"] : [];
     if (state.model === "nrtl") return ["dg12", "dg21", "alpha"];
     return [];
   }
   function defaults() {
     var n = pair.nrtl || { dg12: 0, dg21: 0, alpha: 0.3 };
-    var A = (state.model === "vanlaar" && pair.vanlaar) ? pair.vanlaar : pair.A;
-    return { kij: state.model === "PR" ? pair.kij.value : 0, A12: A.A12, A21: A.A21, tdep: 1, dg12: n.dg12, dg21: n.dg21, alpha: n.alpha };
+    var A = pair.A;
+    return { kij: state.model === "PR" ? pair.kij.value : 0, ppr78: pair.kij.source === "eppr78" ? 1 : 0,
+      A12: A.A12, A21: A.A21, dg12: n.dg12, dg21: n.dg21, alpha: n.alpha };
   }
   function seg(host, items, current, onPick, disabled) {
     host.innerHTML = "";
@@ -174,18 +180,40 @@
   }
 
   /* ------------------------------------------------------------ controls */
+  var PLURAL = { alkane: "Alkanes", alkene: "Alkenes", aromatic: "Aromatics", gas: "Gases", alcohol: "Alcohols", water: "Water", ketone: "Ketones",
+    ester: "Esters", ether: "Ethers", chlorinated: "Chlorinated solvents" };
+  /* options of a compound list, grouped by family; only the compounds of one model family */
+  function compoundOptions(sel, fam, value) {
+    var groups = {}, order = [];
+    sel.innerHTML = "";
+    catalog.compounds.forEach(function (c) {
+      if (!inSet(c.id, fam)) return;
+      if (!groups[c.family]) { groups[c.family] = []; order.push(c.family); }
+      groups[c.family].push(c);
+    });
+    order.forEach(function (f) {
+      var g = document.createElement("optgroup"); g.label = PLURAL[f] || f;
+      groups[f].forEach(function (c) { var o = document.createElement("option"); o.value = c.id; o.textContent = c.name + "  (" + c.formula + ")"; g.appendChild(o); });
+      sel.appendChild(g);
+    });
+    sel.value = value;
+  }
+  function renderCompounds() {
+    compoundOptions($("comp-a"), familyOf(state.model), state.a);
+    compoundOptions($("comp-b"), familyOf(state.model), state.b);
+  }
+  /* a pair that belongs to the model's family, keeping the current one if it does */
+  function fitPair() {
+    var fam = familyOf(state.model);
+    if (inSet(state.a, fam) && inSet(state.b, fam)) return false;
+    var d = DEFPAIRS[fam] || [state.a, state.b];
+    state.a = d[0]; state.b = d[1];
+    return true;
+  }
   function fillCompounds() {
-    var fam = {}, order = [];
-    catalog.compounds.forEach(function (c) { if (!fam[c.family]) { fam[c.family] = []; order.push(c.family); } fam[c.family].push(c); });
-    var plural = { alkane: "Alkanes", aromatic: "Aromatics", alcohol: "Alcohols", water: "Water", ketone: "Ketones", ester: "Esters", ether: "Ethers", chlorinated: "Chlorinated solvents" };
+    renderCompounds();
     [["comp-a", "a"], ["comp-b", "b"]].forEach(function (pr) {
-      var sel = $(pr[0]); sel.innerHTML = "";
-      order.forEach(function (f) {
-        var g = document.createElement("optgroup"); g.label = plural[f] || f;
-        fam[f].forEach(function (c) { var o = document.createElement("option"); o.value = c.id; o.textContent = c.name + "  (" + c.formula + ")"; g.appendChild(o); });
-        sel.appendChild(g);
-      });
-      sel.value = state[pr[1]];
+      var sel = $(pr[0]);
       sel.addEventListener("change", function () {
         var other = pr[1] === "a" ? "b" : "a";
         if (sel.value === state[other]) state[other] = state[pr[1]];      // picking the same one swaps them
@@ -202,7 +230,19 @@
     });
   }
   function drawModels() {
-    function pick(m) { state.model = m; state.params = defaults(); if (state.compare === m) state.compare = ""; drawModels(); drawParams(); drawCompare(); schedule(0); }
+    function pick(m) {
+      state.model = m;
+      if (state.compare === m || (state.compare && familyOf(state.compare) !== familyOf(m))) state.compare = "";
+      if (fitPair()) {                       // the other family's compounds, on a diagram that suits them
+        renderCompounds();
+        state.field = "none"; state.x = "xy"; state.view = "2d";
+        if (familyOf(m) === "eos") { state.y = "P"; state.hold = "T"; state.T = 263; }
+        else { state.y = "T"; state.hold = "P"; state.P = 1.01325; }
+        loadPair({ __hasT: true }); return;
+      }
+      renderCompounds();
+      state.params = defaults(); drawModels(); drawParams(); drawCompare(); schedule(0);
+    }
     seg($("models-eos"), EOS.map(function (m) { return [m, MODEL_SHORT[m]]; }), state.model, pick);
     seg($("models-act"), ACT.map(function (m) { return [m, MODEL_SHORT[m]]; }), state.model, pick,
       function (m) { return !hasData(m); });
@@ -212,7 +252,8 @@
   }
   function drawCompare() {
     var sel = $("compare");
-    sel.innerHTML = "<option value=''>Nothing</option>" + catalog.models.filter(function (m) { return m.id !== state.model && offered("models", m.id) && hasData(m.id); })
+    sel.innerHTML = "<option value=''>Nothing</option>" + catalog.models.filter(function (m) {
+      return m.id !== state.model && offered("models", m.id) && hasData(m.id) && familyOf(m.id) === familyOf(state.model); })
       .map(function (m) { return "<option value='" + m.id + "'>" + m.label + "</option>"; }).join("");
     sel.value = state.compare;
   }
@@ -224,18 +265,14 @@
     dg21: { label: function () { return "Δg₂₁ (J/mol)"; }, min: -6000, max: 16000, step: 10 },
     alpha: { label: function () { return "Non-randomness α"; }, min: 0.05, max: 0.9, step: 0.005 }
   };
-  /* van Laar and NRTL need parameters from the database for the pair */
+  /* NRTL needs parameters from the database for the pair */
   function hasData(m) {
-    if (m === "vanlaar") return !!pair.vanlaar;
     if (m === "nrtl") return !!pair.nrtl;
     return true;
   }
-  function atRef() {
-    return (state.model === "vanlaar" && pair.vanlaar && state.params.tdep) ? ", at " + PEC.fmt(pair.vanlaar.T_ref, 1) + " K" : "";
-  }
+  function atRef() { return ""; }
   function paramSource() {
     if (state.model === "PR") return pair.kij.source;
-    if (state.model === "vanlaar") return pair.vanlaar ? pair.vanlaar.source : "none";
     if (state.model === "SRK" || state.model === "vdW") return "none";
     if (state.model === "nrtl") return pair.nrtl ? pair.nrtl.source : "none";
     if (state.model === "ideal") return null;
@@ -245,13 +282,13 @@
     var host = $("params"), keys = activeParams();
     host.innerHTML = "";
     keys.forEach(function (k) {
-      if (k === "tdep") {                                   // a switch, not a slider
+      if (k === "ppr78") {                                  // a switch, not a slider
         var row0 = document.createElement("div"); row0.className = "param";
-        row0.innerHTML = "<label class='check'><input type='checkbox' id='p-tdep'" + (state.params.tdep ? " checked" : "") +
-          "> Vary with temperature</label>";
+        row0.innerHTML = "<label class='check'><input type='checkbox' id='p-ppr78'" + (state.params.ppr78 ? " checked" : "") +
+          "> k₁₂ from E-PPR78, varying with temperature</label>";
         host.appendChild(row0);
         row0.querySelector("input").addEventListener("change", function () {
-          state.params.tdep = this.checked ? 1 : 0; drawParams(); schedule(0);
+          state.params.ppr78 = this.checked ? 1 : 0; drawParams(); schedule(0);
         });
         return;
       }
@@ -276,13 +313,8 @@
     if (src == null) { note.textContent = ""; return; }
     var edited = activeParams().some(function (k) { return state.params[k] !== def[k]; });
     var extra = "";
-    if (state.model === "vanlaar" && pair.vanlaar) {
-      var v = pair.vanlaar;
-      extra = state.params.tdep
-        ? " A changes with temperature as a + b/T (b₁₂ = " + PEC.fmt(v.b12, 1) + " K, b₂₁ = " + PEC.fmt(v.b21, 1) + " K), fitted from " +
-          PEC.fmt(v.Tmin, 0) + " to " + PEC.fmt(v.Tmax, 0) + " K."
-        : " A does not change with temperature.";
-    }
+    if (state.model === "PR" && pair.kij.source === "eppr78")
+      extra = state.params.ppr78 ? " k₁₂ = " + PEC.fmt(pair.kij.value, 4) + " at " + PEC.fmt(pair.T_ref, 1) + " K." : "";
     note.innerHTML = (edited ? "Edited. " : "") + "Starting values: " + (SOURCE_LABEL[src] || src) + "." + extra +
       (edited ? " <button class='linkbtn' type='button' id='reset-params'>Reset</button>" : "");
     var b = $("reset-params");
@@ -348,7 +380,7 @@
   function runPoint() {
     var T = +$("ck-T").value, P = +$("ck-P").value, z = +$("ck-z").value, box = $("ck-result");
     if (!(T > 0) || !(P > 0) || !(z > 0 && z < 1)) { box.innerHTML = "<p class='notice'>Give T > 0, P > 0 and a mole fraction between 0 and 1.</p>"; return; }
-    var p = {}; activeParams().forEach(function (k) { p[k] = state.params[k]; });
+    var p = params();
     box.innerHTML = "<p class='source'>Calculating…</p>";
     engine.call({ op: "point", request: { components: [state.a, state.b], model: state.model, params: p, T: T, P: P, z1: z } }).then(function (r) {
       if (!r.ok) { box.innerHTML = "<p class='notice'>" + (r.error || "This state could not be calculated.") + "</p>"; check.mark = null; return; }
@@ -465,7 +497,7 @@
     overlay("Loading " + lower(nameA()) + " and " + lower(nameB()), "");
     return engine.call({ op: "pair", a: state.a, b: state.b }).then(function (p) {
       pair = p;
-      if (!hasData(state.model)) state.model = "PR";      // no database values for this pair
+      if (!hasData(state.model)) state.model = familyOf(state.model) === "eos" ? "PR" : "ideal";   // no database values for this pair
       if (state.compare && !hasData(state.compare)) state.compare = "";
       if (urlParams.__hasT) state.T = Math.min(Math.max(state.T, p.ranges.T[0]), p.ranges.T[1]);
       else state.T = p.ranges.T_default;
@@ -480,9 +512,13 @@
     clearTimeout(timer);
     timer = setTimeout(run, delay);
   }
-  function request() {
+  function params() {
     var p = {};
-    activeParams().forEach(function (k) { p[k] = state.params[k]; });
+    activeParams().forEach(function (k) { if (k !== "ppr78") p[k] = state.params[k]; });
+    return p;
+  }
+  function request() {
+    var p = params();
     if (state.field !== "none")
       return { components: [state.a, state.b], model: state.model, params: p, hold: "field", npts: 61,
         T: state.T, P: state.P, z1: state.z1,
@@ -569,20 +605,46 @@
     if (ka.length !== kb.length) return false;
     return ka.every(function (k) { var x = +a[k], y = +b[k]; return isFinite(x) && isFinite(y) && Math.abs(x - y) <= tol * Math.max(1, Math.abs(x)); });
   }
+  /* one order of each pair is precomputed; the other order is the same surface
+     seen from the other side (x1 -> 1 - x1, components 1 and 2 swapped) */
+  var SWAP = [["gamma1", "gamma2"], ["K1", "K2"], ["f1", "f2"], ["phiL1", "phiL2"], ["phiV1", "phiV2"]];
+  function mirrorParams(p) {
+    var q = {};
+    Object.keys(p || {}).forEach(function (k) { q[k] = p[k]; });
+    if ("dg12" in q) { q.dg12 = p.dg21; q.dg21 = p.dg12; }
+    if ("A12" in q) { q.A12 = p.A21; q.A21 = p.A12; }
+    return q;
+  }
+  function mirrorResult(res) {
+    var out = {}; Object.keys(res).forEach(function (k) { out[k] = res[k]; });
+    out.layers = res.layers.map(function (L) {
+      var c = L.columns, m = {};
+      Object.keys(c).forEach(function (k) { m[k] = c[k].slice().reverse(); });
+      ["x1", "y1"].forEach(function (k) { if (m[k]) m[k] = m[k].map(function (v) { return v == null ? v : +(1 - v).toFixed(10); }); });
+      SWAP.forEach(function (pr) { if (m[pr[0]] && m[pr[1]]) { var t = m[pr[0]]; m[pr[0]] = m[pr[1]]; m[pr[1]] = t; } });
+      if (m.alpha) m.alpha = m.alpha.map(function (v) { return v == null || v === 0 ? v : 1 / v; });
+      var az = L.azeotrope ? Object.assign({}, L.azeotrope, { x1: 1 - L.azeotrope.x1 }) : L.azeotrope;
+      return { value: L.value, columns: m, azeotrope: az };
+    });
+    return out;
+  }
   function precomputed(sreq) {
     return surfaceIndex.then(function (ix) {
       if (!ix) return null;
-      var key = [sreq.components[0], sreq.components[1], sreq.model, sreq.hold].join("~");
-      if (ix.keys.indexOf(key) < 0) return null;
-      return fetch("surfaces/" + encodeURIComponent(key) + ".json?v=" + ix.version).then(function (r) { return r.ok ? r.json() : null; })
+      var c = sreq.components, key = [c[0], c[1], sreq.model, sreq.hold].join("~"), rkey = [c[1], c[0], sreq.model, sreq.hold].join("~");
+      var flip = ix.keys.indexOf(key) < 0;
+      if (flip && ix.keys.indexOf(rkey) < 0) return null;
+      return fetch("surfaces/" + encodeURIComponent(flip ? rkey : key) + ".json?v=" + ix.version).then(function (r) { return r.ok ? r.json() : null; })
         .then(function (f) {
           if (!f || f.version !== ix.version || !f.result || !f.result.ok) return null;
-          var q = f.request;
+          var q = f.request, comps = flip ? q.components.slice().reverse() : q.components;
           var ok = q.model === sreq.model && q.hold === sreq.hold && q.npts === sreq.npts &&
-            q.components.join() === sreq.components.join() && sameNumbers(q.params, sreq.params, 1e-9) &&
-            sameNumbers(q.values, sreq.values, 1e-6) && sreq.keep.every(function (c) { return q.keep.indexOf(c) >= 0; });
-          if (ok) f.result.source = "precomputed";
-          return ok ? f.result : null;
+            comps.join() === sreq.components.join() && sameNumbers(flip ? mirrorParams(q.params) : q.params, sreq.params, 1e-9) &&
+            sameNumbers(q.values, sreq.values, 1e-6) && sreq.keep.every(function (k) { return q.keep.indexOf(k) >= 0; });
+          if (!ok) return null;
+          var res = flip ? mirrorResult(f.result) : f.result;
+          res.source = "precomputed";
+          return res;
         });
     }).catch(function () { return null; });
   }
@@ -1101,6 +1163,8 @@
     a.download = state.a + "_" + state.b + "_" + state.model + ".csv";
     document.body.appendChild(a); a.click(); a.remove();
   }
+  function ant(c) { return c.antoine ? [c.antoine.A, c.antoine.B, c.antoine.C].join(", ") : "none (equations of state only)"; }
+  function groups(g) { return g ? Object.keys(g).map(function (k) { return g[k] + " " + k; }).join(", ") : "–"; }
   function drawSources() {
     var A = comp(state.a), B = comp(state.b), used = {};
     function src(k) { used[k] = true; return k; }
@@ -1110,30 +1174,223 @@
       ["Critical temperature (K)", PEC.fmt(A.Tc, 2), PEC.fmt(B.Tc, 2), src(A.sources.Tc)],
       ["Critical pressure (bar)", PEC.fmt(A.Pc_bar, 2), PEC.fmt(B.Pc_bar, 2), src(A.sources.Pc)],
       ["Acentric factor", PEC.fmt(A.omega, 3), PEC.fmt(B.omega, 3), src(A.sources.omega)],
-      ["Antoine A, B, C", [A.antoine.A, A.antoine.B, A.antoine.C].join(", "), [B.antoine.A, B.antoine.B, B.antoine.C].join(", "), src(A.sources.antoine)],
-      ["Antoine range (K)", A.antoine.Tmin + " to " + A.antoine.Tmax, B.antoine.Tmin + " to " + B.antoine.Tmax, A.sources.antoine],
-      ["Normal boiling point (K)", PEC.fmt(A.Tb, 2), PEC.fmt(B.Tb, 2), src(A.sources.Tb)]];
+      ["Antoine A, B, C", ant(A), ant(B), src("poling")],
+      ["Antoine range (K)", A.antoine ? A.antoine.Tmin + " to " + A.antoine.Tmax : "–", B.antoine ? B.antoine.Tmin + " to " + B.antoine.Tmax : "–", "poling"],
+      ["Normal boiling point (K)", A.Tb == null ? "–" : PEC.fmt(A.Tb, 2), B.Tb == null ? "–" : PEC.fmt(B.Tb, 2), src("derived")]];
+    if (familyOf(state.model) === "eos" && (A.ppr78 || B.ppr78))
+      rows.push(["E-PPR78 groups", groups(A.ppr78), groups(B.ppr78), src("eppr78")]);
     var h = "<table><thead><tr><th>Property</th><th>" + A.name + "</th><th>" + B.name + "</th><th>Source</th></tr></thead><tbody>" +
       rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td><td>" + r[3] + "</td></tr>"; }).join("");
     var pr = [];
-    var V = pair.vanlaar;
-    if (V) {
-      var tr = function (a, b) { return PEC.fmt(a, 4) + (b < 0 ? " − " : " + ") + PEC.fmt(Math.abs(b), 1) + "/T"; };
-      pr.push(["van Laar A₁₂(T), A₂₁(T), T in K", tr(V.A12 - V.b12 / V.T_ref, V.b12) + ";  " + tr(V.A21 - V.b21 / V.T_ref, V.b21) +
-        " (fitted " + PEC.fmt(V.Tmin, 0) + "–" + PEC.fmt(V.Tmax, 0) + " K, rms error in ln γ " + V.rms_lngamma + ")", src("vanlaar_fit")]);
-      src("chemsep_nrtl");
-    } else pr.push(["van Laar parameters", "not in the database", ""]);
-    if (!offered("models", "nrtl")) {
-    } else if (pair.nrtl) { pr.push(["NRTL Δg₁₂, Δg₂₁ (J/mol), α", pair.nrtl.dg12 + ", " + pair.nrtl.dg21 + ", " + pair.nrtl.alpha, src(pair.nrtl.source)]); }
-    else pr.push(["NRTL parameters", "not in the database", ""]);
-    if (pair.kij.source !== "none") pr.push(["Peng–Robinson k₁₂", pair.kij.value, src(pair.kij.source)]);
+    if (familyOf(state.model) === "activity") {
+      if (pair.nrtl) pr.push(["NRTL Δg₁₂, Δg₂₁ (J/mol), α", pair.nrtl.dg12 + ", " + pair.nrtl.dg21 + ", " + pair.nrtl.alpha, src(pair.nrtl.source)]);
+      else pr.push(["NRTL parameters", "not in the database", ""]);
+    } else if (pair.kij.source === "eppr78")
+      pr.push(["Peng–Robinson k₁₂", PEC.fmt(pair.kij.value, 4) + " at " + PEC.fmt(pair.T_ref, 1) + " K (changes with temperature)", src("eppr78")]);
+    else if (pair.kij.source !== "none") pr.push(["Peng–Robinson k₁₂", pair.kij.value, src(pair.kij.source)]);
     else pr.push(["Peng–Robinson k₁₂", "not in the database (0 used)", ""]);
     h += pr.map(function (r) { return "<tr><td>" + r[0] + "</td><td colspan='2'>" + r[1] + "</td><td>" + r[2] + "</td></tr>"; }).join("") + "</tbody></table>";
     $("source-table").innerHTML = h;
     used.libraries = true;
-    $("source-notes").innerHTML = "<p class='cite'>Antoine equation: " + A.antoine.form + ".</p>" +
+    $("source-notes").innerHTML = "<p class='cite'>Antoine equation: log10(P/Pa) = A − B/(T/K + C).</p>" +
       Object.keys(used).filter(function (k) { return catalog.sources[k]; })
         .map(function (k) { return "<p class='cite'><b>" + k + "</b>: " + catalog.sources[k] + "</p>"; }).join("");
+  }
+
+  /* ------------------------------------------------------------ three or four components */
+  /* A flash of a multicomponent feed at T and P (web_api.mixture). For three
+     components the page also asks for the bubble temperature over a grid of
+     liquid compositions at the same P, drawn as a triangle diagram. */
+  var mix = { model: null, comps: [], z: [], examples: [], map: null, mapKey: null, seq: 0 };
+  function mixModels() { return EOS.concat(ACT.filter(function (m) { return m !== "margules"; })); }
+  function bindMixture() {
+    engine.call({ op: "mixture_examples" }).then(function (r) {
+      mix.examples = (r.examples || []).filter(function (ex) {
+        return offered("models", ex.model) && ex.components.every(function (c) { return comp(c) && inSet(c, familyOf(ex.model)); });
+      });
+      seg($("mix-examples"), mix.examples.map(function (ex, i) { return [String(i), ex.label]; }), null,
+        function (i) { loadMixExample(mix.examples[+i]); });
+      var start = mix.examples.filter(function (ex) { return ex.components.length === 3 && ex.model === "nrtl"; })[0] || mix.examples[0];
+      if (start) loadMixExample(start, true);
+    });
+    $("mix-add").addEventListener("click", function () {
+      readMix();
+      if (mix.comps.length >= 4) return;
+      var fam = familyOf(mix.model), next = catalog.compounds.filter(function (c) { return inSet(c.id, fam) && mix.comps.indexOf(c.id) < 0; })[0];
+      if (!next) return;
+      mix.comps.push(next.id); mix.z.push(0.2); drawMix();
+    });
+    $("mix-run").addEventListener("click", function () { readMix(); runMixture(); });
+    ["mix-T", "mix-P"].forEach(function (id) { $(id).addEventListener("keydown", function (e) { if (e.key === "Enter") { readMix(); runMixture(); } }); });
+  }
+  function loadMixExample(ex, quiet) {
+    mix.model = ex.model; mix.comps = ex.components.slice(); mix.z = ex.z.slice();
+    $("mix-T").value = ex.T; $("mix-P").value = ex.P;
+    seg($("mix-examples"), mix.examples.map(function (e, i) { return [String(i), e.label]; }), String(mix.examples.indexOf(ex)),
+      function (i) { loadMixExample(mix.examples[+i]); });
+    drawMix();
+    runMixture(quiet);
+  }
+  function readMix() {
+    var rows = [].slice.call($("mix-rows").querySelectorAll(".mix-row"));
+    mix.comps = rows.map(function (r) { return r.querySelector("select").value; });
+    mix.z = rows.map(function (r) { return +r.querySelector("input").value; });
+  }
+  function drawMix() {
+    seg($("mix-model"), mixModels().map(function (m) { return [m, MODEL_SHORT[m]]; }), mix.model, function (m) {
+      readMix();
+      var fam = familyOf(m);
+      mix.model = m;
+      if (!mix.comps.every(function (c) { return inSet(c, fam); })) {    // the other family: start from its example
+        var ex = mix.examples.filter(function (e) { return familyOf(e.model) === fam && e.components.length === mix.comps.length; })[0] ||
+          mix.examples.filter(function (e) { return familyOf(e.model) === fam; })[0];
+        if (ex) { loadMixExample(ex); mix.model = m; drawMix(); return; }
+      }
+      drawMix();
+    });
+    var host = $("mix-rows"), fam = familyOf(mix.model);
+    host.innerHTML = "";
+    mix.comps.forEach(function (c, i) {
+      var row = document.createElement("div"); row.className = "mix-row";
+      row.innerHTML = "<label><span class='sr-only'>Component " + (i + 1) + "</span><select aria-label='Component " + (i + 1) + "'></select></label>" +
+        "<label class='mix-z'>Amount<input type='number' step='any' min='0' value='" + mix.z[i] + "'></label>" +
+        (mix.comps.length > 3 ? "<button type='button' class='iconbtn' title='Remove' aria-label='Remove this component'>×</button>" : "<span></span>");
+      host.appendChild(row);
+      compoundOptions(row.querySelector("select"), fam, c);
+      var rm = row.querySelector("button");
+      if (rm) rm.addEventListener("click", function () { readMix(); mix.comps.splice(i, 1); mix.z.splice(i, 1); drawMix(); });
+    });
+    $("mix-add").hidden = mix.comps.length >= 4;
+  }
+  function runMixture(quiet) {
+    var box = $("mix-result"), T = +$("mix-T").value, P = +$("mix-P").value;
+    var uniq = mix.comps.filter(function (c, i) { return mix.comps.indexOf(c) === i; });
+    if (uniq.length !== mix.comps.length) { box.innerHTML = "<p class='notice'>Choose different compounds.</p>"; return; }
+    if (!(T > 0) || !(P > 0) || !mix.z.every(function (v) { return v > 0; })) {
+      box.innerHTML = "<p class='notice'>Give T > 0, P > 0 and a positive amount of every component.</p>"; return;
+    }
+    var key = JSON.stringify([mix.comps, mix.model, familyOf(mix.model) === "eos" ? "T" + T : "P" + P]), wantMap = mix.comps.length === 3 && key !== mix.mapKey;
+    var id = ++mix.seq;
+    box.innerHTML = "<p class='source'>Calculating" + (wantMap ? " the flash and the triangle diagram" : "") + "…</p>";
+    engine.call({ op: "mixture", request: { components: mix.comps, model: mix.model, T: T, P: P, z: mix.z, map: wantMap, divisions: 10 } }).then(function (r) {
+      if (id !== mix.seq) return;
+      if (!r.ok) { box.innerHTML = "<p class='notice'>" + (r.error || "This mixture could not be calculated.") + "</p>"; $("mix-figure").hidden = true; return; }
+      if (r.map) { mix.map = r.map; mix.mapKey = key; }
+      if (mix.comps.length !== 3) { mix.map = null; mix.mapKey = null; }
+      showMixture(r, T, P);
+    });
+  }
+  function showMixture(r, T, P) {
+    var names = r.names.map(function (c) { return comp(c).name; });
+    var s = function (v) { return v == null ? "–" : PEC.sig(v, 4); }, f = function (v, d) { return v == null ? "–" : PEC.fmt(v, d); };
+    var b = r.bounds || {}, two = r.phase === "two-phase";
+    var h = "<p class='check-verdict ph-" + r.phase + "'>" + phaseWord(r.phase) + "</p>";
+    h += two ? "<p>" + f(r.beta * 100, 1) + "% of the feed is vapor at " + f(T, 2) + " K and " + s(P) + " bar.</p>"
+             : "<p>No two-phase equilibrium at this state: the mixture is all " + r.phase + ".</p>";
+    var cols = ["Component", "Feed z", "Liquid x", "Vapor y"];
+    if (two) cols.push("K = y/x");
+    if (r.gamma) cols.push("γ");
+    if (r.phiL) cols.push("φ liquid", "φ vapor");
+    h += "<div class='table-wrap'><table class='mix-table'><thead><tr>" + cols.map(function (c) { return "<th>" + c + "</th>"; }).join("") + "</tr></thead><tbody>";
+    names.forEach(function (n, i) {
+      var bar = function (v, cls) { return v == null ? "–" : "<span class='mbar " + cls + "' style='width:" + Math.round(60 * v) + "px'></span>" + PEC.fmt(v, 4); };
+      h += "<tr><td>" + n + "</td><td>" + bar(r.z[i], "mz") + "</td><td>" + bar(r.x[i], "mx") + "</td><td>" + bar(r.y[i], "my") + "</td>" +
+        (two ? "<td>" + s(r.K[i]) + "</td>" : "") + (r.gamma ? "<td>" + s(r.gamma[i]) + "</td>" : "") +
+        (r.phiL ? "<td>" + s(r.phiL[i]) + "</td><td>" + s(r.phiV[i]) + "</td>" : "") + "</tr>";
+    });
+    h += "</tbody></table></div>";
+    h += "<p><b>Where equilibrium occurs for this feed:</b> at " + f(T, 2) + " K, between the dew pressure " + s(b.P_dew) + " bar and the bubble pressure " + s(b.P_bubble) +
+      " bar; at " + s(P) + " bar, between the bubble temperature " + f(b.T_bubble, 2) + " K and the dew temperature " + f(b.T_dew, 2) + " K." +
+      (b.P_bubble == null || b.T_bubble == null || b.P_dew == null || b.T_dew == null ? " (–: not found, usually because the state is near or above the mixture critical point.)" : "") + "</p>";
+    if (r.kij) h += "<p class='source'>k_ij at " + f(T, 2) + " K: " + Object.keys(r.kij).map(function (k) {
+      var pr = k.split("|"); return comp(pr[0]).name + "–" + comp(pr[1]).name + " " + PEC.fmt(r.kij[k], 4); }).join(", ") +
+      (/PPR78/.test(r.input_text) ? " (E-PPR78)" : "") + "</p>";
+    h += "<p class='source'>" + r.route + " · " + r.ms + " ms</p>";
+    var esc = function (t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;"); };
+    h += "<details><summary>Input file and checker report</summary><pre>" + esc(r.input_text) + "</pre><pre>" + esc(r.report) + "</pre></details>";
+    $("mix-result").innerHTML = h;
+    if (mix.map && r.names.length === 3) drawTriangle(r, names); else $("mix-figure").hidden = true;
+  }
+
+  /* triangle diagram: composition of a ternary, the bubble point of each liquid
+     shaded from light (low) to dark (high) (bubble temperature at P for an
+     activity model, bubble pressure at T, on a log scale, for an equation of
+     state), the vapor in equilibrium with each liquid, and the feed's tie line */
+  function drawTriangle(r, names) {
+    var fig = $("mix-figure"), host = $("mix-chart"), map = mix.map, kind = map.kind || "T";
+    var pts = map.points.map(function (p) { return { x: p.x, y: p.y, T: kind === "T" ? p.T : p.P }; });
+    fig.hidden = false;
+    var n = map.n || Math.round((Math.sqrt(8 * pts.length + 1) - 3) / 2);
+    var W = 560, H = 500, top = [W / 2, 34], left = [48, 448], right = [W - 48, 448];
+    function xy(c) { return [c[0] * top[0] + c[1] * left[0] + c[2] * right[0], c[0] * top[1] + c[1] * left[1] + c[2] * right[1]]; }
+    var at = {};
+    pts.forEach(function (p) { at[Math.round(p.x[0] * n) + "," + Math.round(p.x[1] * n)] = p; });
+    var Ts = pts.map(function (p) { return p.T; }).filter(function (v) { return v != null; });
+    var lo = Math.min.apply(null, Ts), hi = Math.max.apply(null, Ts);
+    var dark = (function () {
+      var m = getComputedStyle(document.body).backgroundColor.match(/\d+/g);
+      return m ? (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) < 128 : false;
+    })();
+    var ramp = dark ? [[44, 36, 60], [196, 170, 238]] : [[240, 235, 248], [92, 60, 146]];   // one hue, light to dark (dark mode: dim to bright)
+    function col(T) {
+      var u = hi > lo ? (kind === "T" ? (T - lo) / (hi - lo) : Math.log(T / lo) / Math.log(hi / lo)) : 0.5;
+      return "rgb(" + ramp[0].map(function (c, k) { return Math.round(c + (ramp[1][k] - c) * u); }).join(",") + ")";
+    }
+    var out = [];
+    function poly(ps, fill, title) {
+      out.push("<polygon points='" + ps.map(function (q) { return xy(q.x).map(function (v) { return v.toFixed(1); }).join(","); }).join(" ") +
+        "' fill='" + fill + "' stroke='" + fill + "' stroke-width='0.6'><title>" + title + "</title></polygon>");
+    }
+    function tip(p) {
+      return names.map(function (nm, k) { return nm + " " + PEC.fmt(p.x[k], 2); }).join(", ") +
+        (kind === "T" ? "\nbubble T = " + PEC.fmt(p.T, 1) + " K" : "\nbubble P = " + PEC.sig(p.T, 4) + " bar") +
+        (p.y ? "\nvapor: " + p.y.map(function (v) { return PEC.fmt(v, 3); }).join(", ") : "");
+    }
+    for (var i = 0; i < n; i++) for (var j = 0; j < n - i; j++) {
+      var a = at[i + "," + j], b2 = at[(i + 1) + "," + j], c = at[i + "," + (j + 1)], d = at[(i + 1) + "," + (j + 1)];
+      if (a && b2 && c && a.T != null && b2.T != null && c.T != null) poly([a, b2, c], col((a.T + b2.T + c.T) / 3), tip(a));
+      if (j < n - i - 1 && b2 && c && d && b2.T != null && c.T != null && d.T != null) poly([b2, c, d], col((b2.T + c.T + d.T) / 3), tip(d));
+    }
+    /* gridlines every 0.2 */
+    for (var g = 1; g < 5; g++) {
+      var u = g / 5;
+      [[[u, 1 - u, 0], [u, 0, 1 - u]], [[1 - u, u, 0], [0, u, 1 - u]], [[1 - u, 0, u], [0, 1 - u, u]]].forEach(function (seg2) {
+        var p1 = xy(seg2[0]), p2 = xy(seg2[1]);
+        out.push("<line x1='" + p1[0] + "' y1='" + p1[1] + "' x2='" + p2[0] + "' y2='" + p2[1] + "' class='tri-grid'/>");
+      });
+    }
+    /* liquid -> vapor at every other grid point */
+    pts.forEach(function (p) {
+      var ii = Math.round(p.x[0] * n), jj = Math.round(p.x[1] * n);
+      if (!p.y || ii % 2 || jj % 2) return;
+      var p1 = xy(p.x), p2 = xy(p.y);
+      out.push("<line x1='" + p1[0] + "' y1='" + p1[1] + "' x2='" + p2[0] + "' y2='" + p2[1] + "' class='tri-vec'/>" +
+        "<circle cx='" + p2[0] + "' cy='" + p2[1] + "' r='2' class='tri-vec-end'/>");
+    });
+    out.push("<polygon points='" + [top, left, right].map(function (q) { return q.join(","); }).join(" ") + "' class='tri-frame'/>");
+    /* the feed and its tie line */
+    if (r.phase === "two-phase") {
+      var px = xy(r.x), py = xy(r.y);
+      out.push("<line x1='" + px[0] + "' y1='" + px[1] + "' x2='" + py[0] + "' y2='" + py[1] + "' class='tri-tie'/>");
+      out.push("<circle cx='" + px[0] + "' cy='" + px[1] + "' r='6' class='tri-pt' fill='var(--liquid)'><title>liquid x</title></circle>");
+      out.push("<circle cx='" + py[0] + "' cy='" + py[1] + "' r='6' class='tri-pt' fill='var(--vapor)'><title>vapor y</title></circle>");
+    }
+    var pz = xy(r.z);
+    out.push("<rect x='" + (pz[0] - 6) + "' y='" + (pz[1] - 6) + "' width='12' height='12' class='tri-pt' style='fill:var(--ink)'><title>feed z</title></rect>");
+    out.push("<text x='" + top[0] + "' y='" + (top[1] - 12) + "' text-anchor='middle' class='tri-label'>" + names[0] + "</text>");
+    out.push("<text x='" + left[0] + "' y='" + (left[1] + 26) + "' text-anchor='start' class='tri-label'>" + names[1] + "</text>");
+    out.push("<text x='" + right[0] + "' y='" + (right[1] + 26) + "' text-anchor='end' class='tri-label'>" + names[2] + "</text>");
+    var cond = kind === "T" ? PEC.sig(map.P, 4) + " bar" : PEC.fmt(map.T, 1) + " K";
+    host.innerHTML = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='Triangle diagram of " + names.join(", ") +
+      " at " + cond + "'>" + out.join("") + "</svg>";
+    var grad = "linear-gradient(90deg, " + col(lo) + ", " + col(hi) + ")";
+    $("mix-legend").innerHTML =
+      "<li><span class='swatch-sq' style='background:var(--ink)'></span>Feed z</li>" +
+      (r.phase === "two-phase" ? "<li><span class='dot' style='background:var(--liquid)'></span>Liquid x</li><li><span class='dot' style='background:var(--vapor)'></span>Vapor y</li>" : "") +
+      "<li><span class='tri-vec-key'></span>Liquid to the vapor it boils into</li>" +
+      (kind === "T" ? "<li>Bubble temperature at " + cond + ": " + PEC.fmt(lo, 1) + " K <span class='tri-ramp' style='background:" + grad + "'></span> " + PEC.fmt(hi, 1) + " K</li>"
+                    : "<li>Bubble pressure at " + cond + ": " + PEC.sig(lo, 3) + " bar <span class='tri-ramp' style='background:" + grad + "'></span> " + PEC.sig(hi, 3) + " bar (log scale)</li>") +
+      (Ts.length < pts.length ? "<li>Blank: no bubble point found (near or above the mixture critical point)</li>" : "");
   }
 
   /* ------------------------------------------------------------ start */
@@ -1146,10 +1403,11 @@
     if (!comp(state.a)) state.a = DEF.a;
     if (!comp(state.b) || state.b === state.a) state.b = state.a === DEF.b ? DEF.a : DEF.b;
     if (!MODEL_SHORT[state.model] || !offered("models", state.model)) state.model = DEF.model;
+    fitPair();
     if (state.compare && !offered("models", state.compare)) state.compare = "";
     if (!Y_OPTS.some(function (o) { return o[0] === state.y; })) { state.y = "T"; state.x = "xy"; }
     if (!X_OPTS.some(function (o) { return o[0] === state.x; })) state.x = "xy";
-    fillCompounds(); bindAxes();
+    fillCompounds(); bindAxes(); bindMixture();
     urlParams.__first = true;
     return loadPair(urlParams);
   });

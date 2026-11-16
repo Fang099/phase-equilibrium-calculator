@@ -12,9 +12,16 @@ In an input file, the line
 
 fills in whatever the input does not give itself: Tc, Pc, omega, molar mass
 and Antoine constants for each component, the Peng-Robinson k_ij when
-model = PR, NRTL parameters when activity = nrtl, and the temperature-dependent
-van Laar parameters A_ij(T) = a_ij + b_ij/T when activity = vanlaar. Values
-typed in the input always take precedence.
+model = PR, and NRTL parameters when activity = nrtl. Values typed in the
+input always take precedence.
+
+The Peng-Robinson k_ij comes from the E-PPR78 group-contribution method
+(Jaubert et al., 2022) whenever both compounds have groups assigned, which
+gives a k_ij for every pair of the gases and hydrocarbons, varying with
+temperature. Otherwise the fixed DECHEMA value is used if there is one.
+In an input file this is written
+
+    kij(methane, carbon-dioxide) = PPR78
 """
 
 import json
@@ -61,8 +68,6 @@ def pair(a, b):
         'dg_ab', 'dg_ba'  NRTL energies in J/mol (tau_ab = dg_ab / RT)
         'alpha'           NRTL non-randomness
         'kij_pr'          Peng-Robinson binary interaction parameter
-        'vanlaar'         {'a_ab', 'b_ab', 'a_ba', 'b_ba', 'Tmin', 'Tmax',
-                           'rms_lngamma', 'source'}: A_ab(T) = a_ab + b_ab/T
         'nrtl_source', 'kij_source'
     """
     ra, rb = find(a), find(b)
@@ -78,19 +83,84 @@ def pair(a, b):
         out.update(dg_ab=b_ab * R, dg_ba=b_ba * R, alpha=n["alpha"], nrtl_source=n["source"])
     if "kij_pr" in rec:
         out.update(kij_pr=rec["kij_pr"]["value"], kij_source=rec["kij_pr"]["source"])
-    if "vanlaar" in rec:
-        v = rec["vanlaar"]
-        fwd = rec["a"] == ra["id"]
-        out["vanlaar"] = {"a_ab": v["a12"] if fwd else v["a21"], "b_ab": v["b12"] if fwd else v["b21"],
-                          "a_ba": v["a21"] if fwd else v["a12"], "b_ba": v["b21"] if fwd else v["b12"],
-                          "Tmin": v["Tmin"], "Tmax": v["Tmax"], "rms_lngamma": v["rms_lngamma"],
-                          "source": v["source"]}
     return out
 
 
-def vanlaar_expr(a, b):
-    """'a + b/T' text for one van Laar parameter, as written in an input file."""
-    return f"{a:.5g} {'+' if b >= 0 else '-'} {abs(b):.5g}/T"
+# --------------------------------------------------------------------------
+# E-PPR78: k_ij(T) for Peng-Robinson from the groups of the two molecules
+# --------------------------------------------------------------------------
+_OA, _OB = 0.45723553, 0.07779607          # the Peng-Robinson constants
+
+
+def _pr_m(w):
+    if w <= 0.49:
+        return 0.37464 + 1.54226 * w - 0.26992 * w ** 2
+    return 0.379642 + 1.48503 * w - 0.164423 * w ** 2 + 0.016666 * w ** 3
+
+
+def ppr78_ready(a, b):
+    """True if E-PPR78 can give k_ij for compounds a and b: both have groups,
+    and the authors fitted every group pair the two molecules need."""
+    ra, rb = find(a), find(b)
+    if not (ra and rb and "ppr78" in ra and "ppr78" in rb):
+        return False
+    tab = load()["ppr78"]
+    ga, gb = ra["ppr78"]["groups"], rb["ppr78"]["groups"]
+    for k in ga:
+        for l in gb:
+            if k != l and "|".join(sorted((k, l))) in tab["missing"]:
+                return False
+    return True
+
+
+class PPR78Kij:
+    """k_ij(T) of the E-PPR78 model for one pair, called with T in K:
+
+        k_ij(T) = [ -1/2 sum_k sum_l (a_ik - a_jk)(a_il - a_jl) A_kl (298.15/T)^(B_kl/A_kl - 1)
+                    - (sqrt(a_i)/b_i - sqrt(a_j)/b_j)^2 ] / [ 2 sqrt(a_i a_j) / (b_i b_j) ]
+
+    a_ik is the fraction of the groups of molecule i that are of kind k,
+    A_kl and B_kl are group-interaction parameters (MPa, converted to Pa
+    here), and a_i(T), b_i are the Peng-Robinson parameters of the pure
+    compounds."""
+
+    def __init__(self, a, b):
+        ra, rb = find(a), find(b)
+        tab = load()["ppr78"]["AB"]
+        self.names = (ra["id"], rb["id"])
+        crit = []
+        for r in (ra, rb):
+            Tc, Pc, w = r["Tc"]["value"], r["Pc"]["value"], r["omega"]["value"]
+            crit.append((Tc, _OA * (R * Tc) ** 2 / Pc, _OB * R * Tc / Pc, _pr_m(w)))
+        self._crit = crit
+        ga, gb = ra["ppr78"]["groups"], rb["ppr78"]["groups"]
+        na, nb = sum(ga.values()), sum(gb.values())
+        groups = sorted(set(ga) | set(gb))
+        d = {g: ga.get(g, 0) / na - gb.get(g, 0) / nb for g in groups}
+        # the double sum, kept as (coefficient, exponent) terms
+        self._terms = []
+        for k in groups:
+            for l in groups:
+                if k == l or d[k] == 0 or d[l] == 0:
+                    continue
+                A, B = tab["|".join(sorted((k, l)))]
+                if A != 0:
+                    self._terms.append((d[k] * d[l] * A * 1e6, B / A - 1.0))
+        self._last = (None, None)
+
+    def __call__(self, T):
+        if self._last[0] == T:
+            return self._last[1]
+        s = sum(c * (298.15 / T) ** e for c, e in self._terms)
+        (Tc1, ac1, b1, m1), (Tc2, ac2, b2, m2) = self._crit
+        a1 = ac1 * (1 + m1 * (1 - (T / Tc1) ** 0.5)) ** 2
+        a2 = ac2 * (1 + m2 * (1 - (T / Tc2) ** 0.5)) ** 2
+        k = (-0.5 * s - (a1 ** 0.5 / b1 - a2 ** 0.5 / b2) ** 2) / (2 * (a1 * a2) ** 0.5 / (b1 * b2))
+        self._last = (T, k)
+        return k
+
+    def __repr__(self):
+        return "PPR78"
 
 
 def sources():
@@ -118,7 +188,7 @@ def apply_to_inputs(inp):
             p["M"] = rec["M"]["value"] / 1000.0          # kg/mol
             used.append("M")
         has_psat = ("antoine" in p or "Psat" in p or ("Tb" in p and "dHvap" in p))
-        if not has_psat and not p.get("nonvolatile"):
+        if not has_psat and not p.get("nonvolatile") and rec["antoine"] is not None:
             a = rec["antoine"]
             p["antoine"] = dict(A=a["A"], B=a["B"], C=a["C"], P_unit=a["P_unit"],
                                 T_unit=a["T_unit"], base="log10")
@@ -132,9 +202,20 @@ def apply_to_inputs(inp):
         for b in names[i + 1:]:
             pr = pair(a, b)
             key = frozenset((a, b))
-            if inp.model == "PR" and "kij_pr" in pr and "kij" not in inp.pairs.get(key, {}):
-                inp.pairs.setdefault(key, {})["kij"] = pr["kij_pr"]
-                notes.append(f"kij({a}, {b}) = {pr['kij_pr']:g} for Peng-Robinson")
+            given = inp.pairs.get(key, {}).get("kij")
+            wants_ppr78 = isinstance(given, str) and given.upper() == "PPR78"
+            if inp.model == "PR" and (given is None or wants_ppr78):
+                if ppr78_ready(a, b):
+                    k = PPR78Kij(a, b)
+                    inp.pairs.setdefault(key, {})["kij"] = k
+                    notes.append(f"kij({a}, {b}) = E-PPR78 group contribution, "
+                                 f"{k(298.15):.4f} at 298.15 K (varies with T)")
+                elif "kij_pr" in pr and not wants_ppr78:
+                    inp.pairs.setdefault(key, {})["kij"] = pr["kij_pr"]
+                    notes.append(f"kij({a}, {b}) = {pr['kij_pr']:g} for Peng-Robinson")
+                elif wants_ppr78:
+                    del inp.pairs[key]["kij"]
+                    warnings.append(f"E-PPR78 has no groups for {a} or {b}; kij = 0 used")
             if inp.activity == "nrtl" and "dg_ab" in pr:
                 used = []
                 for (i_, j_), val in (((a, b), pr["dg_ab"]), ((b, a), pr["dg_ba"])):
@@ -146,15 +227,4 @@ def apply_to_inputs(inp):
                     used.append(f"alpha = {pr['alpha']:g}")
                 if used:
                     notes.append("NRTL: " + ", ".join(used))
-            if inp.activity == "vanlaar" and "vanlaar" in pr:
-                from input_checker import TFunction
-                v, used = pr["vanlaar"], []
-                for (i_, j_), (av, bv) in (((a, b), (v["a_ab"], v["b_ab"])),
-                                           ((b, a), (v["a_ba"], v["b_ba"]))):
-                    if "A" not in inp.opairs.get((i_, j_), {}):
-                        inp.opairs.setdefault((i_, j_), {})["A"] = TFunction(vanlaar_expr(av, bv))
-                        used.append(f"A({i_}, {j_}) = {vanlaar_expr(av, bv)}")
-                if used:
-                    notes.append("van Laar: " + ", ".join(used)
-                                 + f" (fitted {v['Tmin']:g}-{v['Tmax']:g} K)")
     return notes, warnings
