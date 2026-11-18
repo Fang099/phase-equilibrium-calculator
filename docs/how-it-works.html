@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=69f610fd98">
+<link rel="stylesheet" href="assets/site.css?v=25e68dcc3d">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -508,13 +508,13 @@
 <span class="ln" data-n="507"></span>        <span class="tk">return</span> <span class="tv">self</span>.strength * (pos - <span class="tv">self</span>.reference)
 <span class="ln" data-n="508"></span>    <span class="tk">return</span> -<span class="tn">0.5</span> * <span class="tv">self</span>.strength ** <span class="tn">2</span> * (pos ** <span class="tn">2</span> - <span class="tv">self</span>.reference ** <span class="tn">2</span>)</code></pre></figure>
         <p><code>column_profile()</code> marches along height or radius. At each position it solves for the pressure and composition that put every compound's fugacity on its target:</p>
-<figure class="code"><figcaption><span class="code-name">_solve_at</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L818-L824"><code>equilibrium_solver.py</code>, lines 818–824</a></figcaption><pre><code><span class="ln" data-n="818"></span><span class="tk">def</span> <span class="tf">_solve_at</span>(phase, T, idx, c, n, pos, u0, M, fld):
-<span class="ln" data-n="819"></span>    <span class="ts">"""At one position, solve  ln f_i(T, P, x) = c_i - M_i Phi(pos)/RT  for</span>
-<span class="ln" data-n="820"></span><span class="ts">    ln P and the free mole fractions of the components present (idx)."""</span>
-<span class="ln" data-n="821"></span>    <span class="tk">if</span> _deadline[<span class="tn">0</span>] <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span> <span class="tk">and</span> time.time() &gt; _deadline[<span class="tn">0</span>]:
-<span class="ln" data-n="822"></span>        <span class="tk">raise</span> _TooSlow(<span class="ts">"the profile took too long to calculate: try a weaker field, "</span>
-<span class="ln" data-n="823"></span>                       <span class="ts">"a smaller system or a state further from saturation"</span>)
-<span class="ln" data-n="824"></span>    target = c - M[idx] * fld.potential(pos) / (R * T)</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">_solve_at</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L826-L832"><code>equilibrium_solver.py</code>, lines 826–832</a></figcaption><pre><code><span class="ln" data-n="826"></span><span class="tk">def</span> <span class="tf">_solve_at</span>(phase, T, idx, c, n, pos, u0, M, fld):
+<span class="ln" data-n="827"></span>    <span class="ts">"""At one position, solve  ln f_i(T, P, x) = c_i - M_i Phi(pos)/RT  for</span>
+<span class="ln" data-n="828"></span><span class="ts">    ln P and the free mole fractions of the components present (idx)."""</span>
+<span class="ln" data-n="829"></span>    <span class="tk">if</span> _deadline[<span class="tn">0</span>] <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span> <span class="tk">and</span> time.time() &gt; _deadline[<span class="tn">0</span>]:
+<span class="ln" data-n="830"></span>        <span class="tk">raise</span> _TooSlow(<span class="ts">"the profile took too long to calculate: try a weaker field, "</span>
+<span class="ln" data-n="831"></span>                       <span class="ts">"a smaller system or a state further from saturation"</span>)
+<span class="ln" data-n="832"></span>    target = c - M[idx] * fld.potential(pos) / (R * T)</code></pre></figure>
         <p>and switches phase where the fluid reaches saturation. The calculator's field panel uses exactly this: <code>build_input()</code> writes the field, the system's extent and the state at the reference position (the bottom, or the inner radius) into the input, a flash at that state gives the phase there, and <code>column_profile()</code> marches from it. On the activity route the liquid's pressure dependence needs its molar volume, which the database does not hold; <code>web_api.rackett_VL()</code> estimates it from \(T_c\), \(P_c\) and \(\omega\) with the Rackett equation, and the input file says so.</p>
       </section>
 
@@ -702,9 +702,9 @@
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=69f610fd98"></script>
-<script src="assets/charts.js?v=69f610fd98"></script>
-<script src="assets/data.js?v=69f610fd98"></script>
+<script src="assets/edition.js?v=25e68dcc3d"></script>
+<script src="assets/charts.js?v=25e68dcc3d"></script>
+<script src="assets/data.js?v=25e68dcc3d"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, W = D.walkthrough, $ = function (id) { return document.getElementById(id); };

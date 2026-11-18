@@ -387,6 +387,14 @@ def vle_diagram(L, V, T=None, P=None, npts=61, x_min=0.0, spacing="even"):
                     d.azeotrope = find_azeotrope(L, V, d.x1[k], d.x1[k + 1], T=T, P=P,
                                                  guess=float(d.var[k]))
                     xa, va = d.azeotrope
+                    if min(xa, 1 - xa) < 0.02:
+                        # within 2 % of a pure end the bubble and dew curves nearly touch
+                        # and a sign change of y1 - x1 is usually rounding in the model,
+                        # not a measurable azeotrope: reported as a note only
+                        d.azeotrope = None
+                        d.notes.append(f"y1 - x1 changes sign at x_{names[0]} = {xa:.4f}, within 2% "
+                                       f"of a pure compound; not reported as an azeotrope")
+                        break
                     unit = f"{va / 1e5:.4f} bar" if P is None else f"{va:.3f} K"
                     d.notes.append(f"azeotrope at x_{names[0]} = {xa:.4f}, {unit}")
                 except (SolverError, ValueError):
