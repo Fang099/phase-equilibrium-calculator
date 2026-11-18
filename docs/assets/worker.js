@@ -17,6 +17,8 @@ var ready = (async function () {
   py.FS.mkdirTree("/home/pyodide/data");
   py.FS.mkdirTree("/home/pyodide/examples");
   await Promise.all(manifest.files.map(async function (f) {
+    var dir = f.lastIndexOf("/") > 0 ? "/home/pyodide/" + f.slice(0, f.lastIndexOf("/")) : null;
+    if (dir) py.FS.mkdirTree(dir);                     // e.g. data/, examples/
     var r = await fetch("../py/" + f + "?v=" + manifest.version);
     if (!r.ok) throw new Error("could not load " + f);
     py.FS.writeFile("/home/pyodide/" + f, await r.text());

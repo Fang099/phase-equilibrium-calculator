@@ -553,3 +553,5 @@ main.doc > section:has(figure.code) > :not(figure.code):not(.katex-display):not(
 #pure-table { max-height: 420px; overflow: auto; }
 #file-text { width: 100%; font-family: var(--mono, ui-monospace, monospace); font-size: 0.85rem; padding: 0.6rem; border: 1px solid var(--hair); border-radius: 8px; background: var(--page); color: var(--ink); }
 #file-charts .chart-figure { margin-top: 1rem; }
+.boot { margin: 0.7rem 0 0; padding: 0.55rem 0.8rem; border-radius: 8px; background: var(--surface); border: 1px solid var(--hair); font-size: 0.9rem; color: var(--ink-2); }
+.boot.error { color: var(--warn); }

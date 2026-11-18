@@ -23,7 +23,8 @@
       });
     }
     function startWorker() {
-      var worker = new Worker("assets/worker.js"), pending = {}, seq = 0;
+      var me = document.querySelector("script[src*='assets/app.js']"), v = me && (me.src.split("?v=")[1] || "");
+      var worker = new Worker("assets/worker.js" + (v ? "?v=" + v : "")), pending = {}, seq = 0;
       worker.onmessage = function (e) {
         var d = e.data;
         if (d.type === "status") onStatus(d.text);
@@ -1660,13 +1661,17 @@
   }
 
   /* ------------------------------------------------------------ modes */
-  var mode = "pure";
-  function setMode(m, quiet) {
-    mode = m;
+  var mode = "pure", started = false;
+  function showShells(m) {
     $("pure-shell").hidden = m !== "pure"; $("main").hidden = m !== "binary"; $("mix-shell").hidden = m !== "mix";
     $("file-shell").hidden = m !== "file";
-    if (m === "file") { history.replaceState(null, "", "#mode=file"); loadFiles(); }
     [].forEach.call($("mode").querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-mode") === m)); });
+  }
+  function setMode(m, quiet) {
+    mode = m;
+    showShells(m);
+    if (!started) return;                  // Python is still starting: the switch takes effect when it is ready
+    if (m === "file") { history.replaceState(null, "", "#mode=file"); loadFiles(); }
     if (m === "pure") { history.replaceState(null, "", "#mode=pure"); if (pure.res) drawPure(); else if (!quiet) runPure(); }
     if (m === "mix") history.replaceState(null, "", "#mode=mix");
     if (m === "binary") { writeHash(); if (last) redraw(); }
@@ -1680,13 +1685,27 @@
   }
 
   /* ------------------------------------------------------------ start */
-  engine = new Engine(function (text) { overlay(text, "The first visit downloads Python (about 12 MB) and can take up to half a minute. Later visits start in a few seconds."); },
-    function (err) { overlay("Python could not start in this browser", "Check your connection and reload the page. (" + err + ")", true); });
+  /* the mode buttons work at once; until Python is ready a line under them says what is happening */
+  mode = initialMode();
+  showShells(mode);
+  [].forEach.call($("mode").querySelectorAll("button"), function (b) { b.addEventListener("click", function () { setMode(b.getAttribute("data-mode")); }); });
+  function boot(text, isError) {
+    var el = $("boot");
+    el.hidden = !text; el.textContent = text || ""; el.classList.toggle("error", !!isError);
+  }
+  boot("Starting Python in your browser… The first visit downloads about 12 MB and can take up to half a minute; later visits start in a few seconds.");
+  engine = new Engine(function (text) {
+      overlay(text, "The first visit downloads Python (about 12 MB) and can take up to half a minute. Later visits start in a few seconds.");
+      boot(text + "… The first visit downloads about 12 MB and can take up to half a minute.");
+    },
+    function (err) {
+      overlay("Python could not start in this browser", "Check your connection and reload the page. (" + err + ")", true);
+      boot("Python could not start in this browser. Check your connection and reload the page. (" + err + ")", true);
+    });
   engine.call({ op: "catalog" }).then(function (cat) {
     catalog = cat;
     var allCompounds = catalog.compounds.slice();
     catalog.compounds = catalog.compounds.filter(function (c) { return offered("compounds", c.id); });
-    mode = initialMode();
     var urlParams = mode === "binary" ? readHash() : {};
     if (!comp(state.a)) state.a = DEF.a;
     if (!comp(state.b) || state.b === state.a) state.b = state.a === DEF.b ? DEF.a : DEF.b;
@@ -1696,7 +1715,8 @@
     if (!Y_OPTS.some(function (o) { return o[0] === state.y; })) { state.y = "T"; state.x = "xy"; }
     if (!X_OPTS.some(function (o) { return o[0] === state.x; })) state.x = "xy";
     fillCompounds(); bindAxes(); bindMixture(); bindPure(allCompounds); bindFiles();
-    [].forEach.call($("mode").querySelectorAll("button"), function (b) { b.addEventListener("click", function () { setMode(b.getAttribute("data-mode")); }); });
+    started = true;
+    boot("");
     setMode(mode, true);
     if (mode === "pure") runPure();
     urlParams.__first = true;
