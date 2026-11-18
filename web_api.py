@@ -331,12 +331,22 @@ def _solve(req):
         out["fixed"] = {"x1": x1}
     stab = out["columns"].get("stability") or []
     ys = out["columns"].get("y1") or [None] * len(stab)
-    # a point where x = y at the end of an EOS curve is the mixture critical
-    # point; the stability test is meaningless there, so it is not counted
     bad = [x for x, v, y in zip(out["columns"]["x1"], stab, ys) if v is not None and v < 0
-           and not (req.get("model") not in ACTIVITY_MODELS and y is not None
-                    and abs(x - y) < 1e-3)]
+           and y is not None]
     out["unstable"] = None
+    if bad and req.get("model") not in ACTIVITY_MODELS and hold in ("T", "P"):
+        # with a cubic EOS an unstable "liquid" on the bubble curve is a point
+        # that converged to the wrong root near the mixture critical point, not
+        # a liquid-liquid split: those points are dropped, not reported as a split
+        cols = out["columns"]
+        for k, (x, v) in enumerate(zip(cols["x1"], stab)):
+            if v is not None and v < 0:
+                for name in cols:
+                    if name not in ("x1", "stability"):
+                        cols[name][k] = None
+        notes.append(f"{len(bad)} point(s) near the mixture critical point converged to an "
+                     f"unstable root and are left out.")
+        bad = []
     if hold == "x" and bad:
         notes.append("With this model a liquid of this composition is unstable and would "
                      "split into two liquid phases, so its bubble curve is not physical. "
