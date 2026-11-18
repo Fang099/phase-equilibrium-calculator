@@ -330,7 +330,12 @@ def _solve(req):
         out["columns"] = _columns(es.envelope_properties(L, V, env))
         out["fixed"] = {"x1": x1}
     stab = out["columns"].get("stability") or []
-    bad = [x for x, v in zip(out["columns"]["x1"], stab) if v is not None and v < 0]
+    ys = out["columns"].get("y1") or [None] * len(stab)
+    # a point where x = y at the end of an EOS curve is the mixture critical
+    # point; the stability test is meaningless there, so it is not counted
+    bad = [x for x, v, y in zip(out["columns"]["x1"], stab, ys) if v is not None and v < 0
+           and not (req.get("model") not in ACTIVITY_MODELS and y is not None
+                    and abs(x - y) < 1e-3)]
     out["unstable"] = None
     if hold == "x" and bad:
         notes.append("With this model a liquid of this composition is unstable and would "

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=25e68dcc3d">
+<link rel="stylesheet" href="assets/site.css?v=c6fa6bb548">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -429,18 +429,18 @@
 
         <h3>3D surfaces</h3>
         <p>The 3D view needs no new thermodynamics. <code>web_api.surface()</code> runs the same diagram at a list of values of the fixed variable and returns them as layers; the page joins equal liquid compositions across layers into a surface:</p>
-<figure class="code"><figcaption><span class="code-name">surface</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L403-L414"><code>web_api.py</code>, lines 403–414</a></figcaption><pre><code><span class="ln" data-n="403"></span><span class="tk">for</span> v <span class="tk">in</span> req[<span class="ts">"values"</span>]:
-<span class="ln" data-n="404"></span>    r = {k: val <span class="tk">for</span> k, val <span class="tk">in</span> req.items() <span class="tk">if</span> k <span class="tk">not</span> <span class="tk">in</span> (<span class="ts">"values"</span>, <span class="ts">"keep"</span>, <span class="ts">"compare"</span>)}
-<span class="ln" data-n="405"></span>    r[hold] = float(v)
-<span class="ln" data-n="406"></span>    <span class="tk">try</span>:
-<span class="ln" data-n="407"></span>        o = _solve(r)
-<span class="ln" data-n="408"></span>    <span class="tk">except</span> Exception:
-<span class="ln" data-n="409"></span>        o = {<span class="ts">"ok"</span>: <span class="tk">False</span>}
-<span class="ln" data-n="410"></span>    <span class="tk">if</span> <span class="tk">not</span> o.get(<span class="ts">"ok"</span>):
-<span class="ln" data-n="411"></span>        failed += <span class="tn">1</span>
-<span class="ln" data-n="412"></span>        <span class="tk">continue</span>
-<span class="ln" data-n="413"></span>    cols = o[<span class="ts">"columns"</span>] <span class="tk">if</span> <span class="tk">not</span> keep <span class="tk">else</span> {k: o[<span class="ts">"columns"</span>][k] <span class="tk">for</span> k <span class="tk">in</span> keep <span class="tk">if</span> k <span class="tk">in</span> o[<span class="ts">"columns"</span>]}
-<span class="ln" data-n="414"></span>    layers.append({<span class="ts">"value"</span>: float(v), <span class="ts">"columns"</span>: cols, <span class="ts">"azeotrope"</span>: o.get(<span class="ts">"azeotrope"</span>)})</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">surface</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L408-L419"><code>web_api.py</code>, lines 408–419</a></figcaption><pre><code><span class="ln" data-n="408"></span><span class="tk">for</span> v <span class="tk">in</span> req[<span class="ts">"values"</span>]:
+<span class="ln" data-n="409"></span>    r = {k: val <span class="tk">for</span> k, val <span class="tk">in</span> req.items() <span class="tk">if</span> k <span class="tk">not</span> <span class="tk">in</span> (<span class="ts">"values"</span>, <span class="ts">"keep"</span>, <span class="ts">"compare"</span>)}
+<span class="ln" data-n="410"></span>    r[hold] = float(v)
+<span class="ln" data-n="411"></span>    <span class="tk">try</span>:
+<span class="ln" data-n="412"></span>        o = _solve(r)
+<span class="ln" data-n="413"></span>    <span class="tk">except</span> Exception:
+<span class="ln" data-n="414"></span>        o = {<span class="ts">"ok"</span>: <span class="tk">False</span>}
+<span class="ln" data-n="415"></span>    <span class="tk">if</span> <span class="tk">not</span> o.get(<span class="ts">"ok"</span>):
+<span class="ln" data-n="416"></span>        failed += <span class="tn">1</span>
+<span class="ln" data-n="417"></span>        <span class="tk">continue</span>
+<span class="ln" data-n="418"></span>    cols = o[<span class="ts">"columns"</span>] <span class="tk">if</span> <span class="tk">not</span> keep <span class="tk">else</span> {k: o[<span class="ts">"columns"</span>][k] <span class="tk">for</span> k <span class="tk">in</span> keep <span class="tk">if</span> k <span class="tk">in</span> o[<span class="ts">"columns"</span>]}
+<span class="ln" data-n="419"></span>    layers.append({<span class="ts">"value"</span>: float(v), <span class="ts">"columns"</span>: cols, <span class="ts">"azeotrope"</span>: o.get(<span class="ts">"azeotrope"</span>)})</code></pre></figure>
 
         <h3>Other calculations in the same module</h3>
         <dl class="terms">
@@ -469,35 +469,35 @@
 <span class="ln" data-n="279"></span>    K = Knew
 <span class="ln" data-n="280"></span>    <span class="tk">if</span> diff &lt; tol:</code></pre></figure>
         <p><code>web_api.mixture()</code> writes the input file for the mixture (every pair needs NRTL parameters, or gets an E-PPR78 \(k_{ij}\)), runs the flash, and adds the bubble and dew points of the same feed with <code>saturation()</code>. For three compounds it also solves a bubble point at every node of a triangular grid of liquid compositions, which the page draws as a triangle diagram: the bubble temperature at the given pressure for NRTL, the bubble pressure at the given temperature for an equation of state (where solving for pressure is the more robust of the two). The grid is solved outward from the corner of the heaviest compound, and each node starts from the answers at its solved neighbours:</p>
-<figure class="code"><figcaption><span class="code-name">_ternary_map</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L734-L762"><code>web_api.py</code>, lines 734–762</a></figcaption><pre><code><span class="ln" data-n="734"></span><span class="tk">while</span> queue:
-<span class="ln" data-n="735"></span>    ijk = queue.popleft()
-<span class="ln" data-n="736"></span>    <span class="tk">if</span> time.time() - t0 &gt; limit:
-<span class="ln" data-n="737"></span>        truncated = <span class="tk">True</span>
-<span class="ln" data-n="738"></span>        <span class="tk">break</span>
-<span class="ln" data-n="739"></span>    x = np.clip(np.array(ijk, float) / n, <span class="tn">1e-6</span>, <span class="tk">None</span>)
-<span class="ln" data-n="740"></span>    x /= x.sum()
-<span class="ln" data-n="741"></span>    nb = [(ijk[<span class="tn">0</span>] + a, ijk[<span class="tn">1</span>] + b, ijk[<span class="tn">2</span>] - a - b) <span class="tk">for</span> a, b <span class="tk">in</span>
-<span class="ln" data-n="742"></span>          ((<span class="tn">1</span>, <span class="tn">0</span>), (-<span class="tn">1</span>, <span class="tn">0</span>), (<span class="tn">0</span>, <span class="tn">1</span>), (<span class="tn">0</span>, -<span class="tn">1</span>), (<span class="tn">1</span>, -<span class="tn">1</span>), (-<span class="tn">1</span>, <span class="tn">1</span>))]
-<span class="ln" data-n="743"></span>    nb = [q <span class="tk">for</span> q <span class="tk">in</span> nb <span class="tk">if</span> min(q) &gt;= <span class="tn">0</span>]
-<span class="ln" data-n="744"></span>    known = [pts[q][<span class="ts">"v"</span>] <span class="tk">for</span> q <span class="tk">in</span> nb <span class="tk">if</span> q <span class="tk">in</span> pts <span class="tk">and</span> pts[q][<span class="ts">"v"</span>] <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>]
-<span class="ln" data-n="745"></span>    guess = (math.exp(sum(math.log(v) <span class="tk">for</span> v <span class="tk">in</span> known) / len(known)) <span class="tk">if</span> known <span class="tk">else</span> <span class="tk">None</span>)
-<span class="ln" data-n="746"></span>    rec = {<span class="ts">"x"</span>: [round(float(v), <span class="tn">4</span>) <span class="tk">for</span> v <span class="tk">in</span> x], <span class="ts">"v"</span>: <span class="tk">None</span>, <span class="ts">"y"</span>: <span class="tk">None</span>}
-<span class="ln" data-n="747"></span>    <span class="tk">try</span>:
-<span class="ln" data-n="748"></span>        <span class="tk">if</span> kind == <span class="ts">"T"</span>:
-<span class="ln" data-n="749"></span>            s_ = es.bubble_T(L, V, P, x, guess=guess)
-<span class="ln" data-n="750"></span>            val = float(s_.T)
-<span class="ln" data-n="751"></span>        <span class="tk">else</span>:
-<span class="ln" data-n="752"></span>            s_ = es.bubble_P(L, V, T, x, guess=guess)
-<span class="ln" data-n="753"></span>            val = float(s_.P)
-<span class="ln" data-n="754"></span>        <span class="tk">if</span> np.all(np.isfinite(s_.y)) <span class="tk">and</span> val &gt; <span class="tn">0</span>:
-<span class="ln" data-n="755"></span>            rec.update(v=val, y=[round(float(v), <span class="tn">4</span>) <span class="tk">for</span> v <span class="tk">in</span> s_.y])
-<span class="ln" data-n="756"></span>    <span class="tk">except</span> Exception:
-<span class="ln" data-n="757"></span>        <span class="tk">pass</span>
-<span class="ln" data-n="758"></span>    pts[ijk] = rec
-<span class="ln" data-n="759"></span>    <span class="tk">for</span> q <span class="tk">in</span> nb:
-<span class="ln" data-n="760"></span>        <span class="tk">if</span> q <span class="tk">not</span> <span class="tk">in</span> seen:
-<span class="ln" data-n="761"></span>            seen.add(q)
-<span class="ln" data-n="762"></span>            queue.append(q)</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">_ternary_map</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L739-L767"><code>web_api.py</code>, lines 739–767</a></figcaption><pre><code><span class="ln" data-n="739"></span><span class="tk">while</span> queue:
+<span class="ln" data-n="740"></span>    ijk = queue.popleft()
+<span class="ln" data-n="741"></span>    <span class="tk">if</span> time.time() - t0 &gt; limit:
+<span class="ln" data-n="742"></span>        truncated = <span class="tk">True</span>
+<span class="ln" data-n="743"></span>        <span class="tk">break</span>
+<span class="ln" data-n="744"></span>    x = np.clip(np.array(ijk, float) / n, <span class="tn">1e-6</span>, <span class="tk">None</span>)
+<span class="ln" data-n="745"></span>    x /= x.sum()
+<span class="ln" data-n="746"></span>    nb = [(ijk[<span class="tn">0</span>] + a, ijk[<span class="tn">1</span>] + b, ijk[<span class="tn">2</span>] - a - b) <span class="tk">for</span> a, b <span class="tk">in</span>
+<span class="ln" data-n="747"></span>          ((<span class="tn">1</span>, <span class="tn">0</span>), (-<span class="tn">1</span>, <span class="tn">0</span>), (<span class="tn">0</span>, <span class="tn">1</span>), (<span class="tn">0</span>, -<span class="tn">1</span>), (<span class="tn">1</span>, -<span class="tn">1</span>), (-<span class="tn">1</span>, <span class="tn">1</span>))]
+<span class="ln" data-n="748"></span>    nb = [q <span class="tk">for</span> q <span class="tk">in</span> nb <span class="tk">if</span> min(q) &gt;= <span class="tn">0</span>]
+<span class="ln" data-n="749"></span>    known = [pts[q][<span class="ts">"v"</span>] <span class="tk">for</span> q <span class="tk">in</span> nb <span class="tk">if</span> q <span class="tk">in</span> pts <span class="tk">and</span> pts[q][<span class="ts">"v"</span>] <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>]
+<span class="ln" data-n="750"></span>    guess = (math.exp(sum(math.log(v) <span class="tk">for</span> v <span class="tk">in</span> known) / len(known)) <span class="tk">if</span> known <span class="tk">else</span> <span class="tk">None</span>)
+<span class="ln" data-n="751"></span>    rec = {<span class="ts">"x"</span>: [round(float(v), <span class="tn">4</span>) <span class="tk">for</span> v <span class="tk">in</span> x], <span class="ts">"v"</span>: <span class="tk">None</span>, <span class="ts">"y"</span>: <span class="tk">None</span>}
+<span class="ln" data-n="752"></span>    <span class="tk">try</span>:
+<span class="ln" data-n="753"></span>        <span class="tk">if</span> kind == <span class="ts">"T"</span>:
+<span class="ln" data-n="754"></span>            s_ = es.bubble_T(L, V, P, x, guess=guess)
+<span class="ln" data-n="755"></span>            val = float(s_.T)
+<span class="ln" data-n="756"></span>        <span class="tk">else</span>:
+<span class="ln" data-n="757"></span>            s_ = es.bubble_P(L, V, T, x, guess=guess)
+<span class="ln" data-n="758"></span>            val = float(s_.P)
+<span class="ln" data-n="759"></span>        <span class="tk">if</span> np.all(np.isfinite(s_.y)) <span class="tk">and</span> val &gt; <span class="tn">0</span>:
+<span class="ln" data-n="760"></span>            rec.update(v=val, y=[round(float(v), <span class="tn">4</span>) <span class="tk">for</span> v <span class="tk">in</span> s_.y])
+<span class="ln" data-n="761"></span>    <span class="tk">except</span> Exception:
+<span class="ln" data-n="762"></span>        <span class="tk">pass</span>
+<span class="ln" data-n="763"></span>    pts[ijk] = rec
+<span class="ln" data-n="764"></span>    <span class="tk">for</span> q <span class="tk">in</span> nb:
+<span class="ln" data-n="765"></span>        <span class="tk">if</span> q <span class="tk">not</span> <span class="tk">in</span> seen:
+<span class="ln" data-n="766"></span>            seen.add(q)
+<span class="ln" data-n="767"></span>            queue.append(q)</code></pre></figure>
         <p>The 66 nodes take a fraction of a second with NRTL and one to three seconds with Peng–Robinson. Nodes where no bubble point exists, near or above the mixture's critical point, are left blank.</p>
 
         <h3>External fields</h3>
@@ -702,9 +702,9 @@
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=25e68dcc3d"></script>
-<script src="assets/charts.js?v=25e68dcc3d"></script>
-<script src="assets/data.js?v=25e68dcc3d"></script>
+<script src="assets/edition.js?v=c6fa6bb548"></script>
+<script src="assets/charts.js?v=c6fa6bb548"></script>
+<script src="assets/data.js?v=c6fa6bb548"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, W = D.walkthrough, $ = function (id) { return document.getElementById(id); };
