@@ -1,8 +1,9 @@
 # Phase Equilibrium Calculator
 
-A Python program that calculates and plots the phase equilibrium of mixtures. It takes whatever you know about a mixture, works out which equilibria that information can decide, and solves them. A website runs the same Python code in the browser as an interactive calculator.
+A Python program that calculates and plots the phase equilibrium of pure fluids and mixtures, with and without a gravitational or centrifugal field. It takes whatever you know about a fluid or mixture, works out which equilibria that information can decide, and solves them. A website runs the same Python code in the browser as an interactive calculator.
 
-**Website:** https://fang099.github.io/phase-equilibrium-calculator/
+**Website (web portal):** https://fang099.github.io/phase-equilibrium-calculator/ · calculator: https://fang099.github.io/phase-equilibrium-calculator/app.html
+**Source:** https://github.com/Fang099/phase-equilibrium-calculator
 
 - **Calculator:** pick two compounds and a model, and plot their vapor–liquid equilibrium between any two variables. Peng–Robinson and van der Waals are offered for 20 gases and hydrocarbons, every pair with a temperature-dependent k₁₂ predicted by E-PPR78; NRTL and the ideal solution for 16 liquids, wherever measured NRTL parameters exist.
 - **Pure fluids:** vapor pressure to the critical point from equal liquid and vapor fugacities (vdW, SRK, PR), isotherms with the equal-area rule, coexisting densities, the Clapeyron enthalpy of vaporization; in a gravity or centrifugal field, the pressure, density and phase along the field, the interface, and how the phase boundary seen from a reference point widens into a band as the field gets stronger (`pure_fluid.py`).
@@ -84,7 +85,7 @@ The checker reports every equilibrium it can decide, names the calculation, and 
 
 | Module | Purpose |
 |---|---|
-| `input_checker.py` | Parses free-form input, converts units, applies the phase rule (`F = n + 2 + m − π`, or Duhem's theorem with a known feed), and decides which equilibria can be calculated and what is missing |
+| `input_checker.py` | Parses free-form input, converts units, applies the phase rule (`F = n + 2 + m − π`, or Duhem's theorem with a known feed), and decides which equilibria can be calculated and what is missing; a single compound takes its own branch (`check_pure`) |
 | `pure_fluid.py` | One compound: vapor pressure, isotherms, densities, and the fluid in a gravity or centrifugal field |
 | `compound_db.py` | The built-in database (`data/compounds.json`), `database = builtin`, and the E-PPR78 k₁₂(T) |
 | `thermo_models.py` | Fugacity models for each phase: vdW, SRK and PR as a residual Helmholtz energy; liquid solution with Margules, van Laar or NRTL; ideal gas; pure solid from latent heats; gravity and centrifugal potentials |
@@ -118,12 +119,21 @@ python thermo_models.py        # EOS derivatives, activity models, latent-heat r
 python equilibrium_solver.py   # round trips, flash balances, azeotrope, eutectic, hydrostatics
 python web_api.py              # calculator requests: azeotropes, equal fugacities, E-PPR78, 3- and 4-component flashes
 python input_checker.py        # verdicts on the demo inputs
+python pure_fluid.py           # vdW equal areas, PR vapor pressures, barometric and hydrostatic columns, interface height
 ```
+
+## Reproducing the data files
+
+```bash
+python scripts/export_data.py --out Data
+```
+
+runs every example input file and every scenario shown on the website (pure fluids, binary diagrams, P–T envelopes, fields, three- and four-component flashes, validation tables) and writes, for each, the input file, the checker's report, the printed results and the computed values as CSV, with a `README.txt` index.
 
 ## Repository layout
 
 ```text
-input_checker.py, compound_db.py, thermo_models.py,
+input_checker.py, compound_db.py, thermo_models.py, pure_fluid.py,
 equilibrium_solver.py, plotter.py, web_api.py, numerics.py    the program
 data/                      compound database and the list it is built from
 examples/                  input files, one per demo case
@@ -133,6 +143,7 @@ scripts/build_site.py      rebuilds docs/: pages, numbers, charts, images, and t
 scripts/precompute_surfaces.py   solves the 3D surfaces in advance into docs/surfaces/
 scripts/build_compound_db.py   regenerates data/compounds.json from the source tables
 scripts/dev_server.py      local preview of the website with a local calculator engine
+scripts/export_data.py     writes the input and output data of every scenario as .txt/.csv
 ```
 
 After changing any Python module or page, run `python scripts/build_site.py`, then `python scripts/precompute_surfaces.py` to bring the precomputed 3D surfaces (`docs/surfaces/`) up to date. No number on the site is typed by hand. On GitHub, the workflow `.github/workflows/surfaces.yml` runs both automatically on every push to `main` that changes the code, the data or the pages, and commits the result.
