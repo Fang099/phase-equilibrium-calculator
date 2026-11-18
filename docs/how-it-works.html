@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=3fe23e7bc6">
+<link rel="stylesheet" href="assets/site.css?v=3a511c03d2">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -45,6 +45,7 @@
         <li><a href="#checker">2. The input checker</a></li>
         <li><a href="#models">3. The fugacity models</a></li>
         <li><a href="#solver">4. The equilibrium solver</a></li>
+        <li><a href="#pure-code">The pure-fluid module</a></li>
         <li><a href="#output">5. Results and plots</a></li>
         <li><a href="#browser">Running in the browser</a></li>
         <li><a href="#database">The compound database</a></li>
@@ -62,6 +63,7 @@
           <li><a href="#checker">2. The input checker</a></li>
           <li><a href="#models">3. The fugacity models</a></li>
           <li><a href="#solver">4. The equilibrium solver</a></li>
+        <li><a href="#pure-code">The pure-fluid module</a></li>
           <li><a href="#output">5. Results and plots</a></li>
           <li><a href="#browser">Running in the browser</a></li>
           <li><a href="#database">The compound database</a></li>
@@ -78,38 +80,39 @@
           <li><h4>Input checker<code>input_checker.py</code></h4><p>Reads a plain-text description of the mixture, converts units, fills in database values, and decides whether the information is sufficient and which calculation it implies.</p></li>
           <li><h4>Thermodynamic models<code>thermo_models.py</code></h4><p>Builds one object per phase. Each object answers one question: what is the fugacity of every compound at this \(T\), \(P\) and composition?</p></li>
           <li><h4>Equilibrium solver<code>equilibrium_solver.py</code></h4><p>Finds the states where fugacities match between phases, and sweeps them into diagrams and tables.</p></li>
+          <li><h4>Pure fluids<code>pure_fluid.py</code></h4><p>For one compound: the vapor pressure from equal liquid and vapor fugacities, the isotherms and densities, and the fluid in a gravity or centrifugal field.</p></li>
           <li><h4>Output<code>plotter.py</code> · <code>web_api.py</code></h4><p>Draws figures with Matplotlib from the command line, or returns numbers as JSON for the charts on the calculator page.</p></li>
         </ol>
-        <p>Supporting files: <code>compound_db.py</code> and <code>data/compounds.json</code> (the property database), and <code>numerics.py</code> (the root finders).</p>
+        <p>Supporting files: <code>compound_db.py</code> and <code>data/compounds.json</code> (the property database), and <code>numerics.py</code> (root finders used when SciPy is not available).</p>
         <p>The whole chain fits in a few lines. This is the start of the function the calculator calls for a diagram:</p>
-<figure class="code"><figcaption><span class="code-name">web_api._solve</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L270-L297"><code>web_api.py</code>, lines 270–297</a></figcaption><pre><code><span class="ln" data-n="270"></span><span class="tk">def</span> <span class="tf">_solve</span>(req):
-<span class="ln" data-n="271"></span>    text = build_input(req)
-<span class="ln" data-n="272"></span>    rep = check_input(text)
-<span class="ln" data-n="273"></span>    out = {<span class="ts">"input_text"</span>: text, <span class="ts">"report"</span>: str(rep), <span class="ts">"status"</span>: rep.status}
-<span class="ln" data-n="274"></span>    <span class="tk">if</span> rep.status != <span class="ts">"SUFFICIENT"</span>:
-<span class="ln" data-n="275"></span>        out[<span class="ts">"ok"</span>] = <span class="tk">False</span>
-<span class="ln" data-n="276"></span>        out[<span class="ts">"error"</span>] = <span class="ts">"The checker did not accept this input: "</span> + rep.status
-<span class="ln" data-n="277"></span>        <span class="tk">return</span> out
-<span class="ln" data-n="278"></span>    <span class="tk">if</span> req.get(<span class="ts">"hold"</span>) == <span class="ts">"field"</span>:
-<span class="ln" data-n="279"></span>        <span class="tk">return</span> _profile(req, text, out)
-<span class="ln" data-n="280"></span>    system = build_system(text)
-<span class="ln" data-n="281"></span>    eq = next(e <span class="tk">for</span> e <span class="tk">in</span> system.equilibria <span class="tk">if</span> e.phase_names[<span class="tn">1</span>] == <span class="ts">"V"</span>)
-<span class="ln" data-n="282"></span>    L, V = eq.phases
-<span class="ln" data-n="283"></span>    npts = int(req.get(<span class="ts">"npts"</span>, <span class="tn">41</span>))
-<span class="ln" data-n="284"></span>    hold = req.get(<span class="ts">"hold"</span>, <span class="ts">"T"</span>)
-<span class="ln" data-n="285"></span>    notes = []
-<span class="ln" data-n="286"></span>    out.update(route=eq.route, calculation=eq.calculation, names=list(system.names),
-<span class="ln" data-n="287"></span>               hold=hold, azeotrope=<span class="tk">None</span>, three_phase=<span class="tk">None</span>)
-<span class="ln" data-n="288"></span>    <span class="tk">if</span> hold <span class="tk">in</span> (<span class="ts">"T"</span>, <span class="ts">"P"</span>):
-<span class="ln" data-n="289"></span>        d = (es.vle_diagram(L, V, T=float(req[<span class="ts">"T"</span>]), npts=npts, spacing=<span class="ts">"ends"</span>) <span class="tk">if</span> hold == <span class="ts">"T"</span>
-<span class="ln" data-n="290"></span>             <span class="tk">else</span> es.vle_diagram(L, V, P=float(req[<span class="ts">"P"</span>]) * <span class="tn">1e5</span>, npts=npts, spacing=<span class="ts">"ends"</span>))
-<span class="ln" data-n="291"></span>        notes += d.notes
-<span class="ln" data-n="292"></span>        <span class="tk">if</span> len(d.x1) &lt; <span class="tn">2</span>:
-<span class="ln" data-n="293"></span>            out[<span class="ts">"ok"</span>] = <span class="tk">False</span>
-<span class="ln" data-n="294"></span>            out[<span class="ts">"error"</span>] = (<span class="ts">"No vapor-liquid equilibrium could be solved at this condition "</span>
-<span class="ln" data-n="295"></span>                            <span class="ts">"with this model. Try a lower temperature or pressure."</span>)
-<span class="ln" data-n="296"></span>            <span class="tk">return</span> out
-<span class="ln" data-n="297"></span>        out[<span class="ts">"columns"</span>] = _columns(es.diagram_properties(L, V, d))</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">web_api._solve</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L271-L298"><code>web_api.py</code>, lines 271–298</a></figcaption><pre><code><span class="ln" data-n="271"></span><span class="tk">def</span> <span class="tf">_solve</span>(req):
+<span class="ln" data-n="272"></span>    text = build_input(req)
+<span class="ln" data-n="273"></span>    rep = check_input(text)
+<span class="ln" data-n="274"></span>    out = {<span class="ts">"input_text"</span>: text, <span class="ts">"report"</span>: str(rep), <span class="ts">"status"</span>: rep.status}
+<span class="ln" data-n="275"></span>    <span class="tk">if</span> rep.status != <span class="ts">"SUFFICIENT"</span>:
+<span class="ln" data-n="276"></span>        out[<span class="ts">"ok"</span>] = <span class="tk">False</span>
+<span class="ln" data-n="277"></span>        out[<span class="ts">"error"</span>] = <span class="ts">"The checker did not accept this input: "</span> + rep.status
+<span class="ln" data-n="278"></span>        <span class="tk">return</span> out
+<span class="ln" data-n="279"></span>    <span class="tk">if</span> req.get(<span class="ts">"hold"</span>) == <span class="ts">"field"</span>:
+<span class="ln" data-n="280"></span>        <span class="tk">return</span> _profile(req, text, out)
+<span class="ln" data-n="281"></span>    system = build_system(text)
+<span class="ln" data-n="282"></span>    eq = next(e <span class="tk">for</span> e <span class="tk">in</span> system.equilibria <span class="tk">if</span> e.phase_names[<span class="tn">1</span>] == <span class="ts">"V"</span>)
+<span class="ln" data-n="283"></span>    L, V = eq.phases
+<span class="ln" data-n="284"></span>    npts = int(req.get(<span class="ts">"npts"</span>, <span class="tn">41</span>))
+<span class="ln" data-n="285"></span>    hold = req.get(<span class="ts">"hold"</span>, <span class="ts">"T"</span>)
+<span class="ln" data-n="286"></span>    notes = []
+<span class="ln" data-n="287"></span>    out.update(route=eq.route, calculation=eq.calculation, names=list(system.names),
+<span class="ln" data-n="288"></span>               hold=hold, azeotrope=<span class="tk">None</span>, three_phase=<span class="tk">None</span>)
+<span class="ln" data-n="289"></span>    <span class="tk">if</span> hold <span class="tk">in</span> (<span class="ts">"T"</span>, <span class="ts">"P"</span>):
+<span class="ln" data-n="290"></span>        d = (es.vle_diagram(L, V, T=float(req[<span class="ts">"T"</span>]), npts=npts, spacing=<span class="ts">"ends"</span>) <span class="tk">if</span> hold == <span class="ts">"T"</span>
+<span class="ln" data-n="291"></span>             <span class="tk">else</span> es.vle_diagram(L, V, P=float(req[<span class="ts">"P"</span>]) * <span class="tn">1e5</span>, npts=npts, spacing=<span class="ts">"ends"</span>))
+<span class="ln" data-n="292"></span>        notes += d.notes
+<span class="ln" data-n="293"></span>        <span class="tk">if</span> len(d.x1) &lt; <span class="tn">2</span>:
+<span class="ln" data-n="294"></span>            out[<span class="ts">"ok"</span>] = <span class="tk">False</span>
+<span class="ln" data-n="295"></span>            out[<span class="ts">"error"</span>] = (<span class="ts">"No vapor-liquid equilibrium could be solved at this condition "</span>
+<span class="ln" data-n="296"></span>                            <span class="ts">"with this model. Try a lower temperature or pressure."</span>)
+<span class="ln" data-n="297"></span>            <span class="tk">return</span> out
+<span class="ln" data-n="298"></span>        out[<span class="ts">"columns"</span>] = _columns(es.diagram_properties(L, V, d))</code></pre></figure>
         <p>Text in, text checked, phase objects built, diagram solved, properties tabulated. The rest of this page follows one request through these lines: <b>ethanol and water, NRTL model, a Txy diagram at 1.01325 bar</b>. All code shown is the current source, with its line numbers; each heading links to the file on GitHub.</p>
       </section>
 
@@ -119,26 +122,26 @@
         <p>The calculator page does no thermodynamics. It collects the choices into a small request:</p>
         <pre id="walk-request"></pre>
         <p><code>build_input()</code> turns the request into the same kind of input file a person would write for the command-line program. For an equation of state it writes the binary interaction parameter: a number if a slider has moved, otherwise the word <code>PPR78</code>, which asks for the predicted, temperature-dependent value. For NRTL it writes the pair's three parameters from the database:</p>
-<figure class="code"><figcaption><span class="code-name">web_api.build_input (model part)</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L136-L155"><code>web_api.py</code>, lines 136–155</a></figcaption><pre><code><span class="ln" data-n="136"></span><span class="tk">if</span> model <span class="tk">in</span> EOS_MODELS:
-<span class="ln" data-n="137"></span>    lines.append(<span class="ts">f"</span><span class="ts">model = </span>{model}<span class="ts">"</span>)
-<span class="ln" data-n="138"></span>    <span class="tk">if</span> <span class="ts">"kij"</span> <span class="tk">in</span> par:
-<span class="ln" data-n="139"></span>        lines.append(<span class="ts">f"</span><span class="ts">kij(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = </span>{float(par[<span class="ts">'kij'</span>]):<span class="ts">g</span>}<span class="ts">"</span>)
-<span class="ln" data-n="140"></span>    <span class="tk">elif</span> model == <span class="ts">"PR"</span> <span class="tk">and</span> d[<span class="ts">"kij"</span>][<span class="ts">"source"</span>] == <span class="ts">"eppr78"</span>:
-<span class="ln" data-n="141"></span>        lines.append(<span class="ts">f"</span><span class="ts">kij(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = PPR78</span><span class="ts">"</span>)
-<span class="ln" data-n="142"></span>    <span class="tk">else</span>:
-<span class="ln" data-n="143"></span>        lines.append(<span class="ts">f"</span><span class="ts">kij(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = </span>{float(d[<span class="ts">'kij'</span>][<span class="ts">'value'</span>] <span class="tk">if</span> model == <span class="ts">'PR'</span> <span class="tk">else</span> <span class="tn">0.0</span>):<span class="ts">g</span>}<span class="ts">"</span>)
-<span class="ln" data-n="144"></span><span class="tk">elif</span> model <span class="tk">in</span> ACTIVITY_MODELS:
-<span class="ln" data-n="145"></span>    lines.append(<span class="ts">f"</span><span class="ts">activity = </span>{model}<span class="ts">"</span>)
-<span class="ln" data-n="146"></span>    <span class="tk">if</span> model == <span class="ts">"margules"</span>:
-<span class="ln" data-n="147"></span>        lines.append(<span class="ts">f"</span><span class="ts">A(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = </span>{float(par.get(<span class="ts">'A12'</span>, d[<span class="ts">'A'</span>][<span class="ts">'A12'</span>])):<span class="ts">g</span>}<span class="ts">"</span>)
-<span class="ln" data-n="148"></span>        lines.append(<span class="ts">f"</span><span class="ts">A(</span>{b}<span class="ts">, </span>{a}<span class="ts">) = </span>{float(par.get(<span class="ts">'A21'</span>, d[<span class="ts">'A'</span>][<span class="ts">'A21'</span>])):<span class="ts">g</span>}<span class="ts">"</span>)
-<span class="ln" data-n="149"></span>    <span class="tk">elif</span> model == <span class="ts">"nrtl"</span>:
-<span class="ln" data-n="150"></span>        <span class="tk">if</span> d[<span class="ts">"nrtl"</span>] <span class="tk">is</span> <span class="tk">None</span> <span class="tk">and</span> <span class="tk">not</span> (<span class="ts">"dg12"</span> <span class="tk">in</span> par <span class="tk">and</span> <span class="ts">"dg21"</span> <span class="tk">in</span> par):
-<span class="ln" data-n="151"></span>            <span class="tk">raise</span> ValueError(<span class="ts">"the database has no NRTL parameters for this pair"</span>)
-<span class="ln" data-n="152"></span>        n = d[<span class="ts">"nrtl"</span>] <span class="tk">or</span> {<span class="ts">"dg12"</span>: <span class="tn">0.0</span>, <span class="ts">"dg21"</span>: <span class="tn">0.0</span>, <span class="ts">"alpha"</span>: <span class="tn">0.3</span>}
-<span class="ln" data-n="153"></span>        lines.append(<span class="ts">f"</span><span class="ts">dg(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = </span>{float(par.get(<span class="ts">'dg12'</span>, n[<span class="ts">'dg12'</span>])):<span class="ts">g</span>}<span class="ts"> J/mol</span><span class="ts">"</span>)
-<span class="ln" data-n="154"></span>        lines.append(<span class="ts">f"</span><span class="ts">dg(</span>{b}<span class="ts">, </span>{a}<span class="ts">) = </span>{float(par.get(<span class="ts">'dg21'</span>, n[<span class="ts">'dg21'</span>])):<span class="ts">g</span>}<span class="ts"> J/mol</span><span class="ts">"</span>)
-<span class="ln" data-n="155"></span>        lines.append(<span class="ts">f"</span><span class="ts">alpha(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = </span>{float(par.get(<span class="ts">'alpha'</span>, n[<span class="ts">'alpha'</span>])):<span class="ts">g</span>}<span class="ts">"</span>)</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">web_api.build_input (model part)</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L137-L156"><code>web_api.py</code>, lines 137–156</a></figcaption><pre><code><span class="ln" data-n="137"></span><span class="tk">if</span> model <span class="tk">in</span> EOS_MODELS:
+<span class="ln" data-n="138"></span>    lines.append(<span class="ts">f"</span><span class="ts">model = </span>{model}<span class="ts">"</span>)
+<span class="ln" data-n="139"></span>    <span class="tk">if</span> <span class="ts">"kij"</span> <span class="tk">in</span> par:
+<span class="ln" data-n="140"></span>        lines.append(<span class="ts">f"</span><span class="ts">kij(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = </span>{float(par[<span class="ts">'kij'</span>]):<span class="ts">g</span>}<span class="ts">"</span>)
+<span class="ln" data-n="141"></span>    <span class="tk">elif</span> model == <span class="ts">"PR"</span> <span class="tk">and</span> d[<span class="ts">"kij"</span>][<span class="ts">"source"</span>] == <span class="ts">"eppr78"</span>:
+<span class="ln" data-n="142"></span>        lines.append(<span class="ts">f"</span><span class="ts">kij(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = PPR78</span><span class="ts">"</span>)
+<span class="ln" data-n="143"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="144"></span>        lines.append(<span class="ts">f"</span><span class="ts">kij(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = </span>{float(d[<span class="ts">'kij'</span>][<span class="ts">'value'</span>] <span class="tk">if</span> model == <span class="ts">'PR'</span> <span class="tk">else</span> <span class="tn">0.0</span>):<span class="ts">g</span>}<span class="ts">"</span>)
+<span class="ln" data-n="145"></span><span class="tk">elif</span> model <span class="tk">in</span> ACTIVITY_MODELS:
+<span class="ln" data-n="146"></span>    lines.append(<span class="ts">f"</span><span class="ts">activity = </span>{model}<span class="ts">"</span>)
+<span class="ln" data-n="147"></span>    <span class="tk">if</span> model == <span class="ts">"margules"</span>:
+<span class="ln" data-n="148"></span>        lines.append(<span class="ts">f"</span><span class="ts">A(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = </span>{float(par.get(<span class="ts">'A12'</span>, d[<span class="ts">'A'</span>][<span class="ts">'A12'</span>])):<span class="ts">g</span>}<span class="ts">"</span>)
+<span class="ln" data-n="149"></span>        lines.append(<span class="ts">f"</span><span class="ts">A(</span>{b}<span class="ts">, </span>{a}<span class="ts">) = </span>{float(par.get(<span class="ts">'A21'</span>, d[<span class="ts">'A'</span>][<span class="ts">'A21'</span>])):<span class="ts">g</span>}<span class="ts">"</span>)
+<span class="ln" data-n="150"></span>    <span class="tk">elif</span> model == <span class="ts">"nrtl"</span>:
+<span class="ln" data-n="151"></span>        <span class="tk">if</span> d[<span class="ts">"nrtl"</span>] <span class="tk">is</span> <span class="tk">None</span> <span class="tk">and</span> <span class="tk">not</span> (<span class="ts">"dg12"</span> <span class="tk">in</span> par <span class="tk">and</span> <span class="ts">"dg21"</span> <span class="tk">in</span> par):
+<span class="ln" data-n="152"></span>            <span class="tk">raise</span> ValueError(<span class="ts">"the database has no NRTL parameters for this pair"</span>)
+<span class="ln" data-n="153"></span>        n = d[<span class="ts">"nrtl"</span>] <span class="tk">or</span> {<span class="ts">"dg12"</span>: <span class="tn">0.0</span>, <span class="ts">"dg21"</span>: <span class="tn">0.0</span>, <span class="ts">"alpha"</span>: <span class="tn">0.3</span>}
+<span class="ln" data-n="154"></span>        lines.append(<span class="ts">f"</span><span class="ts">dg(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = </span>{float(par.get(<span class="ts">'dg12'</span>, n[<span class="ts">'dg12'</span>])):<span class="ts">g</span>}<span class="ts"> J/mol</span><span class="ts">"</span>)
+<span class="ln" data-n="155"></span>        lines.append(<span class="ts">f"</span><span class="ts">dg(</span>{b}<span class="ts">, </span>{a}<span class="ts">) = </span>{float(par.get(<span class="ts">'dg21'</span>, n[<span class="ts">'dg21'</span>])):<span class="ts">g</span>}<span class="ts"> J/mol</span><span class="ts">"</span>)
+<span class="ln" data-n="156"></span>        lines.append(<span class="ts">f"</span><span class="ts">alpha(</span>{a}<span class="ts">, </span>{b}<span class="ts">) = </span>{float(par.get(<span class="ts">'alpha'</span>, n[<span class="ts">'alpha'</span>])):<span class="ts">g</span>}<span class="ts">"</span>)</code></pre></figure>
         <p>The resulting file:</p>
         <pre id="walk-input"></pre>
         <p>From here on, the website and the command line run exactly the same code. The calculator shows this file, and the report below, under "Input file and checker report".</p>
@@ -284,7 +287,7 @@
         <p>Each model also has <code>ge_rt</code>, \(G^{E}/RT\). The tests differentiate \(nG^{E}/RT\) numerically and check that it reproduces <code>ln_gamma</code>, so the two cannot disagree.</p>
 
         <h3>Equation-of-state route</h3>
-        <p><code>CubicEOS</code> stores van der Waals and Peng–Robinson as one residual Helmholtz energy with two constants:</p>
+        <p><code>CubicEOS</code> stores van der Waals, SRK and Peng–Robinson as one residual Helmholtz energy with two constants:</p>
         \[ \frac{A^{\mathrm{res}}}{NRT} = -\ln\!\left(1-\frac{b}{v}\right) - \frac{a}{bRT(\delta_1-\delta_2)}\,\ln\frac{v+\delta_1 b}{v+\delta_2 b} . \]
         <p>This is the fundamental equation the project starts from, in code. With mixture totals \(D = n^2 a_{\mathrm{mix}}\) and \(B = n\,b_{\mathrm{mix}}\):</p>
 <figure class="code"><figcaption><span class="code-name">CubicEOS.helmholtz_res</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L185-L191"><code>thermo_models.py</code>, lines 185–191</a></figcaption><pre><code><span class="ln" data-n="185"></span><span class="tk">def</span> <span class="tf">helmholtz_res</span>(<span class="tv">self</span>, T, V, n):
@@ -421,23 +424,23 @@
 <span class="ln" data-n="332"></span>    xa = brentq(g, x_lo, x_hi, xtol=<span class="tn">1e-10</span>)
 <span class="ln" data-n="333"></span>    pt = saturation(L, V, [xa, <span class="tn">1</span> - xa], <span class="tn">0.0</span>, T=T, P=P, guess=last[<span class="tn">0</span>])
 <span class="ln" data-n="334"></span>    <span class="tk">return</span> xa, (pt.P <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span> <span class="tk">else</span> pt.T)</code></pre></figure>
-        
-        <p><code>diagram_properties()</code> then evaluates, at each point, the activity coefficients, K-values and fugacities. Fugacities are computed from the liquid side and from the vapor side; they agree, which is the equilibrium condition itself.</p>
+        <p>The solver also checks liquid stability: if the second derivative of the Gibbs energy of mixing is negative anywhere, the model predicts two liquid layers, and the solver finds the three-phase line and inserts it into the diagram.</p>
+        <p><code>diagram_properties()</code> then evaluates, at each point, the K-values, relative volatility, activity coefficients, fugacities, fugacity coefficients, \(G^{E}/RT\), the Gibbs energy of mixing and the stability function. Fugacities are computed from the liquid side and from the vapor side; they agree, which is the equilibrium condition itself.</p>
 
         <h3>3D surfaces</h3>
         <p>The 3D view needs no new thermodynamics. <code>web_api.surface()</code> runs the same diagram at a list of values of the fixed variable and returns them as layers; the page joins equal liquid compositions across layers into a surface:</p>
-<figure class="code"><figcaption><span class="code-name">surface</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L402-L413"><code>web_api.py</code>, lines 402–413</a></figcaption><pre><code><span class="ln" data-n="402"></span><span class="tk">for</span> v <span class="tk">in</span> req[<span class="ts">"values"</span>]:
-<span class="ln" data-n="403"></span>    r = {k: val <span class="tk">for</span> k, val <span class="tk">in</span> req.items() <span class="tk">if</span> k <span class="tk">not</span> <span class="tk">in</span> (<span class="ts">"values"</span>, <span class="ts">"keep"</span>, <span class="ts">"compare"</span>)}
-<span class="ln" data-n="404"></span>    r[hold] = float(v)
-<span class="ln" data-n="405"></span>    <span class="tk">try</span>:
-<span class="ln" data-n="406"></span>        o = _solve(r)
-<span class="ln" data-n="407"></span>    <span class="tk">except</span> Exception:
-<span class="ln" data-n="408"></span>        o = {<span class="ts">"ok"</span>: <span class="tk">False</span>}
-<span class="ln" data-n="409"></span>    <span class="tk">if</span> <span class="tk">not</span> o.get(<span class="ts">"ok"</span>):
-<span class="ln" data-n="410"></span>        failed += <span class="tn">1</span>
-<span class="ln" data-n="411"></span>        <span class="tk">continue</span>
-<span class="ln" data-n="412"></span>    cols = o[<span class="ts">"columns"</span>] <span class="tk">if</span> <span class="tk">not</span> keep <span class="tk">else</span> {k: o[<span class="ts">"columns"</span>][k] <span class="tk">for</span> k <span class="tk">in</span> keep <span class="tk">if</span> k <span class="tk">in</span> o[<span class="ts">"columns"</span>]}
-<span class="ln" data-n="413"></span>    layers.append({<span class="ts">"value"</span>: float(v), <span class="ts">"columns"</span>: cols, <span class="ts">"azeotrope"</span>: o.get(<span class="ts">"azeotrope"</span>)})</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">surface</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L403-L414"><code>web_api.py</code>, lines 403–414</a></figcaption><pre><code><span class="ln" data-n="403"></span><span class="tk">for</span> v <span class="tk">in</span> req[<span class="ts">"values"</span>]:
+<span class="ln" data-n="404"></span>    r = {k: val <span class="tk">for</span> k, val <span class="tk">in</span> req.items() <span class="tk">if</span> k <span class="tk">not</span> <span class="tk">in</span> (<span class="ts">"values"</span>, <span class="ts">"keep"</span>, <span class="ts">"compare"</span>)}
+<span class="ln" data-n="405"></span>    r[hold] = float(v)
+<span class="ln" data-n="406"></span>    <span class="tk">try</span>:
+<span class="ln" data-n="407"></span>        o = _solve(r)
+<span class="ln" data-n="408"></span>    <span class="tk">except</span> Exception:
+<span class="ln" data-n="409"></span>        o = {<span class="ts">"ok"</span>: <span class="tk">False</span>}
+<span class="ln" data-n="410"></span>    <span class="tk">if</span> <span class="tk">not</span> o.get(<span class="ts">"ok"</span>):
+<span class="ln" data-n="411"></span>        failed += <span class="tn">1</span>
+<span class="ln" data-n="412"></span>        <span class="tk">continue</span>
+<span class="ln" data-n="413"></span>    cols = o[<span class="ts">"columns"</span>] <span class="tk">if</span> <span class="tk">not</span> keep <span class="tk">else</span> {k: o[<span class="ts">"columns"</span>][k] <span class="tk">for</span> k <span class="tk">in</span> keep <span class="tk">if</span> k <span class="tk">in</span> o[<span class="ts">"columns"</span>]}
+<span class="ln" data-n="414"></span>    layers.append({<span class="ts">"value"</span>: float(v), <span class="ts">"columns"</span>: cols, <span class="ts">"azeotrope"</span>: o.get(<span class="ts">"azeotrope"</span>)})</code></pre></figure>
 
         <h3>Other calculations in the same module</h3>
         <dl class="terms">
@@ -466,35 +469,35 @@
 <span class="ln" data-n="279"></span>    K = Knew
 <span class="ln" data-n="280"></span>    <span class="tk">if</span> diff &lt; tol:</code></pre></figure>
         <p><code>web_api.mixture()</code> writes the input file for the mixture (every pair needs NRTL parameters, or gets an E-PPR78 \(k_{ij}\)), runs the flash, and adds the bubble and dew points of the same feed with <code>saturation()</code>. For three compounds it also solves a bubble point at every node of a triangular grid of liquid compositions, which the page draws as a triangle diagram: the bubble temperature at the given pressure for NRTL, the bubble pressure at the given temperature for an equation of state (where solving for pressure is the more robust of the two). The grid is solved outward from the corner of the heaviest compound, and each node starts from the answers at its solved neighbours:</p>
-<figure class="code"><figcaption><span class="code-name">_ternary_map</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L602-L630"><code>web_api.py</code>, lines 602–630</a></figcaption><pre><code><span class="ln" data-n="602"></span><span class="tk">while</span> queue:
-<span class="ln" data-n="603"></span>    ijk = queue.popleft()
-<span class="ln" data-n="604"></span>    <span class="tk">if</span> time.time() - t0 &gt; limit:
-<span class="ln" data-n="605"></span>        truncated = <span class="tk">True</span>
-<span class="ln" data-n="606"></span>        <span class="tk">break</span>
-<span class="ln" data-n="607"></span>    x = np.clip(np.array(ijk, float) / n, <span class="tn">1e-6</span>, <span class="tk">None</span>)
-<span class="ln" data-n="608"></span>    x /= x.sum()
-<span class="ln" data-n="609"></span>    nb = [(ijk[<span class="tn">0</span>] + a, ijk[<span class="tn">1</span>] + b, ijk[<span class="tn">2</span>] - a - b) <span class="tk">for</span> a, b <span class="tk">in</span>
-<span class="ln" data-n="610"></span>          ((<span class="tn">1</span>, <span class="tn">0</span>), (-<span class="tn">1</span>, <span class="tn">0</span>), (<span class="tn">0</span>, <span class="tn">1</span>), (<span class="tn">0</span>, -<span class="tn">1</span>), (<span class="tn">1</span>, -<span class="tn">1</span>), (-<span class="tn">1</span>, <span class="tn">1</span>))]
-<span class="ln" data-n="611"></span>    nb = [q <span class="tk">for</span> q <span class="tk">in</span> nb <span class="tk">if</span> min(q) &gt;= <span class="tn">0</span>]
-<span class="ln" data-n="612"></span>    known = [pts[q][<span class="ts">"v"</span>] <span class="tk">for</span> q <span class="tk">in</span> nb <span class="tk">if</span> q <span class="tk">in</span> pts <span class="tk">and</span> pts[q][<span class="ts">"v"</span>] <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>]
-<span class="ln" data-n="613"></span>    guess = (math.exp(sum(math.log(v) <span class="tk">for</span> v <span class="tk">in</span> known) / len(known)) <span class="tk">if</span> known <span class="tk">else</span> <span class="tk">None</span>)
-<span class="ln" data-n="614"></span>    rec = {<span class="ts">"x"</span>: [round(float(v), <span class="tn">4</span>) <span class="tk">for</span> v <span class="tk">in</span> x], <span class="ts">"v"</span>: <span class="tk">None</span>, <span class="ts">"y"</span>: <span class="tk">None</span>}
-<span class="ln" data-n="615"></span>    <span class="tk">try</span>:
-<span class="ln" data-n="616"></span>        <span class="tk">if</span> kind == <span class="ts">"T"</span>:
-<span class="ln" data-n="617"></span>            s_ = es.bubble_T(L, V, P, x, guess=guess)
-<span class="ln" data-n="618"></span>            val = float(s_.T)
-<span class="ln" data-n="619"></span>        <span class="tk">else</span>:
-<span class="ln" data-n="620"></span>            s_ = es.bubble_P(L, V, T, x, guess=guess)
-<span class="ln" data-n="621"></span>            val = float(s_.P)
-<span class="ln" data-n="622"></span>        <span class="tk">if</span> np.all(np.isfinite(s_.y)) <span class="tk">and</span> val &gt; <span class="tn">0</span>:
-<span class="ln" data-n="623"></span>            rec.update(v=val, y=[round(float(v), <span class="tn">4</span>) <span class="tk">for</span> v <span class="tk">in</span> s_.y])
-<span class="ln" data-n="624"></span>    <span class="tk">except</span> Exception:
-<span class="ln" data-n="625"></span>        <span class="tk">pass</span>
-<span class="ln" data-n="626"></span>    pts[ijk] = rec
-<span class="ln" data-n="627"></span>    <span class="tk">for</span> q <span class="tk">in</span> nb:
-<span class="ln" data-n="628"></span>        <span class="tk">if</span> q <span class="tk">not</span> <span class="tk">in</span> seen:
-<span class="ln" data-n="629"></span>            seen.add(q)
-<span class="ln" data-n="630"></span>            queue.append(q)</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">_ternary_map</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/web_api.py#L734-L762"><code>web_api.py</code>, lines 734–762</a></figcaption><pre><code><span class="ln" data-n="734"></span><span class="tk">while</span> queue:
+<span class="ln" data-n="735"></span>    ijk = queue.popleft()
+<span class="ln" data-n="736"></span>    <span class="tk">if</span> time.time() - t0 &gt; limit:
+<span class="ln" data-n="737"></span>        truncated = <span class="tk">True</span>
+<span class="ln" data-n="738"></span>        <span class="tk">break</span>
+<span class="ln" data-n="739"></span>    x = np.clip(np.array(ijk, float) / n, <span class="tn">1e-6</span>, <span class="tk">None</span>)
+<span class="ln" data-n="740"></span>    x /= x.sum()
+<span class="ln" data-n="741"></span>    nb = [(ijk[<span class="tn">0</span>] + a, ijk[<span class="tn">1</span>] + b, ijk[<span class="tn">2</span>] - a - b) <span class="tk">for</span> a, b <span class="tk">in</span>
+<span class="ln" data-n="742"></span>          ((<span class="tn">1</span>, <span class="tn">0</span>), (-<span class="tn">1</span>, <span class="tn">0</span>), (<span class="tn">0</span>, <span class="tn">1</span>), (<span class="tn">0</span>, -<span class="tn">1</span>), (<span class="tn">1</span>, -<span class="tn">1</span>), (-<span class="tn">1</span>, <span class="tn">1</span>))]
+<span class="ln" data-n="743"></span>    nb = [q <span class="tk">for</span> q <span class="tk">in</span> nb <span class="tk">if</span> min(q) &gt;= <span class="tn">0</span>]
+<span class="ln" data-n="744"></span>    known = [pts[q][<span class="ts">"v"</span>] <span class="tk">for</span> q <span class="tk">in</span> nb <span class="tk">if</span> q <span class="tk">in</span> pts <span class="tk">and</span> pts[q][<span class="ts">"v"</span>] <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>]
+<span class="ln" data-n="745"></span>    guess = (math.exp(sum(math.log(v) <span class="tk">for</span> v <span class="tk">in</span> known) / len(known)) <span class="tk">if</span> known <span class="tk">else</span> <span class="tk">None</span>)
+<span class="ln" data-n="746"></span>    rec = {<span class="ts">"x"</span>: [round(float(v), <span class="tn">4</span>) <span class="tk">for</span> v <span class="tk">in</span> x], <span class="ts">"v"</span>: <span class="tk">None</span>, <span class="ts">"y"</span>: <span class="tk">None</span>}
+<span class="ln" data-n="747"></span>    <span class="tk">try</span>:
+<span class="ln" data-n="748"></span>        <span class="tk">if</span> kind == <span class="ts">"T"</span>:
+<span class="ln" data-n="749"></span>            s_ = es.bubble_T(L, V, P, x, guess=guess)
+<span class="ln" data-n="750"></span>            val = float(s_.T)
+<span class="ln" data-n="751"></span>        <span class="tk">else</span>:
+<span class="ln" data-n="752"></span>            s_ = es.bubble_P(L, V, T, x, guess=guess)
+<span class="ln" data-n="753"></span>            val = float(s_.P)
+<span class="ln" data-n="754"></span>        <span class="tk">if</span> np.all(np.isfinite(s_.y)) <span class="tk">and</span> val &gt; <span class="tn">0</span>:
+<span class="ln" data-n="755"></span>            rec.update(v=val, y=[round(float(v), <span class="tn">4</span>) <span class="tk">for</span> v <span class="tk">in</span> s_.y])
+<span class="ln" data-n="756"></span>    <span class="tk">except</span> Exception:
+<span class="ln" data-n="757"></span>        <span class="tk">pass</span>
+<span class="ln" data-n="758"></span>    pts[ijk] = rec
+<span class="ln" data-n="759"></span>    <span class="tk">for</span> q <span class="tk">in</span> nb:
+<span class="ln" data-n="760"></span>        <span class="tk">if</span> q <span class="tk">not</span> <span class="tk">in</span> seen:
+<span class="ln" data-n="761"></span>            seen.add(q)
+<span class="ln" data-n="762"></span>            queue.append(q)</code></pre></figure>
         <p>The 66 nodes take a fraction of a second with NRTL and one to three seconds with Peng–Robinson. Nodes where no bubble point exists, near or above the mixture's critical point, are left blank.</p>
 
         <h3>External fields</h3>
@@ -516,6 +519,93 @@
       </section>
 
       <!-- ============================================================ -->
+      <section id="pure-code">
+        <h2>The pure-fluid module</h2>
+        <p>With one compound the input checker takes its own branch, <code>check_pure()</code>: one degree of freedom for two phases, so the calculation follows from what is given (\(T\) only: the vapor pressure; \(P\) only: the boiling temperature; neither: the whole curve; \(T\), \(P\) and a field: the column):</p>
+<figure class="code"><figcaption><span class="code-name">check_pure</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/input_checker.py#L1011-L1042"><code>input_checker.py</code>, lines 1011–1042</a></figcaption><pre><code><span class="ln" data-n="1011"></span>T, P = inp.T, inp.P
+<span class="ln" data-n="1012"></span><span class="tk">if</span> inp.field_kind:
+<span class="ln" data-n="1013"></span>    eq.dof_line = <span class="ts">"F = C + 2 - pi = 1 + 2 - 2 = 1 at each position; T and P at the reference fix the column"</span>
+<span class="ln" data-n="1014"></span>    <span class="tk">if</span> inp.model <span class="tk">is</span> <span class="tk">None</span>:
+<span class="ln" data-n="1015"></span>        missing.append(<span class="ts">"a field needs the densities of both phases: give model = PR, SRK or vdW"</span>)
+<span class="ln" data-n="1016"></span>    <span class="tk">if</span> <span class="ts">"M"</span> <span class="tk">not</span> <span class="tk">in</span> p:
+<span class="ln" data-n="1017"></span>        missing.append(<span class="ts">f"</span>{c}<span class="ts">.M (molar mass, for the potential energy M Phi)</span><span class="ts">"</span>)
+<span class="ln" data-n="1018"></span>    <span class="tk">if</span> T <span class="tk">is</span> <span class="tk">None</span>:
+<span class="ln" data-n="1019"></span>        missing.append(<span class="ts">"T (the column is at uniform temperature)"</span>)
+<span class="ln" data-n="1020"></span>    <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span>:
+<span class="ln" data-n="1021"></span>        missing.append(<span class="ts">"P (pressure at the reference position)"</span>)
+<span class="ln" data-n="1022"></span>    <span class="tk">if</span> inp.field_kind == <span class="ts">"gravity"</span>:
+<span class="ln" data-n="1023"></span>        <span class="tk">if</span> inp.g <span class="tk">is</span> <span class="tk">None</span>:
+<span class="ln" data-n="1024"></span>            missing.append(<span class="ts">"g (m/s2)"</span>)
+<span class="ln" data-n="1025"></span>        <span class="tk">if</span> <span class="tk">not</span> inp.height <span class="tk">or</span> len(inp.height) != <span class="tn">2</span>:
+<span class="ln" data-n="1026"></span>            missing.append(<span class="ts">"height = bottom, top (m)"</span>)
+<span class="ln" data-n="1027"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="1028"></span>        <span class="tk">if</span> inp.omega <span class="tk">is</span> <span class="tk">None</span>:
+<span class="ln" data-n="1029"></span>            missing.append(<span class="ts">"omega (angular velocity, rad/s or rpm)"</span>)
+<span class="ln" data-n="1030"></span>        <span class="tk">if</span> <span class="tk">not</span> inp.radius <span class="tk">or</span> len(inp.radius) != <span class="tn">2</span>:
+<span class="ln" data-n="1031"></span>            missing.append(<span class="ts">"radius = inner, outer (m)"</span>)
+<span class="ln" data-n="1032"></span>    eq.calc = <span class="ts">"pressure, density and phase along the field; the liquid-vapor interface"</span>
+<span class="ln" data-n="1033"></span><span class="tk">else</span>:
+<span class="ln" data-n="1034"></span>    eq.dof_line = <span class="ts">"F = C + 2 - pi = 1 + 2 - 2 = 1"</span>
+<span class="ln" data-n="1035"></span>    <span class="tk">if</span> T <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span> <span class="tk">and</span> P <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>:
+<span class="ln" data-n="1036"></span>        eq.calc = <span class="ts">"the stable phase at T and P (one phase there: F = 2), with Psat(T) for comparison"</span>
+<span class="ln" data-n="1037"></span>    <span class="tk">elif</span> T <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>:
+<span class="ln" data-n="1038"></span>        eq.calc = <span class="ts">"vapor pressure at T, with the coexisting densities"</span>
+<span class="ln" data-n="1039"></span>    <span class="tk">elif</span> P <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>:
+<span class="ln" data-n="1040"></span>        eq.calc = <span class="ts">"boiling temperature at P"</span>
+<span class="ln" data-n="1041"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="1042"></span>        eq.calc = <span class="ts">"vapor-pressure curve up to the critical point"</span></code></pre></figure>
+        <h3>Vapor pressure</h3>
+        <p><code>pure_fluid.py</code> uses the same <code>CubicEOS</code> object as the mixtures, with one component. The vapor pressure lies between the two pressures where the isotherm turns, where the cubic has three roots; between them the program finds where the liquid and vapor fugacities are equal:</p>
+<figure class="code"><figcaption><span class="code-name">saturation_pressure</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/pure_fluid.py#L136-L145"><code>pure_fluid.py</code>, lines 136–145</a></figcaption><pre><code><span class="ln" data-n="136"></span><span class="tk">def</span> <span class="tf">g</span>(lnP):
+<span class="ln" data-n="137"></span>    P = math.exp(lnP)
+<span class="ln" data-n="138"></span>    <span class="tk">return</span> _ln_f(eos, T, P, <span class="ts">"liquid"</span>) - _ln_f(eos, T, P, <span class="ts">"vapor"</span>)
+<span class="ln" data-n="139"></span>
+<span class="ln" data-n="140"></span><span class="tc"># g &gt; 0 below Psat (the vapor is the stable phase, lower fugacity) and</span>
+<span class="ln" data-n="141"></span><span class="tc"># g &lt; 0 above it</span>
+<span class="ln" data-n="142"></span>a_, b_ = math.log(lo), math.log(hi)
+<span class="ln" data-n="143"></span><span class="tk">while</span> g(a_) &lt;= <span class="tn">0</span> <span class="tk">and</span> a_ &gt; math.log(max(sp[<span class="tn">0</span>], <span class="tn">1e-30</span>) + <span class="tn">1e-30</span>) - <span class="tn">30</span>:
+<span class="ln" data-n="144"></span>    a_ -= <span class="tn">2.0</span>
+<span class="ln" data-n="145"></span>lnP = brentq(g, a_, b_, xtol=<span class="tn">1e-13</span>)</code></pre></figure>
+        <h3>From fugacity back to pressure</h3>
+        <p>In a field the fugacity at each position is known first, and the pressure has to be found from it. If the fugacity is above \(f^{\mathrm{sat}}\) the fluid there is liquid and the pressure is above \(P^{\mathrm{sat}}\); otherwise it is vapor:</p>
+<figure class="code"><figcaption><span class="code-name">pressure_at_fugacity</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/pure_fluid.py#L242-L255"><code>pure_fluid.py</code>, lines 242–255</a></figcaption><pre><code><span class="ln" data-n="242"></span><span class="tk">if</span> abs(ln_f - ln_fs) &lt; <span class="tn">1e-11</span>:
+<span class="ln" data-n="243"></span>    <span class="tk">return</span> Ps, <span class="ts">"saturated"</span>
+<span class="ln" data-n="244"></span><span class="tk">if</span> ln_f &gt;= ln_fs:
+<span class="ln" data-n="245"></span>    phase, lo, hi = <span class="ts">"liquid"</span>, math.log(Ps), math.log(Ps) + <span class="tn">1.0</span>
+<span class="ln" data-n="246"></span>    <span class="tk">while</span> _ln_f(eos, T, math.exp(hi), <span class="ts">"liquid"</span>) &lt; ln_f:
+<span class="ln" data-n="247"></span>        lo, hi = hi, hi + <span class="tn">2.0</span>
+<span class="ln" data-n="248"></span>        <span class="tk">if</span> hi &gt; math.log(<span class="tn">1e12</span>):
+<span class="ln" data-n="249"></span>            <span class="tk">raise</span> ValueError(<span class="ts">"fugacity out of range"</span>)
+<span class="ln" data-n="250"></span><span class="tk">else</span>:
+<span class="ln" data-n="251"></span>    phase, lo, hi = <span class="ts">"vapor"</span>, ln_f - <span class="tn">2.0</span>, math.log(Ps)
+<span class="ln" data-n="252"></span>    <span class="tk">while</span> _ln_f(eos, T, math.exp(lo), <span class="ts">"vapor"</span>) &gt; ln_f:
+<span class="ln" data-n="253"></span>        lo -= <span class="tn">3.0</span>
+<span class="ln" data-n="254"></span>g = <span class="tk">lambda</span> lnP: _ln_f(eos, T, math.exp(lnP), phase) - ln_f
+<span class="ln" data-n="255"></span><span class="tk">return</span> math.exp(brentq(g, lo, hi, xtol=<span class="tn">1e-12</span>)), phase</code></pre></figure>
+        <h3>The column</h3>
+        <p>The whole field calculation is one line of thermodynamics, \(\ln f(z) = \ln f_{\mathrm{ref}} - M\,\Delta\Phi/RT\), followed by that inversion at each position; the interface is where the fugacity equals \(f^{\mathrm{sat}}\):</p>
+<figure class="code"><figcaption><span class="code-name">column</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/pure_fluid.py#L320-L329"><code>pure_fluid.py</code>, lines 320–329</a></figcaption><pre><code><span class="ln" data-n="320"></span><span class="tk">for</span> x <span class="tk">in</span> pos:
+<span class="ln" data-n="321"></span>    lf = ln_f_ref - M * (fld.phi(x) - fld.phi(fld.reference)) / (R * T)
+<span class="ln" data-n="322"></span>    p, phase = pressure_at_fugacity(eos, T, lf, sat)
+<span class="ln" data-n="323"></span>    v = eos.molar_volume(T, p, ONE, <span class="ts">"liquid"</span> <span class="tk">if</span> phase == <span class="ts">"liquid"</span> <span class="tk">else</span> <span class="ts">"vapor"</span>)
+<span class="ln" data-n="324"></span>    P.append(p); lnf.append(lf); rho.append(M / v); ph.append(phase)
+<span class="ln" data-n="325"></span>interface, notes = <span class="tk">None</span>, []
+<span class="ln" data-n="326"></span><span class="tk">if</span> sat <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>:
+<span class="ln" data-n="327"></span>    ln_fs = _ln_f(eos, T, sat[<span class="tn">0</span>], <span class="ts">"vapor"</span>)
+<span class="ln" data-n="328"></span>    phi_star = fld.phi(fld.reference) + R * T * (ln_f_ref - ln_fs) / M
+<span class="ln" data-n="329"></span>    interface = fld.position_at(phi_star)</code></pre></figure>
+        <h3>The shift of the phase boundary</h3>
+        <p>For each temperature, the reference pressures at which the first liquid appears and the last vapor disappears follow from the same equation, applied at the lowest and the highest potential in the field:</p>
+<figure class="code"><figcaption><span class="code-name">band</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/pure_fluid.py#L356-L361"><code>pure_fluid.py</code>, lines 356–361</a></figcaption><pre><code><span class="ln" data-n="356"></span>ln_fs = _ln_f(eos, T, sat[<span class="tn">0</span>], <span class="ts">"vapor"</span>)
+<span class="ln" data-n="357"></span><span class="tc"># first liquid: f at phi_min reaches f_sat; last vapor: f at phi_max does</span>
+<span class="ln" data-n="358"></span>lf_first = ln_fs + M * (phi_min - phi_ref) / (R * T)
+<span class="ln" data-n="359"></span>lf_last = ln_fs + M * (phi_max - phi_ref) / (R * T)
+<span class="ln" data-n="360"></span>p1, _ = pressure_at_fugacity(eos, T, lf_first, sat)
+<span class="ln" data-n="361"></span>p2, _ = pressure_at_fugacity(eos, T, lf_last, sat)</code></pre></figure>
+        <p>The tests in <code>pure_fluid.py</code> check the van der Waals reduced vapor pressure (\(P_r = 0.6470\) at \(T_r = 0.9\)) and the equal-area rule, Peng–Robinson vapor pressures against the Antoine data, the barometric formula for nitrogen and hydrostatics for liquid water, and an interface height against \((P_0 - P^{\mathrm{sat}})/\rho_L g\).</p>
+      </section>
+
+      <!-- ============================================================ -->
       <section id="output" class="wide">
         <div class="measure">
           <h2>5. Results and plots</h2>
@@ -533,8 +623,8 @@
         <p>The calculator runs the Python modules themselves, not a copy written in JavaScript. A background worker loads <a href="https://pyodide.org/">Pyodide</a> (Python compiled to WebAssembly) and NumPy, fetches the module files from the site's <code>py/</code> folder, and calls <code>web_api.handle()</code> with each request. Nothing is sent to a server.</p>
         <p>Two things make this practical:</p>
         <ul>
+          <li><b>No SciPy needed.</b> The solver uses only two SciPy routines, <code>brentq</code> and <code>fsolve</code>. <code>numerics.py</code> has plain-Python versions of both, used automatically when SciPy is absent. SciPy would be by far the largest download, so the calculator starts sooner without it. The test suite passes with either.</li>
           
-          <li><b>A small download.</b> The two root finders the solver needs, Brent's method and a Newton solver for two unknowns, are written out in <code>numerics.py</code>, so the browser loads only Python and NumPy.</li>
           <li><b>Surfaces computed in advance.</b> A 3D surface is fifteen diagrams. Those with the database parameters are solved once by <code>scripts/precompute_surfaces.py</code> and loaded as files; others are computed in the browser once and remembered there.</li>
           <li><b>Fast inner loops.</b> The cubic is solved in closed form, and the mixing rules are evaluated once per fugacity call.</li>
         </ul>
@@ -564,15 +654,16 @@
               <tr><td>Bubble point, then dew point of that vapor, returns the starting state</td><td><span data-v="verification.roundtrip_err" data-e="1"></span></td></tr>
               <tr><td>Flash: material balance and equal fugacities</td><td><span data-v="verification.flash_mb" data-e="1"></span>, <span data-v="verification.flash_lnf" data-e="1"></span></td></tr>
               <tr><td>Azeotrope: \(x = y\) and bubble temperature equals dew temperature</td><td>Exact</td></tr>
-              
+              <tr><td>Three-phase line: fugacities equal in both liquids and the vapor</td><td><span data-v="verification.three_phase_mismatch" data-e="1"></span></td></tr>
+              <tr><td>Three-phase line for symmetric Margules against its closed-form solution</td><td>Exact</td></tr>
               <tr><td>Freezing point, eutectic, boiling point with a non-volatile compound, against closed-form results</td><td>Exact</td></tr>
               <tr><td>Gravity: pressure against \(\int\rho g\,dz\) over a <span data-v="verification.hydro_drop_bar" data-d="2"></span> bar drop</td><td><span data-v="verification.hydro_err_bar" data-e="1"></span> bar</td></tr>
               <tr><td>Field profile independent of the number of grid points</td><td>Identical</td></tr>
-              
+              <tr><td>Whole suite with SciPy and with the built-in root finders</td><td>Both pass</td></tr>
             </tbody>
           </table>
         </div>
-        <p>Three results meet measured data: propane's vapor pressure at 300 K (Peng–Robinson within 0.1%), the ethanol–water azeotrope and the benzene–naphthalene eutectic. A systematic comparison with experimental data sets is the next stage of the project.</p>
+        <p>Four results meet measured data: propane's vapor pressure at 300 K (Peng–Robinson within 0.1%), the ethanol–water azeotrope, the benzene–naphthalene eutectic and the 1-butanol–water heterogeneous azeotrope. A systematic comparison with experimental data sets is the next stage of the project.</p>
       </section>
 
       <!-- ============================================================ -->
@@ -581,12 +672,12 @@
         <h3>Limitations</h3>
         <ul>
           <li>On the activity route the vapor is an ideal gas, so that route is for low to moderate pressure.</li>
-          
+          <li>Margules parameters are constants.</li>
           <li>NRTL needs measured parameters for every pair, so not every combination of the polar liquids can be calculated; the calculator offers only the ones in the database.</li>
           <li>Antoine constants are fitted over a limited temperature range. Outside it the vapor pressure is extrapolated, and the calculator says so.</li>
           <li>Equations of state use van der Waals mixing rules with one \(k_{12}\). That suits gases and hydrocarbons and is poor for polar mixtures, which is why the calculator offers the equations of state only for the first group. E-PPR78 predicts \(k_{12}\) from groups; it is not fitted to each pair, and for hydrogen and water its authors use a different temperature function for \(a\), so those two are left out.</li>
           <li>Near a mixture critical point, bubble and dew calculations with an equation of state can fail. The curves stop there and a note is shown.</li>
-          
+          <li>When a model predicts two liquids, the three-phase line is calculated but the liquid–liquid boundary away from it is not.</li>
           <li>Diagrams are for two compounds. A flash and its bubble and dew points work for three or four on the calculator (any number in the Python program), with a triangle diagram for three.</li>
         </ul>
         <h3>Next steps</h3>
@@ -611,9 +702,9 @@
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=3fe23e7bc6"></script>
-<script src="assets/charts.js?v=3fe23e7bc6"></script>
-<script src="assets/data.js?v=3fe23e7bc6"></script>
+<script src="assets/edition.js?v=3a511c03d2"></script>
+<script src="assets/charts.js?v=3a511c03d2"></script>
+<script src="assets/data.js?v=3a511c03d2"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, W = D.walkthrough, $ = function (id) { return document.getElementById(id); };

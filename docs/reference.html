@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=3fe23e7bc6">
+<link rel="stylesheet" href="assets/site.css?v=3a511c03d2">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -71,10 +71,10 @@
       <!-- ============================================================ -->
       <section id="start">
         <h2>Getting started</h2>
-        <p>You need Python 3.9 or later with NumPy and Matplotlib.</p>
+        <p>You need Python 3.9 or later with NumPy and Matplotlib. SciPy is used if installed and is not required.</p>
 <pre><code>git clone https://github.com/Fang099/phase-equilibrium-calculator.git
 cd phase-equilibrium-calculator
-pip install numpy matplotlib</code></pre>
+pip install -r requirements.txt</code></pre>
         <p>Each stage can be run on an input file:</p>
 <pre><code># is the information sufficient, and what would be calculated?
 python input_checker.py examples/database_ethanol_water_nrtl.txt
@@ -105,6 +105,16 @@ dg(water, ethanol) = 5195.4 J/mol
 alpha(ethanol, water) = 0.2937
 T = 350 K
 sweep = x                       # draw the diagram over all compositions</code></pre>
+        <p>A <b>pure fluid</b> is one component with an equation of state. Give \(T\) for the vapor pressure, \(P\) for the boiling temperature, neither for the whole curve, or \(T\), \(P\) and a field for the column:</p>
+<pre><code>components = propane
+database = builtin
+model = PR
+T = 300 K
+P = 10.0 bar                    # at the reference position
+field = gravity
+g = 9.81 m/s2
+height = 0, 20 m
+reference = 0 m</code></pre>
         <p>Without the <code>database</code> line, every property must be in the file. That is how the program is used for compounds that are not in the database: the examples for benzene–naphthalene and for the centrifuge work this way.</p>
         <h3>What to specify</h3>
         <div class="table-wrap">
@@ -142,8 +152,8 @@ sweep = x                       # draw the diagram over all compositions</code><
             <tbody>
               <tr><td><code>components</code></td><td>Compound names, comma separated, in the order used for compositions</td></tr>
               <tr><td><code>database</code></td><td><code>builtin</code>: fill in properties not given in the file from the compound database</td></tr>
-              <tr><td><code>model</code></td><td>Equation of state: <code>vdW</code> or <code>PR</code></td></tr>
-              <tr><td><code>activity</code></td><td>Liquid model: <code>ideal</code> (default) or <code>nrtl</code></td></tr>
+              <tr><td><code>model</code></td><td>Equation of state: <code>vdW</code>, <code>SRK</code> or <code>PR</code></td></tr>
+              <tr><td><code>activity</code></td><td>Liquid model: <code>ideal</code> (default), <code>margules</code> or <code>nrtl</code></td></tr>
               <tr><td><code>T</code>, <code>P</code></td><td>Temperature (K or C) and pressure (Pa, kPa, bar, atm, mmHg, psi)</td></tr>
               <tr><td><code>x(L)</code>, <code>x(V)</code> or <code>y</code>, <code>z</code>, <code>beta</code></td><td>Liquid, vapor and feed compositions (give \(n\) or \(n-1\) mole fractions); vapor fraction</td></tr>
               <tr><td><code>sweep</code></td><td><code>x</code>, <code>T</code> or <code>P</code>: the variable swept to draw a diagram</td></tr>
@@ -153,7 +163,7 @@ sweep = x                       # draw the diagram over all compositions</code><
               <tr><td><code>name.Tm</code>, <code>.dHfus</code>, <code>.dCp_fus</code></td><td>Melting point, enthalpy of fusion, heat-capacity change on melting</td></tr>
               <tr><td><code>name.M</code>, <code>.V_L</code>, <code>.V_S</code>, <code>.nonvolatile</code></td><td>Molar mass; liquid and solid molar volumes; the compound never enters the vapor</td></tr>
               <tr><td><code>kij(name1, name2)</code></td><td>Binary interaction parameter of the equation of state: a number, a formula in <code>T</code> (in K), or <code>PPR78</code> for the E-PPR78 prediction (needs <code>database = builtin</code>; it is also the default for Peng–Robinson when both compounds have groups)</td></tr>
-              
+              <tr><td><code>A(name1, name2)</code></td><td>Margules parameter: \(\ln\gamma\) of name1 at infinite dilution in name2. Give both orders. A number, or a formula in <code>T</code> (in K).</td></tr>
               <tr><td><code>dg(name1, name2)</code>, <code>alpha(name1, name2)</code></td><td>NRTL energy \(g_{12} - g_{22}\) (both orders), and non-randomness (default 0.3)</td></tr>
               <tr><td><code>field</code>, <code>g</code>, <code>omega</code>, <code>height</code>, <code>radius</code>, <code>reference</code></td><td>Gravity or centrifugal field: strength, extent, and the position where the given state applies</td></tr>
             </tbody>
@@ -194,9 +204,22 @@ out["input_text"]       # the input file this request stands for</code></pre>
         <h2>Code reference</h2>
         <h4><code>input_checker.py</code></h4>
         <dl class="params">
+          <dt>check_pure(inp, report)</dt><dd>The checker's branch for a single compound.</dd>
           <dt>check_input(text)</dt><dd>Parse and check an input. Returns a <code>Report</code>: the verdict, one entry per equilibrium, and the parsed input in SI units.</dd>
           <dt>parse_input(text)</dt><dd>Parsing, unit conversion and database lookup only.</dd>
           <dt>psat(props, T)</dt><dd>Vapor pressure in Pa from whichever source was given.</dd>
+        </dl>
+        <h4><code>pure_fluid.py</code></h4>
+        <dl class="params">
+          <dt>make_eos(compound, model)</dt><dd>The cubic equation of state of one compound from the database (or from Tc, Pc, omega), with its molar mass.</dd>
+          <dt>saturation_pressure(eos, T)</dt><dd>Vapor pressure (Pa) and the liquid and vapor molar volumes, from equal fugacities.</dd>
+          <dt>saturation_temperature(eos, P)</dt><dd>Boiling temperature at a pressure.</dd>
+          <dt>saturation_curve(eos)</dt><dd>Vapor pressure, coexisting volumes and the Clapeyron enthalpy of vaporization up to the critical point.</dd>
+          <dt>isotherm(eos, T)</dt><dd>P against V, with the equal-area line below Tc.</dd>
+          <dt>pressure_at_fugacity(eos, T, ln_f)</dt><dd>The pressure and stable phase at which the fluid has a given fugacity.</dd>
+          <dt>column(eos, M, T, P_ref, field)</dt><dd>Pressure, density and phase along a gravity or centrifugal field, and the interface.</dd>
+          <dt>band(eos, M, field, T_values)</dt><dd>Reference pressures at which the first liquid appears and the last vapor disappears.</dd>
+          <dt>solve_input(report)</dt><dd>Solve a checked pure-fluid input file.</dd>
         </dl>
         <h4><code>compound_db.py</code></h4>
         <dl class="params">
@@ -207,8 +230,8 @@ out["input_text"]       # the input file this request stands for</code></pre>
         </dl>
         <h4><code>thermo_models.py</code></h4>
         <dl class="params">
-          <dt>CubicEOS</dt><dd>vdW or PR: <code>helmholtz_res(T, V, n)</code>, <code>pressure</code>, <code>ln_phi_TV</code>, <code>z_roots(T, P, x)</code>, <code>molar_volume</code>, <code>ln_phi(T, P, x, phase)</code>.</dd>
-          <dt>NRTL</dt><dd>Activity models: <code>ge_rt(T, x)</code> and <code>ln_gamma(T, x)</code>.</dd>
+          <dt>CubicEOS</dt><dd>vdW, SRK or PR: <code>helmholtz_res(T, V, n)</code>, <code>pressure</code>, <code>ln_phi_TV</code>, <code>z_roots(T, P, x)</code>, <code>molar_volume</code>, <code>ln_phi(T, P, x, phase)</code>.</dd>
+          <dt>Margules, NRTL</dt><dd>Activity models: <code>ge_rt(T, x)</code> and <code>ln_gamma(T, x)</code>.</dd>
           <dt>EOSPhase, SolutionLiquid, IdealGasPhase, PureSolidPhase</dt><dd>Phase models with one interface: <code>ln_f(T, P, x)</code>, <code>ln_phi</code>, <code>molar_volume</code>.</dd>
           <dt>Field</dt><dd><code>potential(pos)</code> for gravity or centrifugal fields.</dd>
           <dt>build_system(text)</dt><dd>Run the checker and build the phase models for each equilibrium that can be calculated.</dd>
@@ -257,7 +280,7 @@ out["input_text"]       # the input file this request stands for</code></pre>
           </div>
           <p>The tables were read from the data files of two open-source libraries, which compile them from the original publications:</p>
           <p id="source-libraries" class="note"></p>
-          
+          <p>Margules parameters are not in any of these tables. The calculator's starting values for Margules are computed from the NRTL parameters (the infinite-dilution activity coefficients at the mean boiling point of the pair), and are labeled as such.</p>
           <h3 id="ppr78">The E-PPR78 groups and the check against the course values</h3>
           <p>Each gas or hydrocarbon is split by hand into E-PPR78 groups (<code>ppr78_groups</code> in <code>data/compound_list.csv</code>, for example toluene = 5 CHaro + 1 Caro + 1 CH3), and the group-interaction constants \(A_{kl}, B_{kl}\) of Jaubert et al. (2022) are copied into the database. Hydrogen and water are left out: E-PPR78 uses a different temperature function \(a(T)\) for them than the standard Peng–Robinson one used here, and with the standard one their predicted \(k_{ij}\) are far from the fitted DECHEMA values. Two pairs (ethylene and propylene with hydrogen sulfide) involve group interactions the authors did not fit; they fall back to the DECHEMA value.</p>
           <p>The course slides on mixtures quote \(k_{12} \approx 0.13\) for CO<sub>2</sub>–ethane, which makes an azeotrope at 263.15 K with a bubble-pressure maximum of about 30.8 bar near 30–35 % ethane, and 0.09–0.10 for CO<sub>2</sub>–methane. E-PPR78 gives:</p>
@@ -311,12 +334,12 @@ python scripts/precompute_surfaces.py --force   # all of them again</code></pre>
           <li>Kooijman, H. A., and Taylor, R. <i>ChemSep</i> binary interaction parameter library. <a href="http://www.chemsep.org/">chemsep.org</a>.</li>
           <li>Bell, C., and contributors. <i>chemicals</i> and <i>thermo</i>: Chemical properties components of the Chemical Engineering Design Library (ChEDL). <a href="https://github.com/CalebBell/chemicals">github.com/CalebBell/chemicals</a>, <a href="https://github.com/CalebBell/thermo">github.com/CalebBell/thermo</a>.</li>
           <li>Peng, D.-Y., and Robinson, D. B. A new two-constant equation of state. <i>Industrial &amp; Engineering Chemistry Fundamentals</i> 15 (1976) 59–64.</li>
-          
+          <li>Soave, G. Equilibrium constants from a modified Redlich–Kwong equation of state. <i>Chemical Engineering Science</i> 27 (1972) 1197–1203.</li>
           <li>Renon, H., and Prausnitz, J. M. Local compositions in thermodynamic excess functions for liquid mixtures. <i>AIChE Journal</i> 14 (1968) 135–144.</li>
           <li>Rachford, H. H., and Rice, J. D. Procedure for use of electronic digital computers in calculating flash vaporization hydrocarbon equilibrium. <i>Journal of Petroleum Technology</i> 4 (1952).</li>
           <li>Michelsen, M. L., and Mollerup, J. M. <i>Thermodynamic Models: Fundamentals and Computational Aspects</i>, 2nd ed. Tie-Line Publications, 2007.</li>
           <li>Whitson, C. H., and Belery, P. Compositional gradients in petroleum reservoirs. SPE 28000 (1994).</li>
-          <li>The program uses <a href="https://numpy.org/">NumPy</a> and <a href="https://matplotlib.org/">Matplotlib</a>. The calculator page runs Python in the browser with <a href="https://pyodide.org/">Pyodide</a>, and the pages render mathematics with <a href="https://katex.org/">KaTeX</a>.</li>
+          <li>The calculator page runs Python in the browser with <a href="https://pyodide.org/">Pyodide</a>, and the pages render mathematics with <a href="https://katex.org/">KaTeX</a>.</li>
         </ul>
       </section>
     </main>
@@ -333,9 +356,9 @@ python scripts/precompute_surfaces.py --force   # all of them again</code></pre>
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=3fe23e7bc6"></script>
-<script src="assets/charts.js?v=3fe23e7bc6"></script>
-<script src="assets/data.js?v=3fe23e7bc6"></script>
+<script src="assets/edition.js?v=3a511c03d2"></script>
+<script src="assets/charts.js?v=3a511c03d2"></script>
+<script src="assets/data.js?v=3a511c03d2"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, db = D.database, fmt = PEC.fmt, $ = function (id) { return document.getElementById(id); };

@@ -1,0 +1,16 @@
+# A four-component flash with Peng-Robinson: methane / ethane / propane /
+# n-butane at 250 K and 30 bar. Every k_ij is predicted by the E-PPR78 group
+# contribution method at the flash temperature (written out here; leaving
+# the lines away gives the same result).
+components = methane, ethane, propane, n-butane
+database = builtin
+model = PR
+kij(methane, ethane) = PPR78
+kij(methane, propane) = PPR78
+kij(methane, n-butane) = PPR78
+kij(ethane, propane) = PPR78
+kij(ethane, n-butane) = PPR78
+kij(propane, n-butane) = PPR78
+T = 250 K
+P = 30 bar
+z = 0.40, 0.25, 0.20, 0.15

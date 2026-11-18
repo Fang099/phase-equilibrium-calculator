@@ -1,0 +1,6 @@
+# Input mistakes: typo and bad composition
+components = methane, ethane
+model = vdW
+T = 200 K
+x(V) = 0.9, 0.2
+methane.Tcc = 190.6 K

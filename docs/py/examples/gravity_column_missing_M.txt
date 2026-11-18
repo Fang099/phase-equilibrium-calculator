@@ -1,0 +1,15 @@
+# Propane / n-butane flash in a 500 m gravity column, one molar mass missing
+components = propane, n-butane
+model = PR
+T = 320 K
+P = 12 bar
+z = 0.4
+field = gravity
+height = 0, 500 m
+propane.Tc = 369.8 K
+propane.Pc = 42.48 bar
+propane.omega = 0.152
+propane.M = 44.10 g/mol
+n-butane.Tc = 425.1 K
+n-butane.Pc = 37.96 bar
+n-butane.omega = 0.200

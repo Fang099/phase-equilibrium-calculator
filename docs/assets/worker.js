@@ -15,6 +15,7 @@ var ready = (async function () {
   status("Loading the calculator's Python modules");
   var manifest = await (await fetch("../py/manifest.json", { cache: "no-cache" })).json();
   py.FS.mkdirTree("/home/pyodide/data");
+  py.FS.mkdirTree("/home/pyodide/examples");
   await Promise.all(manifest.files.map(async function (f) {
     var r = await fetch("../py/" + f + "?v=" + manifest.version);
     if (!r.ok) throw new Error("could not load " + f);

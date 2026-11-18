@@ -105,6 +105,7 @@
     return p;
   }
   function writeHash() {
+    if (typeof mode !== "undefined" && mode !== "binary") return;     // the pure-fluid and mixture modes keep their own
     var h = new URLSearchParams();
     ["a", "b", "model", "y", "x", "hold"].forEach(function (k) { h.set(k, state[k]); });
     h.set(state.hold === "x" ? "x1" : state.hold, state[state.hold === "x" ? "x1" : state.hold]);
@@ -1393,13 +1394,300 @@
       (Ts.length < pts.length ? "<li>Blank: no bubble point found (near or above the mixture critical point)</li>" : "");
   }
 
+  /* ------------------------------------------------------------ pure fluid */
+  /* One compound with a cubic equation of state (web_api.pure): vapor
+     pressure to the critical point, isotherms, coexisting densities, the
+     enthalpy of vaporization, and, with a field, the column, the band of
+     reference pressures that holds both phases, and the interface. */
+  var pure = { compound: "water", model: "PR", T: 350, P: 1.01325, field: "none", g: 9.81, H: 100, rpm: 20000, ri: 0.01, ro: 0.1,
+    plot: "PT", res: null, seq: 0, all: [] };
+  var PURE_PLOTS = [["PT", "Vapor pressure (P–T)"], ["PV", "Isotherms (P–V)"], ["Trho", "Densities (T–ρ)"], ["dH", "Enthalpy of vaporization"]];
+  var PURE_FIELD_PLOTS = [["col", "Pressure along the field"], ["colrho", "Density along the field"], ["band", "Phase boundary shift (P–T)"],
+    ["iface", "Interface against field strength"]];
+  function bindPure(all) {
+    pure.all = all;
+    var sel = $("pure-comp"), groups = {}, order = [];
+    all.forEach(function (c) { if (!groups[c.family]) { groups[c.family] = []; order.push(c.family); } groups[c.family].push(c); });
+    order.forEach(function (f) {
+      var g = document.createElement("optgroup"); g.label = PLURAL[f] || f;
+      groups[f].forEach(function (c) { var o = document.createElement("option"); o.value = c.id; o.textContent = c.name + "  (" + c.formula + ")"; g.appendChild(o); });
+      sel.appendChild(g);
+    });
+    sel.value = pure.compound;
+    sel.addEventListener("change", function () { pure.compound = sel.value; pureDefaults(); runPure(); });
+    $("pure-run").addEventListener("click", function () { readPure(); runPure(); });
+    ["pure-T", "pure-P"].forEach(function (id) { $(id).addEventListener("keydown", function (e) { if (e.key === "Enter") { readPure(); runPure(); } }); });
+    $("pure-download").addEventListener("click", pureCsv);
+    drawPureControls();
+    pureDefaults();
+  }
+  function pureDefaults() {
+    var c = pure.all.filter(function (x) { return x.id === pure.compound; })[0];
+    if (!c) return;
+    pure.T = +(c.Tb ? Math.min(c.Tb + 20, 0.9 * c.Tc) : 0.8 * c.Tc).toFixed(1);
+    pure.P = 1.01325;
+    $("pure-T").value = pure.T; $("pure-P").value = pure.P;
+  }
+  function readPure() {
+    pure.T = +$("pure-T").value; pure.P = +$("pure-P").value;
+    var q = function (id) { var e = $(id); return e ? +e.value : null; };
+    if (pure.field === "gravity") { pure.g = q("pf-g"); pure.H = q("pf-H"); }
+    if (pure.field === "centrifugal") { pure.rpm = q("pf-rpm"); pure.ri = q("pf-ri"); pure.ro = q("pf-ro"); }
+  }
+  function drawPureControls() {
+    seg($("pure-model"), EOS.map(function (m) { return [m, MODEL_SHORT[m]]; }), pure.model, function (m) { readPure(); pure.model = m; drawPureControls(); runPure(); });
+    seg($("pure-field"), [["none", "None"], ["gravity", "Gravity"], ["centrifugal", "Centrifuge"]], pure.field, function (f) {
+      readPure(); pure.field = f;
+      if (f === "none" && PURE_FIELD_PLOTS.some(function (p) { return p[0] === pure.plot; })) pure.plot = "PT";
+      if (f !== "none" && !PURE_FIELD_PLOTS.some(function (p) { return p[0] === pure.plot; })) pure.plot = "band";
+      drawPureControls(); runPure();
+    });
+    var fp = $("pure-field-params");
+    var inp = function (id, label, v) { return "<label>" + label + "<input type='number' step='any' id='" + id + "' value='" + v + "'></label>"; };
+    fp.innerHTML = pure.field === "gravity" ? inp("pf-g", "g (m/s²)", pure.g) + inp("pf-H", "Column height (m)", pure.H)
+      : pure.field === "centrifugal" ? inp("pf-rpm", "Speed (rpm)", pure.rpm) + inp("pf-ri", "Inner radius (m)", pure.ri) + inp("pf-ro", "Outer radius (m)", pure.ro) : "";
+    $("pure-P-label").textContent = pure.field === "gravity" ? "Pressure at the bottom (bar)" : pure.field === "centrifugal" ? "Pressure at the inner radius (bar)" : "Pressure (bar)";
+    var plots = PURE_PLOTS.concat(pure.field === "none" ? [] : PURE_FIELD_PLOTS);
+    seg($("pure-plots"), plots, pure.plot, function (k) { pure.plot = k; drawPureControls(); if (pure.res) drawPure(); });
+  }
+  function runPure() {
+    readPure();
+    if (!(pure.T > 0) || !(pure.P > 0)) { $("pure-status").textContent = "Give a temperature and a pressure above zero."; return; }
+    var req = { compound: pure.compound, model: pure.model, T: pure.T, P: pure.P };
+    if (pure.field === "gravity") req.field = { kind: "gravity", g: pure.g, height: pure.H };
+    if (pure.field === "centrifugal") req.field = { kind: "centrifugal", rpm: pure.rpm, r_in: pure.ri, r_out: pure.ro };
+    var id = ++pure.seq;
+    $("pure-status").textContent = "Calculating…";
+    engine.call({ op: "pure", request: req }).then(function (r) {
+      if (id !== pure.seq) return;
+      if (!r.ok) { $("pure-status").textContent = r.error || "This could not be calculated."; return; }
+      pure.res = r;
+      $("pure-status").textContent = MODEL_SHORT[r.model] + " · " + r.ms + " ms";
+      drawPure();
+    });
+  }
+  function zip2(a, b, fa, fb) { return a.map(function (v, i) { return v == null || b[i] == null ? null : [fa ? fa(v) : v, fb ? fb(b[i]) : b[i]]; }); }
+  function drawPure() {
+    var r = pure.res, c = r.curve, st = r.state, host = $("pure-chart"), cfg, leg = [], cap = "", nm = r.name;
+    var f = function (v, d) { return v == null ? "–" : PEC.fmt(v, d); }, sg = function (v) { return v == null ? "–" : PEC.sig(v, 4); };
+    var crit = { x: r.Tc, y: r.Pc, color: "--ink", text: "critical point", dx: -8, anchor: "end", dy: -8 };
+    if (pure.plot === "PT") {
+      var ser = [{ name: "Vapor pressure, " + MODEL_SHORT[r.model], color: "--liquid", pts: zip2(c.T, c.P) }];
+      leg.push({ name: "Vapor pressure, " + MODEL_SHORT[r.model], color: "--liquid" });
+      if (c.P_antoine.some(function (v) { return v != null; })) {
+        ser.push({ name: "Antoine equation (measured data)", color: "--third", dash: "5 4", pts: zip2(c.T, c.P_antoine) });
+        leg.push({ name: "Antoine equation (measured data, Poling et al.)", color: "--third" });
+      }
+      leg.push({ name: "Critical point and your state", color: "--ink", dot: true });
+      cfg = { series: ser, points: [crit, { x: st.T, y: st.P, color: "--vapor", text: "T, P", dx: 8 }], xTitle: "Temperature (K)", yTitle: "Pressure (bar)",
+        regions: [{ x: c.T[Math.floor(c.T.length * 0.35)], y: r.Pc * 0.75, text: "liquid", minW: 300 }, { x: c.T[Math.floor(c.T.length * 0.75)], y: r.Pc * 0.12, text: "vapor", minW: 300 }],
+        fx: function (v) { return "T = " + PEC.fmt(v, 2) + " K"; }, fy: function (v) { return "P = " + PEC.sig(v, 4) + " bar"; } };
+      cap = "<b>" + nm + ": vapor pressure</b> from equal fugacities of liquid and vapor, up to the critical point (" + f(r.Tc, 2) + " K, " + sg(r.Pc) + " bar). Above the curve the stable phase is liquid, below it vapor.";
+    } else if (pure.plot === "PV") {
+      var series = [];
+      r.isotherms.forEach(function (it, k) {
+        var col = it.Tr < 1 ? "--liquid" : it.Tr === 1 ? "--ink" : "--vapor";
+        series.push({ name: "T/Tc = " + it.Tr, color: col, width: it.Tr === 1 ? 2 : 1.5, opacity: it.Tr < 1 ? 0.45 + 0.1 * k : 1, pts: zip2(it.V, it.P) });
+        if (it.Psat != null) series.push({ name: "equal-area line, T/Tc = " + it.Tr, color: "--muted", dash: "4 3", width: 1.5, pts: [[it.vL, it.Psat], [it.vV, it.Psat]] });
+      });
+      series.push({ name: "Two-phase dome", color: "--third", width: 2.5, pts: zip2(r.dome.vL, r.dome.P).concat(zip2(r.dome.vV, r.dome.P).reverse()) });
+      leg = [{ name: "Isotherms at T/Tc = 0.80, 0.85, 0.90, 0.95", color: "--liquid" }, { name: "Critical isotherm", color: "--ink" }, { name: "T/Tc = 1.1", color: "--vapor" },
+        { name: "Equal-area (Maxwell) line", color: "--muted" }, { name: "Two-phase dome", color: "--third" }];
+      cfg = { series: series, xDomain: [0.3, 6], yDomain: [-0.6, 1.8], xTitle: "Molar volume / critical volume", yTitle: "Pressure / critical pressure", xDec: 1, yDec: 1,
+        hlines: [{ y: 0 }], fx: function (v) { return "V/Vc = " + PEC.fmt(v, 3); }, fy: function (v) { return "P/Pc = " + PEC.fmt(v, 3); } };
+      var a9 = r.isotherms.filter(function (it) { return it.Tr === 0.9; })[0];
+      cap = "<b>" + nm + ": isotherms of " + MODEL_SHORT[r.model] + "</b> in reduced units. Below Tc each isotherm has a loop; the stable states follow the dashed line at the vapor pressure, placed so the areas above and below it are equal (at T/Tc = 0.9 they differ by " +
+        (a9 && a9.area != null ? PEC.sig(Math.abs(a9.area) * 100, 2) + "% of P_sat(v_V − v_L)" : "–") + "). Parts of the loop can fall below zero pressure: a liquid under tension.";
+    } else if (pure.plot === "Trho") {
+      cfg = { series: [{ name: "Saturated liquid", color: "--liquid", pts: zip2(c.rhoL, c.T) }, { name: "Saturated vapor", color: "--vapor", pts: zip2(c.rhoV, c.T) }],
+        points: [{ x: r.rhoc, y: r.Tc, color: "--ink", text: "critical point", dx: 8, dy: -6 }], xTitle: "Density (kg/m³)", yTitle: "Temperature (K)",
+        fx: function (v) { return "ρ = " + PEC.sig(v, 4) + " kg/m³"; }, fy: function (v) { return "T = " + PEC.fmt(v, 2) + " K"; } };
+      leg = [{ name: "Saturated liquid", color: "--liquid" }, { name: "Saturated vapor", color: "--vapor" }, { name: "Critical point", color: "--ink", dot: true }];
+      cap = "<b>" + nm + ": densities of the coexisting liquid and vapor.</b> They approach each other and meet at the critical point, where the two phases become one.";
+    } else if (pure.plot === "dH") {
+      cfg = { series: [{ name: "Enthalpy of vaporization", color: "--liquid", pts: zip2(c.T, c.dHvap) }], xTitle: "Temperature (K)", yTitle: "ΔH vap (kJ/mol)",
+        fx: function (v) { return "T = " + PEC.fmt(v, 2) + " K"; }, fy: function (v) { return "ΔH = " + PEC.sig(v, 4) + " kJ/mol"; } };
+      leg = [{ name: "Clapeyron: T (v_V − v_L) dP_sat/dT", color: "--liquid" }];
+      cap = "<b>" + nm + ": enthalpy of vaporization</b> from the Clapeyron equation and the calculated vapor-pressure curve. It falls to zero at the critical point.";
+    } else {
+      var F = r.field, cl = F.column, posT = F.kind === "gravity" ? "Height above the bottom (m)" : "Radius (m)";
+      if (pure.plot === "col" || pure.plot === "colrho") {
+        var key = pure.plot === "col" ? "P" : "rho", liq = [], vap = [];
+        cl.position.forEach(function (x, i) {
+          var p = [x, cl[key][i]], isL = cl.phase[i] === "liquid";
+          (isL ? liq : vap).push(p); (isL ? vap : liq).push(null);
+        });
+        cfg = { series: [{ name: "Liquid", color: "--liquid", pts: liq }, { name: "Vapor or gas", color: "--vapor", pts: vap }],
+          vlines: cl.interface != null ? [{ x: cl.interface, text: "interface" }] : [], hlines: key === "P" && cl.Psat != null ? [{ y: cl.Psat, text: "P_sat at " + f(st.T, 1) + " K" }] : [],
+          xTitle: posT, yTitle: key === "P" ? "Pressure (bar)" : "Density (kg/m³)", yOpts: { pad: 0.08 },
+          fx: function (v) { return "position = " + PEC.sig(v, 4) + " m"; }, fy: function (v) { return key === "P" ? "P = " + PEC.sig(v, 5) + " bar" : "ρ = " + PEC.sig(v, 4) + " kg/m³"; } };
+        leg = [{ name: "Liquid", color: "--liquid" }, { name: "Vapor (or one fluid above Tc)", color: "--vapor" }];
+        cap = "<b>" + nm + " at " + f(st.T, 1) + " K in " + (F.kind === "gravity" ? "a " + pure.H + " m column, g = " + pure.g + " m/s²" : "a centrifuge at " + pure.rpm + " rpm") +
+          ".</b> The fugacity changes along the field as ln f = ln f_ref − M ΔΦ/RT; where it passes f_sat the fluid changes phase. " +
+          (cl.interface != null ? "The interface is at " + PEC.sig(cl.interface, 4) + " m." : (cl.notes[0] || ""));
+      } else if (pure.plot === "band") {
+        var full = F.bands[F.bands.length - 1], series2 = [], shift = function (b, key) {
+          return b.T.map(function (t, i) { return b[key][i] == null || b.Psat[i] == null ? null : [t, b[key][i] - b.Psat[i]]; }); };
+        F.bands.forEach(function (b) {
+          var lab = F.kind === "gravity" ? "g × " + b.fraction : "rpm × " + PEC.fmt(Math.sqrt(b.fraction), 2);
+          var w = b.fraction === 1 ? 2 : 1.2, dash = b.fraction === 1 ? "none" : "4 3";
+          series2.push({ name: "first liquid, " + lab, color: "--liquid", width: w, dash: dash, pts: shift(b, "P_first") });
+          series2.push({ name: "last vapor, " + lab, color: "--vapor", width: w, dash: dash, pts: shift(b, "P_last") });
+        });
+        var poly = shift(full, "P_first").concat(shift(full, "P_last").reverse()).filter(Boolean);
+        var psT = st.Psat != null ? st.P - st.Psat : null;
+        cfg = { series: series2, areas: [{ color: "--third", poly: poly, opacity: 0.18 }], hlines: [{ y: 0, text: "no field: P = P_sat(T)" }],
+          xTitle: "Temperature (K)", yTitle: "P at the " + (F.kind === "gravity" ? "bottom" : "inner radius") + " − P_sat (bar)", yOpts: { pad: 0.08 },
+          points: psT != null ? [{ x: st.T, y: psT, color: "--ink", text: "your state", dx: 8 }] : [],
+          fx: function (v) { return "T = " + PEC.fmt(v, 2) + " K"; }, fy: function (v) { return "P − P_sat = " + PEC.sig(v, 4) + " bar"; } };
+        leg = [{ name: "First liquid appears", color: "--liquid" }, { name: "Last vapor disappears", color: "--vapor" },
+          { name: "Both phases in the " + (F.kind === "gravity" ? "column" : "rotor") + " (full strength)", color: "--third", area: true }];
+        cap = "<b>How the field shifts the phase boundary of " + lower(nm) + ".</b> Without a field liquid and vapor coexist only on the line P = P_sat(T) (zero here). In the field the pressure differs along the " +
+          (F.kind === "gravity" ? "column" : "rotor") + ", so, read at the reference point, coexistence spreads into a band: from the pressure at which the first liquid forms (where the potential is lowest) to the one at which the last vapor disappears. The plot shows that band as a shift from P_sat. Solid: the chosen field; dashed: a quarter and half of its strength" +
+          (F.kind === "gravity" ? " (in g)." : " (in ω²).");
+      } else {
+        var ic = F.interface_curve;
+        if (!ic) { host.innerHTML = "<p class='notice'>Above the critical temperature there is no interface: the fluid is one phase whose density changes along the field.</p>"; $("pure-legend").innerHTML = ""; $("pure-caption").innerHTML = ""; pureFacts(); return; }
+        cfg = { series: [{ name: "Interface position", color: "--third", pts: zip2(ic.strength, ic.position) }],
+          xTitle: F.kind === "gravity" ? "g (m/s²)" : "Speed (rpm)", yTitle: F.kind === "gravity" ? "Interface height (m)" : "Interface radius (m)",
+          fx: function (v) { return (F.kind === "gravity" ? "g = " : "speed = ") + PEC.sig(v, 4); }, fy: function (v) { return "position = " + PEC.sig(v, 4) + " m"; } };
+        leg = [{ name: "Interface position", color: "--third" }];
+        cap = "<b>Where the liquid–vapor interface sits</b> at " + f(st.T, 1) + " K and " + sg(st.P) + " bar at the reference point, as the field gets stronger. Gaps: the interface lies outside the " + (F.kind === "gravity" ? "column" : "rotor") + " there.";
+      }
+    }
+    cfg.aria = $("pure-plots").querySelector("[aria-pressed=true]") ? $("pure-plots").querySelector("[aria-pressed=true]").textContent + " for " + nm : nm;
+    PEC.legend("pure-legend", leg);
+    PEC.drawChart(host, cfg);
+    $("pure-caption").innerHTML = cap;
+    pureFacts(); pureTable(cfg);
+  }
+  function pureFacts() {
+    var r = pure.res, st = r.state, f = function (v, d) { return v == null ? "–" : PEC.fmt(v, d); }, sg = function (v) { return v == null ? "–" : PEC.sig(v, 4); };
+    var items = [["Critical point", f(r.Tc, 2) + " K, " + sg(r.Pc) + " bar, " + sg(r.rhoc) + " kg/m³"],
+      ["Normal boiling point", f(r.Tb_eos, 2) + " K (" + MODEL_SHORT[r.model] + ")" + (r.Tb_data ? ", " + f(r.Tb_data, 2) + " K from the Antoine data" : "")],
+      ["State at " + f(st.T, 2) + " K, " + sg(st.P) + " bar", st.phase + ", ρ = " + sg(st.rho) + " kg/m³, Z = " + PEC.fmt(st.Z, 4)]];
+    if (st.Psat != null) items.push(["Vapor pressure at " + f(st.T, 2) + " K", sg(st.Psat) + " bar; ρ_L = " + sg(st.rhoL_sat) + ", ρ_V = " + sg(st.rhoV_sat) + " kg/m³"]);
+    if (st.Tsat != null) items.push(["Boiling temperature at " + sg(st.P) + " bar", f(st.Tsat, 2) + " K"]);
+    if (r.field) {
+      var cl = r.field.column;
+      items.push(["In the field", cl.interface != null ? "interface at " + PEC.sig(cl.interface, 4) + " m; " + cl.phase[0] + " at the start, " + cl.phase[cl.phase.length - 1] + " at the end" : (cl.notes[0] || "")]);
+      items.push(["Pressure along the field", sg(cl.P[0]) + " to " + sg(cl.P[cl.P.length - 1]) + " bar"]);
+    }
+    $("pure-facts").innerHTML = items.map(function (it) { return "<li><span class='k'>" + it[0] + "</span><span class='v'>" + it[1] + "</span></li>"; }).join("");
+  }
+  var pureRows = null;
+  function pureTable(cfg) {
+    var r = pure.res, c = r.curve, head, rows;
+    if (["PT", "Trho", "dH"].indexOf(pure.plot) >= 0) {
+      head = ["T (K)", "P_sat (bar)", "ρ liquid (kg/m³)", "ρ vapor (kg/m³)", "ΔH vap (kJ/mol)", "P Antoine (bar)"];
+      rows = c.T.map(function (t, i) { return [t, c.P[i], c.rhoL[i], c.rhoV[i], c.dHvap[i], c.P_antoine[i]]; });
+    } else if (pure.plot === "PV") {
+      head = ["T/Tc", "V/Vc", "P/Pc"]; rows = [];
+      r.isotherms.forEach(function (it) { it.V.forEach(function (v, i) { if (i % 4 === 0) rows.push([it.Tr, v, it.P[i]]); }); });
+    } else if (pure.plot === "band") {
+      head = [r.field.kind === "gravity" ? "g (m/s²)" : "ω (rad/s)", "T (K)", "P_sat (bar)", "P first liquid (bar)", "P last vapor (bar)"]; rows = [];
+      r.field.bands.forEach(function (b) { b.T.forEach(function (t, i) { rows.push([b.strength, t, b.Psat[i], b.P_first[i], b.P_last[i]]); }); });
+    } else if (pure.plot === "iface" && r.field.interface_curve) {
+      head = [r.field.kind === "gravity" ? "g (m/s²)" : "speed (rpm)", "interface position (m)"];
+      rows = r.field.interface_curve.strength.map(function (s, i) { return [s, r.field.interface_curve.position[i]]; });
+    } else {
+      var cl = r.field.column; head = ["position (m)", "phase", "P (bar)", "ρ (kg/m³)"];
+      rows = cl.position.map(function (x, i) { return [x, cl.phase[i], cl.P[i], cl.rho[i]]; });
+    }
+    pureRows = [head, rows];
+    var fm = function (v) { return v == null ? "–" : typeof v === "number" ? PEC.sig(v, 5) : v; };
+    PEC.dataTable("pure-table", head, rows.map(function (rw) { return rw.map(fm); }));
+    $("pure-data-caption").textContent = r.name + ", " + MODEL_SHORT[r.model] + " (" + rows.length + " rows)";
+  }
+  function pureCsv() {
+    if (!pureRows) return;
+    var lines = ["# " + pure.res.name + "; " + pure.res.model].concat([pureRows[0].join(",")]).concat(pureRows[1].map(function (rw) { return rw.map(function (v) { return v == null ? "" : v; }).join(","); }));
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" }));
+    a.download = pure.compound + "_" + pure.model + "_" + pure.plot + ".csv";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  /* ------------------------------------------------------------ any input file */
+  /* The command-line program in the page: the checker's report, the printed
+     results, and the curves the solver computed (web_api.run_input). */
+  var files = { list: [], loaded: false };
+  function bindFiles() {
+    $("file-run").addEventListener("click", runAnyFile);
+    $("file-example").addEventListener("change", function () {
+      var ex = files.list[+this.value];
+      if (ex) { $("file-text").value = ex.text; runAnyFile(); }
+    });
+  }
+  function loadFiles() {
+    if (files.loaded) return;
+    files.loaded = true;
+    engine.call({ op: "examples" }).then(function (r) {
+      files.list = r.examples || [];
+      $("file-example").innerHTML = files.list.map(function (ex, i) {
+        return "<option value='" + i + "'>" + ex.file + "  [" + ex.status + "]</option>"; }).join("");
+      var first = files.list.filter(function (e) { return /pure_water/.test(e.file); })[0] || files.list[0];
+      if (first) { $("file-example").value = String(files.list.indexOf(first)); $("file-text").value = first.text; runAnyFile(); }
+    });
+  }
+  function runAnyFile() {
+    var box = $("file-result"), text = $("file-text").value, host = $("file-charts");
+    if (!text.trim()) { box.innerHTML = "<p class='notice'>Write an input file first.</p>"; return; }
+    box.innerHTML = "<p class='source'>Checking and solving…</p>"; host.innerHTML = "";
+    engine.call({ op: "run_input", text: text }).then(function (r) {
+      if (!r.ok) { box.innerHTML = "<p class='notice'>" + (r.error || "Failed") + "</p>"; return; }
+      var esc = function (t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;"); };
+      box.innerHTML = "<p class='check-verdict st-" + r.status.toLowerCase() + "'>" + r.status + "</p>" +
+        "<h3>Checker report</h3><pre>" + esc(r.report) + "</pre>" + (r.results ? "<h3>Results</h3><pre>" + esc(r.results) + "</pre>" : "") +
+        "<p class='source'>" + r.ms + " ms</p>";
+      var ROLE = { liquid: "--liquid", vapor: "--vapor", third: "--third", solid2: "--ink-2", muted: "--muted" };
+      (r.charts || []).forEach(function (ch) {
+        var fig = document.createElement("figure"); fig.className = "chart-figure";
+        fig.innerHTML = "<h3>" + esc(ch.title) + "</h3><ul class='legend'></ul><div class='chart'></div>";
+        host.appendChild(fig);
+        PEC.legend(fig.querySelector("ul"), ch.series.filter(function (se, i, a) {
+          return a.findIndex(function (o) { return o.name === se.name; }) === i; }).map(function (se) { return { name: se.name, color: ROLE[se.role] || "--ink-2" }; })
+          .concat(ch.points.length ? [{ name: ch.points.map(function (p) { return p.text; }).join(", "), color: "--ink", dot: true }] : []));
+        PEC.drawChart(fig.querySelector(".chart"), {
+          aria: ch.title, xTitle: ch.xTitle, yTitle: ch.yTitle, yOpts: { pad: 0.06 },
+          series: ch.series.map(function (se) { return { name: se.name, color: ROLE[se.role] || "--ink-2", width: se.role === "muted" ? 1.2 : 2,
+            dash: se.role === "muted" ? "4 3" : "none", pts: se.pts.map(function (q) { return q[0] == null || q[1] == null ? null : q; }) }; }),
+          points: ch.points.map(function (p) { return { x: p.x, y: p.y, color: "--ink", text: p.text, dx: 8, dy: -6 }; }),
+          fx: function (v) { return PEC.sig(v, 4); }, fy: function (v) { return PEC.sig(v, 4); }
+        });
+      });
+    });
+  }
+
+  /* ------------------------------------------------------------ modes */
+  var mode = "pure";
+  function setMode(m, quiet) {
+    mode = m;
+    $("pure-shell").hidden = m !== "pure"; $("main").hidden = m !== "binary"; $("mix-shell").hidden = m !== "mix";
+    $("file-shell").hidden = m !== "file";
+    if (m === "file") { history.replaceState(null, "", "#mode=file"); loadFiles(); }
+    [].forEach.call($("mode").querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-mode") === m)); });
+    if (m === "pure") { history.replaceState(null, "", "#mode=pure"); if (pure.res) drawPure(); else if (!quiet) runPure(); }
+    if (m === "mix") history.replaceState(null, "", "#mode=mix");
+    if (m === "binary") { writeHash(); if (last) redraw(); }
+  }
+  function initialMode() {
+    var h = location.hash.slice(1), p = new URLSearchParams(h);
+    if (h === "mix-panel" || p.get("mode") === "mix") return "mix";
+    if (p.get("mode") === "file") return "file";
+    if (p.get("mode") === "pure" || !h) return "pure";
+    return "binary";
+  }
+
   /* ------------------------------------------------------------ start */
   engine = new Engine(function (text) { overlay(text, "The first visit downloads Python (about 12 MB) and can take up to half a minute. Later visits start in a few seconds."); },
     function (err) { overlay("Python could not start in this browser", "Check your connection and reload the page. (" + err + ")", true); });
   engine.call({ op: "catalog" }).then(function (cat) {
     catalog = cat;
+    var allCompounds = catalog.compounds.slice();
     catalog.compounds = catalog.compounds.filter(function (c) { return offered("compounds", c.id); });
-    var urlParams = readHash();
+    mode = initialMode();
+    var urlParams = mode === "binary" ? readHash() : {};
     if (!comp(state.a)) state.a = DEF.a;
     if (!comp(state.b) || state.b === state.a) state.b = state.a === DEF.b ? DEF.a : DEF.b;
     if (!MODEL_SHORT[state.model] || !offered("models", state.model)) state.model = DEF.model;
@@ -1407,7 +1695,10 @@
     if (state.compare && !offered("models", state.compare)) state.compare = "";
     if (!Y_OPTS.some(function (o) { return o[0] === state.y; })) { state.y = "T"; state.x = "xy"; }
     if (!X_OPTS.some(function (o) { return o[0] === state.x; })) state.x = "xy";
-    fillCompounds(); bindAxes(); bindMixture();
+    fillCompounds(); bindAxes(); bindMixture(); bindPure(allCompounds); bindFiles();
+    [].forEach.call($("mode").querySelectorAll("button"), function (b) { b.addEventListener("click", function () { setMode(b.getAttribute("data-mode")); }); });
+    setMode(mode, true);
+    if (mode === "pure") runPure();
     urlParams.__first = true;
     return loadPair(urlParams);
   });

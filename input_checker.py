@@ -907,8 +907,6 @@ def _antoine_range_notes(inp, comps):
 
 def _global_checks(inp, errors, warnings):
     n = len(inp.components)
-    if 0 < n < 2:
-        errors.append("at least two components are needed for a mixture")
     if inp.activity in ("margules", "vanlaar") and n > 2:
         errors.append(f"the {inp.activity} model is for binary mixtures; use "
                       f"activity = nrtl for {n} components")
@@ -976,15 +974,96 @@ def _global_checks(inp, errors, warnings):
                               f"value at T = {T_test:.2f} K")
 
 
+def check_pure(inp, rep):
+    """A pure fluid. One component in two phases leaves F = 1 + 2 - 2 = 1
+    degree of freedom: fixing T (or P) fixes the other on the saturation
+    curve. The calculation follows from what is given:
+        T only            vapor pressure at T, and the coexisting densities
+        P only            boiling temperature at P
+        neither           the vapor-pressure curve up to the critical point
+        T and P           the stable phase at (T, P) (one phase: F = 2)
+        T, P and a field  pressure, density and phase along the field, with
+                          P at the reference position
+    An equation of state (Tc, Pc, omega) answers all of these; a vapor-pressure
+    relation alone (Antoine, Psat formula, or Tb and dHvap) answers the first three."""
+    c = inp.components[0]
+    p = inp.props[c]
+    rep.fundamental = [f"dA = -S dT - P dV + mu dN   (pure {c})"]
+    if inp.field_kind == "gravity":
+        rep.fundamental.append("     + Phi dm,  Phi = g z,  m = M N   [gravity]")
+    elif inp.field_kind == "centrifugal":
+        rep.fundamental.append("     + Phi dm,  Phi = -omega^2 r^2 / 2,  m = M N   [centrifugal]")
+    eq = EquilibriumResult("Vapor-liquid of a pure fluid: liquid + vapor", ("L", "V"))
+    eq.criteria = "T, P uniform; mu (equivalently the fugacity f) equal in L and V"
+    missing = []
+    if inp.model is not None:
+        ok, miss, _ = eos_route(inp)
+        missing += miss
+        eq.route = f"{inp.model} equation of state for both phases (fugacities from A_res)"
+        eq.route_kind = "pure_eos"
+    else:
+        src = psat_source(p)
+        if src is None:
+            missing.append(f"{c}: a model (model = PR, SRK or vdW, with Tc, Pc, omega) "
+                           f"or a vapor-pressure relation (Antoine, Psat, or Tb and dHvap)")
+        eq.route = "vapor-pressure relation (ideal-gas vapor)"
+        eq.route_kind = "pure_vp"
+    T, P = inp.T, inp.P
+    if inp.field_kind:
+        eq.dof_line = "F = C + 2 - pi = 1 + 2 - 2 = 1 at each position; T and P at the reference fix the column"
+        if inp.model is None:
+            missing.append("a field needs the densities of both phases: give model = PR, SRK or vdW")
+        if "M" not in p:
+            missing.append(f"{c}.M (molar mass, for the potential energy M Phi)")
+        if T is None:
+            missing.append("T (the column is at uniform temperature)")
+        if P is None:
+            missing.append("P (pressure at the reference position)")
+        if inp.field_kind == "gravity":
+            if inp.g is None:
+                missing.append("g (m/s2)")
+            if not inp.height or len(inp.height) != 2:
+                missing.append("height = bottom, top (m)")
+        else:
+            if inp.omega is None:
+                missing.append("omega (angular velocity, rad/s or rpm)")
+            if not inp.radius or len(inp.radius) != 2:
+                missing.append("radius = inner, outer (m)")
+        eq.calc = "pressure, density and phase along the field; the liquid-vapor interface"
+    else:
+        eq.dof_line = "F = C + 2 - pi = 1 + 2 - 2 = 1"
+        if T is not None and P is not None:
+            eq.calc = "the stable phase at T and P (one phase there: F = 2), with Psat(T) for comparison"
+        elif T is not None:
+            eq.calc = "vapor pressure at T, with the coexisting densities"
+        elif P is not None:
+            eq.calc = "boiling temperature at P"
+        else:
+            eq.calc = "vapor-pressure curve up to the critical point"
+    eq.missing = missing
+    eq.status = "INSUFFICIENT" if missing else "SUFFICIENT"
+    if T is not None and "Tc" in p and T >= p["Tc"] and not inp.field_kind and P is None:
+        eq.notes.append(f"T is above Tc = {p['Tc']:.2f} K: there is no liquid-vapor equilibrium; "
+                        "the result is the supercritical fluid")
+    rep.equilibria = [eq]
+    rep.status = eq.status
+    rep.summary = "pure fluid" + ("" if not missing else ": see what is missing")
+    return rep
+
+
 def check_input(text):
     """Main entry point: free-form text -> Report."""
     inp, errors, warnings = parse_input(text)
     rep = Report(errors=errors, warnings=warnings, inputs=inp)
     _global_checks(inp, rep.errors, rep.warnings)
-    if rep.errors or len(inp.components) < 2:
+    if not inp.components and not rep.errors:
+        rep.errors.append("no components given ('components = ...')")
+    if rep.errors:
         rep.status = "INVALID"
         rep.summary = "fix the errors below first"
         return rep
+    if len(inp.components) == 1:
+        return check_pure(inp, rep)
 
     rep.fundamental = describe_fundamental(inp)
 

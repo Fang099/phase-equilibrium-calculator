@@ -649,10 +649,35 @@ def main(argv=None):
     if rep.status != "SUFFICIENT":
         print(rep)
         return 1
+    stem = os.path.splitext(os.path.basename(a.input))[0]
+    if len(rep.inputs.components) == 1:                       # a pure fluid
+        import pure_fluid
+        txt, charts = pure_fluid.solve_input(rep)
+        print(txt)
+        figs = {}
+        for k, ch in enumerate(charts, 1):
+            fig, ax = plt.subplots(figsize=(7, 4.5))
+            for se in ch["series"]:
+                pts = [q for q in se["pts"] if q[0] is not None and q[1] is not None]
+                ax.plot([q[0] for q in pts], [q[1] for q in pts],
+                        color={"liquid": "tab:blue", "vapor": "tab:orange"}.get(se["role"], "tab:green"),
+                        label=se["name"])
+            for pt in ch["points"]:
+                ax.plot(pt["x"], pt["y"], "ko")
+                ax.annotate(pt["text"], (pt["x"], pt["y"]), xytext=(-6, 6), textcoords="offset points", ha="right")
+            ax.set(title=ch["title"], xlabel=ch["xTitle"], ylabel=ch["yTitle"])
+            ax.grid(alpha=0.3)
+            ax.legend()
+            fig.tight_layout()
+            figs[f"pure_{k}"] = fig
+        for p_ in save_figures(figs, a.out, stem):
+            print("saved", p_)
+        if a.show:
+            plt.show()
+        return 0
     system = build_system(text)
     results = solve(system)
     figs = plot_results(system, results, surfaces=not a.no_3d)
-    stem = os.path.splitext(os.path.basename(a.input))[0]
     for p in save_figures(figs, a.out, stem):
         print("saved", p)
     if a.show:

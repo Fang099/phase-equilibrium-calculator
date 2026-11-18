@@ -1,0 +1,8 @@
+# Pure water with Peng-Robinson: the vapor pressure at 373.15 K and the whole
+# vapor-pressure curve up to the critical point. The database supplies Tc,
+# Pc and omega. One component in two phases leaves one degree of freedom,
+# so giving T fixes the saturation pressure.
+components = water
+database = builtin
+model = PR
+T = 373.15 K

@@ -1,0 +1,9 @@
+# Same system, SRK, acentric factor and state missing
+components = propane, n-butane
+model = SRK
+propane.Tc = 369.8 K
+propane.Pc = 42.48 bar
+propane.omega = 0.152
+n-butane.Tc = 425.1 K
+n-butane.Pc = 37.96 bar
+P = 5 bar

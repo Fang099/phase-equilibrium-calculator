@@ -1,0 +1,13 @@
+# Pure propane at 300 K in a 20 m vertical column under gravity, Peng-Robinson.
+# The pressure at the bottom (10.0 bar) is just above the vapor pressure, so
+# the bottom is liquid; the fugacity falls with height as ln f = ln f0 - M g h / RT
+# and where it reaches f_sat the liquid gives way to vapor.
+components = propane
+database = builtin
+model = PR
+T = 300 K
+P = 10.0 bar
+field = gravity
+g = 9.81 m/s2
+height = 0, 20 m
+reference = 0 m

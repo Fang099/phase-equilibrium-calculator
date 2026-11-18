@@ -1,0 +1,10 @@
+# Pure carbon dioxide in a centrifuge, but the input does not say how fast
+# it spins or where the pressure is measured: the checker lists what is missing.
+components = co2
+model = PR
+co2.Tc = 304.13 K
+co2.Pc = 73.77 bar
+co2.omega = 0.2239
+T = 280 K
+P = 40 bar
+field = centrifugal

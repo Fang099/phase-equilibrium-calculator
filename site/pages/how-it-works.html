@@ -13,6 +13,7 @@
         <li><a href="#checker">2. The input checker</a></li>
         <li><a href="#models">3. The fugacity models</a></li>
         <li><a href="#solver">4. The equilibrium solver</a></li>
+        <li><a href="#pure-code">The pure-fluid module</a></li>
         <li><a href="#output">5. Results and plots</a></li>
         <li><a href="#browser">Running in the browser</a></li>
         <li><a href="#database">The compound database</a></li>
@@ -30,6 +31,7 @@
           <li><a href="#checker">2. The input checker</a></li>
           <li><a href="#models">3. The fugacity models</a></li>
           <li><a href="#solver">4. The equilibrium solver</a></li>
+        <li><a href="#pure-code">The pure-fluid module</a></li>
           <li><a href="#output">5. Results and plots</a></li>
           <li><a href="#browser">Running in the browser</a></li>
           <li><a href="#database">The compound database</a></li>
@@ -46,6 +48,7 @@
           <li><h4>Input checker<code>input_checker.py</code></h4><p>Reads a plain-text description of the mixture, converts units, fills in database values, and decides whether the information is sufficient and which calculation it implies.</p></li>
           <li><h4>Thermodynamic models<code>thermo_models.py</code></h4><p>Builds one object per phase. Each object answers one question: what is the fugacity of every compound at this \(T\), \(P\) and composition?</p></li>
           <li><h4>Equilibrium solver<code>equilibrium_solver.py</code></h4><p>Finds the states where fugacities match between phases, and sweeps them into diagrams and tables.</p></li>
+          <li><h4>Pure fluids<code>pure_fluid.py</code></h4><p>For one compound: the vapor pressure from equal liquid and vapor fugacities, the isotherms and densities, and the fluid in a gravity or centrifugal field.</p></li>
           <li><h4>Output<code>plotter.py</code> · <code>web_api.py</code></h4><p>Draws figures with Matplotlib from the command line, or returns numbers as JSON for the charts on the calculator page.</p></li>
         </ol>
         <p>Supporting files: <code>compound_db.py</code> and <code>data/compounds.json</code> (the property database), and <code>numerics.py</code> (<!--full-->root finders used when SciPy is not available<!--/full--><!--reduced-->the root finders<!--/reduced-->).</p>
@@ -184,6 +187,26 @@
         <p><code>column_profile()</code> marches along height or radius. At each position it solves for the pressure and composition that put every compound's fugacity on its target:</p>
 <!--code file="equilibrium_solver.py" def="_solve_at" to="target = c - M[idx]"-->
         <p>and switches phase where the fluid reaches saturation. The calculator's field panel uses exactly this: <code>build_input()</code> writes the field, the system's extent and the state at the reference position (the bottom, or the inner radius) into the input, a flash at that state gives the phase there, and <code>column_profile()</code> marches from it. On the activity route the liquid's pressure dependence needs its molar volume, which the database does not hold; <code>web_api.rackett_VL()</code> estimates it from \(T_c\), \(P_c\) and \(\omega\) with the Rackett equation, and the input file says so.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="pure-code">
+        <h2>The pure-fluid module</h2>
+        <p>With one compound the input checker takes its own branch, <code>check_pure()</code>: one degree of freedom for two phases, so the calculation follows from what is given (\(T\) only: the vapor pressure; \(P\) only: the boiling temperature; neither: the whole curve; \(T\), \(P\) and a field: the column):</p>
+<!--code file="input_checker.py" def="check_pure" from="T, P = inp.T, inp.P" to="eq.calc = &quot;vapor-pressure curve up to the critical point&quot;"-->
+        <h3>Vapor pressure</h3>
+        <p><code>pure_fluid.py</code> uses the same <code>CubicEOS</code> object as the mixtures, with one component. The vapor pressure lies between the two pressures where the isotherm turns, where the cubic has three roots; between them the program finds where the liquid and vapor fugacities are equal:</p>
+<!--code file="pure_fluid.py" def="saturation_pressure" from="def g(lnP):" to="lnP = brentq(g, a_, b_, xtol=1e-13)"-->
+        <h3>From fugacity back to pressure</h3>
+        <p>In a field the fugacity at each position is known first, and the pressure has to be found from it. If the fugacity is above \(f^{\mathrm{sat}}\) the fluid there is liquid and the pressure is above \(P^{\mathrm{sat}}\); otherwise it is vapor:</p>
+<!--code file="pure_fluid.py" def="pressure_at_fugacity" from="if abs(ln_f - ln_fs) &lt; 1e-11:" to="return math.exp(brentq(g, lo, hi, xtol=1e-12)), phase"-->
+        <h3>The column</h3>
+        <p>The whole field calculation is one line of thermodynamics, \(\ln f(z) = \ln f_{\mathrm{ref}} - M\,\Delta\Phi/RT\), followed by that inversion at each position; the interface is where the fugacity equals \(f^{\mathrm{sat}}\):</p>
+<!--code file="pure_fluid.py" def="column" from="for x in pos:" to="interface = fld.position_at(phi_star)"-->
+        <h3>The shift of the phase boundary</h3>
+        <p>For each temperature, the reference pressures at which the first liquid appears and the last vapor disappears follow from the same equation, applied at the lowest and the highest potential in the field:</p>
+<!--code file="pure_fluid.py" def="band" from="ln_fs = _ln_f(eos, T, sat[0], &quot;vapor&quot;)" to="p2, _ = pressure_at_fugacity(eos, T, lf_last, sat)"-->
+        <p>The tests in <code>pure_fluid.py</code> check the van der Waals reduced vapor pressure (\(P_r = 0.6470\) at \(T_r = 0.9\)) and the equal-area rule, Peng–Robinson vapor pressures against the Antoine data, the barometric formula for nitrogen and hydrostatics for liquid water, and an interface height against \((P_0 - P^{\mathrm{sat}})/\rho_L g\).</p>
       </section>
 
       <!-- ============================================================ -->

@@ -1,0 +1,7 @@
+# Ethanol / water at 1 atm using the built-in database: NRTL parameters,
+# Antoine constants and everything else are filled in automatically
+components = ethanol, water
+database = builtin
+activity = nrtl
+P = 1 atm
+sweep = x

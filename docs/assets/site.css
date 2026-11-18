@@ -542,3 +542,14 @@ main.doc > section:has(figure.code) > :not(figure.code):not(.katex-display):not(
 .tri-vec-key { display: inline-block; width: 18px; border-top: 1px solid var(--ink-2); vertical-align: middle; margin-right: 0.35rem; }
 .swatch-sq { display: inline-block; width: 0.6rem; height: 0.6rem; margin-right: 0.35rem; vertical-align: middle; }
 @media (max-width: 640px) { .mix-row { grid-template-columns: minmax(0, 1fr) 6rem 2rem; } }
+
+/* calculator modes */
+.modebar { max-width: 1400px; margin: 0 auto; padding: 1rem 24px 0; }
+.modebar .seg button { font-size: 0.95rem; padding: 0.45rem 0.9rem; }
+.pure-inputs { grid-template-columns: 1fr 1fr; }
+#pure-run { width: 100%; margin-top: 0.2rem; }
+.mix-shell { grid-template-columns: minmax(0, 1fr); max-width: 1100px; }
+@media (max-width: 640px) { .modebar { padding-left: 16px; padding-right: 16px; } }
+#pure-table { max-height: 420px; overflow: auto; }
+#file-text { width: 100%; font-family: var(--mono, ui-monospace, monospace); font-size: 0.85rem; padding: 0.6rem; border: 1px solid var(--hair); border-radius: 8px; background: var(--page); color: var(--ink); }
+#file-charts .chart-figure { margin-top: 1rem; }

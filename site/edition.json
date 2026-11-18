@@ -1,6 +1,6 @@
 {
   "_about": "Internal build setting, never shown on the website. 'active' picks which edition scripts/build_site.py builds into docs/. 'full' offers every model, compound and plot the Python program has; 'reduced' is the trimmed showcase. Override once with: python scripts/build_site.py --edition=full",
-  "active": "reduced",
+  "active": "full",
   "editions": {
     "full": {
       "vars": {
@@ -12,7 +12,66 @@
         "b": "water",
         "model": "nrtl"
       },
-      "compound_sets": null
+      "compound_sets": {
+        "eos": [
+          "methane",
+          "ethane",
+          "ethylene",
+          "propane",
+          "propylene",
+          "n-butane",
+          "isobutane",
+          "n-pentane",
+          "n-hexane",
+          "n-heptane",
+          "n-octane",
+          "n-decane",
+          "cyclohexane",
+          "benzene",
+          "toluene",
+          "p-xylene",
+          "ethylbenzene",
+          "carbon-dioxide",
+          "nitrogen",
+          "hydrogen-sulfide"
+        ],
+        "activity": [
+          "methanol",
+          "ethanol",
+          "1-propanol",
+          "2-propanol",
+          "water",
+          "acetone",
+          "2-butanone",
+          "ethyl-acetate",
+          "tetrahydrofuran",
+          "chloroform",
+          "tetrachloromethane",
+          "benzene",
+          "toluene",
+          "cyclohexane",
+          "n-hexane",
+          "n-heptane"
+        ]
+      },
+      "default_pairs": {
+        "eos": [
+          "carbon-dioxide",
+          "ethane"
+        ],
+        "activity": [
+          "ethanol",
+          "water"
+        ]
+      },
+      "models": [
+        "PR",
+        "SRK",
+        "vdW",
+        "ideal",
+        "margules",
+        "nrtl"
+      ]
     },
     "reduced": {
       "vars": {

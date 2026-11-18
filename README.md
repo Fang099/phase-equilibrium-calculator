@@ -5,6 +5,8 @@ A Python program that calculates and plots the phase equilibrium of mixtures. It
 **Website:** https://fang099.github.io/phase-equilibrium-calculator/
 
 - **Calculator:** pick two compounds and a model, and plot their vapor–liquid equilibrium between any two variables. Peng–Robinson and van der Waals are offered for 20 gases and hydrocarbons, every pair with a temperature-dependent k₁₂ predicted by E-PPR78; NRTL and the ideal solution for 16 liquids, wherever measured NRTL parameters exist.
+- **Pure fluids:** vapor pressure to the critical point from equal liquid and vapor fugacities (vdW, SRK, PR), isotherms with the equal-area rule, coexisting densities, the Clapeyron enthalpy of vaporization; in a gravity or centrifugal field, the pressure, density and phase along the field, the interface, and how the phase boundary seen from a reference point widens into a band as the field gets stronger (`pure_fluid.py`).
+- **Any input file:** the calculator's Input file mode runs the checker and solver on any input, including solids and eutectics, and draws the computed curves.
 - **Three or four components:** a flash of a mixture at T and P (phase compositions, K-values, bubble and dew points), with a triangle diagram of bubble temperatures and tie lines for three.
 - **Is there equilibrium here?** on the calculator page: give T, P and an overall composition and it says whether the mixture splits into liquid and vapor, the two compositions, and the bubble and dew points that bound it; or paste any input file to have it checked and solved as from the command line.
 - **Concepts:** chemical potential, fugacity, activity coefficients and the models, in plain language.
@@ -27,6 +29,8 @@ cd phase-equilibrium-calculator
 pip install -r requirements.txt
 
 python input_checker.py examples/database_ethanol_water_nrtl.txt      # is the input sufficient?
+python equilibrium_solver.py examples/pure_water_vapor_pressure.txt       # a pure fluid: vapor pressure (PR)
+python equilibrium_solver.py examples/pure_propane_gravity_column.txt     # a pure fluid in a gravity column
 python equilibrium_solver.py examples/acetone_methanol_water_flash.txt     # a three-component flash (NRTL)
 python equilibrium_solver.py examples/natural_gas_flash_ppr78.txt         # a four-component flash (PR, E-PPR78 kij)
 python equilibrium_solver.py examples/database_ethanol_water_nrtl.txt # check and solve
@@ -81,6 +85,7 @@ The checker reports every equilibrium it can decide, names the calculation, and 
 | Module | Purpose |
 |---|---|
 | `input_checker.py` | Parses free-form input, converts units, applies the phase rule (`F = n + 2 + m − π`, or Duhem's theorem with a known feed), and decides which equilibria can be calculated and what is missing |
+| `pure_fluid.py` | One compound: vapor pressure, isotherms, densities, and the fluid in a gravity or centrifugal field |
 | `compound_db.py` | The built-in database (`data/compounds.json`), `database = builtin`, and the E-PPR78 k₁₂(T) |
 | `thermo_models.py` | Fugacity models for each phase: vdW, SRK and PR as a residual Helmholtz energy; liquid solution with Margules, van Laar or NRTL; ideal gas; pure solid from latent heats; gravity and centrifugal potentials |
 | `equilibrium_solver.py` | Bubble and dew points, flash, Pxy/Txy and P–T diagrams, azeotropes, liquid stability and the three-phase line, activity coefficients and fugacities along a diagram, solid–liquid curves and eutectic, field profiles |

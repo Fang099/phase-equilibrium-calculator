@@ -272,10 +272,16 @@ if "--pages" in sys.argv:
     sys.exit(0)
 
 # ------------------------------------------------- 1. modules for the browser
-WEB_FILES = ["input_checker.py", "thermo_models.py", "equilibrium_solver.py", "numerics.py",
+WEB_FILES = ["input_checker.py", "thermo_models.py", "equilibrium_solver.py", "numerics.py", "pure_fluid.py",
              "compound_db.py", "web_api.py", "data/compounds.json"]
+# the example input files, for the calculator's "Input file" mode
+WEB_FILES += ["examples/" + fn for fn in sorted(os.listdir(os.path.join(ROOT, "examples")))
+              if fn.endswith(".txt") and fn not in ED.get("hide_examples", ())]
 py_dir = os.path.join(ROOT, "docs", "py")
 os.makedirs(os.path.join(py_dir, "data"), exist_ok=True)
+if os.path.isdir(os.path.join(py_dir, "examples")):
+    shutil.rmtree(os.path.join(py_dir, "examples"))
+os.makedirs(os.path.join(py_dir, "examples"), exist_ok=True)
 digest = hashlib.sha1()
 for f in WEB_FILES:
     if f == "data/compounds.json" and "compounds" in ED:
@@ -558,6 +564,31 @@ for a_, b_ in (("methane", "ethane"), ("methane", "carbon-dioxide"), ("ethane", 
     rows_k.append({"a": a_, "b": b_, "k298": r(compound_db.PPR78Kij(a_, b_)(298.15), 4),
                    "dechema": pk.get("kij_pr")})
 data["ppr78_check"]["table"] = rows_k
+
+# pure fluids: vapor pressure of each equation of state against the Antoine data
+import pure_fluid                                                   # noqa: E402
+pure_rows = []
+for cid in ("water", "methanol", "ethanol", "acetone", "benzene", "n-hexane", "propane", "methane",
+            "nitrogen", "carbon-dioxide"):
+    rec = compound_db.find(cid)
+    row = {"id": cid, "name": rec["name"], "Tb": rec["Tb"]["value"] if rec["Tb"] else None}
+    for m in ("vdW", "SRK", "PR"):
+        e_, M_, _ = pure_fluid.make_eos(cid, m)
+        try:
+            row["Tb_" + m] = r(pure_fluid.saturation_temperature(e_, 101325.0), 2)
+        except ValueError:
+            row["Tb_" + m] = None
+        a_ = rec["antoine"]
+        if a_:
+            T7 = 0.7 * rec["Tc"]["value"]
+            if a_["Tmin"] <= T7 <= a_["Tmax"]:
+                Pa = 10 ** (a_["A"] - a_["B"] / (T7 + a_["C"]))
+                row["dP07_" + m] = r(100 * (pure_fluid.saturation_pressure(e_, T7)[0] / Pa - 1), 1)
+    pure_rows.append(row)
+e_, M_, _ = pure_fluid.make_eos("propane", "PR")
+col_ = pure_fluid.column(e_, M_, 300.0, 10.0e5, pure_fluid.PureField("gravity", 9.81, 0.0, 20.0, 0.0), npts=81)
+data["pure"] = {"rows": pure_rows, "propane_interface": r(col_.interface, 3),
+                "propane_Psat": r(col_.Psat / 1e5, 4), "propane_rhoL": r(col_.rho[0], 1)}
 
 # mixtures of three and four components (the calculator's examples)
 mixes = []

@@ -1,0 +1,14 @@
+# Ethanol / water, user Psat relations, centrifuge
+components = ethanol, water
+T = 350 K
+sweep = x
+field = centrifugal
+omega = 20000 rpm
+radius = 0.05, 0.10 m
+reference = 0.05 m
+ethanol.Psat = exp(16.8958 - 3795.17/(T - 273.15 + 230.918)) [kPa, K]
+water.Psat   = exp(16.3872 - 3885.70/(T - 273.15 + 230.170)) [kPa, K]
+ethanol.M = 46.07 g/mol
+water.M = 18.015 g/mol
+ethanol.V_L = 58.7 cm3/mol
+water.V_L = 18.07 cm3/mol

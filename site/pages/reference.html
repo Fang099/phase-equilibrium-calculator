@@ -73,6 +73,16 @@ dg(water, ethanol) = 5195.4 J/mol
 alpha(ethanol, water) = 0.2937
 T = 350 K
 sweep = x                       # draw the diagram over all compositions</code></pre>
+        <p>A <b>pure fluid</b> is one component with an equation of state. Give \(T\) for the vapor pressure, \(P\) for the boiling temperature, neither for the whole curve, or \(T\), \(P\) and a field for the column:</p>
+<pre><code>components = propane
+database = builtin
+model = PR
+T = 300 K
+P = 10.0 bar                    # at the reference position
+field = gravity
+g = 9.81 m/s2
+height = 0, 20 m
+reference = 0 m</code></pre>
         <p>Without the <code>database</code> line, every property must be in the file. That is how the program is used for compounds that are not in the database: the examples for benzene–naphthalene and for the centrifuge work this way.</p>
         <h3>What to specify</h3>
         <div class="table-wrap">
@@ -162,9 +172,22 @@ out["input_text"]       # the input file this request stands for</code></pre>
         <h2>Code reference</h2>
         <h4><code>input_checker.py</code></h4>
         <dl class="params">
+          <dt>check_pure(inp, report)</dt><dd>The checker's branch for a single compound.</dd>
           <dt>check_input(text)</dt><dd>Parse and check an input. Returns a <code>Report</code>: the verdict, one entry per equilibrium, and the parsed input in SI units.</dd>
           <dt>parse_input(text)</dt><dd>Parsing, unit conversion and database lookup only.</dd>
           <dt>psat(props, T)</dt><dd>Vapor pressure in Pa from whichever source was given.</dd>
+        </dl>
+        <h4><code>pure_fluid.py</code></h4>
+        <dl class="params">
+          <dt>make_eos(compound, model)</dt><dd>The cubic equation of state of one compound from the database (or from Tc, Pc, omega), with its molar mass.</dd>
+          <dt>saturation_pressure(eos, T)</dt><dd>Vapor pressure (Pa) and the liquid and vapor molar volumes, from equal fugacities.</dd>
+          <dt>saturation_temperature(eos, P)</dt><dd>Boiling temperature at a pressure.</dd>
+          <dt>saturation_curve(eos)</dt><dd>Vapor pressure, coexisting volumes and the Clapeyron enthalpy of vaporization up to the critical point.</dd>
+          <dt>isotherm(eos, T)</dt><dd>P against V, with the equal-area line below Tc.</dd>
+          <dt>pressure_at_fugacity(eos, T, ln_f)</dt><dd>The pressure and stable phase at which the fluid has a given fugacity.</dd>
+          <dt>column(eos, M, T, P_ref, field)</dt><dd>Pressure, density and phase along a gravity or centrifugal field, and the interface.</dd>
+          <dt>band(eos, M, field, T_values)</dt><dd>Reference pressures at which the first liquid appears and the last vapor disappears.</dd>
+          <dt>solve_input(report)</dt><dd>Solve a checked pure-fluid input file.</dd>
         </dl>
         <h4><code>compound_db.py</code></h4>
         <dl class="params">
@@ -210,7 +233,7 @@ out["input_text"]       # the input file this request stands for</code></pre>
       <section id="data" class="wide">
         <div class="measure">
           <h2>Compound data and sources</h2>
-          <p>The database holds <span data-v="database.n_compounds" data-d="0"></span> compounds, NRTL parameters for <span data-v="database.n_nrtl" data-d="0"></span> pairs, E-PPR78 groups for <span data-v="database.n_ppr78" data-d="0"></span> compounds (so a temperature-dependent Peng–Robinson \(k_{12}\) for every pair of them), and a fixed DECHEMA \(k_{12}\) for <span data-v="database.n_kij" data-d="0"></span> pairs.<!--reduced--> The calculator offers the equations of state for the <span data-v="database.n_eos" data-d="0"></span> gases and hydrocarbons and the activity models for the <span data-v="database.n_act" data-d="0"></span> liquids; benzene, toluene, cyclohexane, n-hexane and n-heptane are in both lists.<!--/reduced--> It was generated on <span id="db-date"></span> from the tables cited below. Every value in <code>data/compounds.json</code> carries a tag naming its source, and the calculator shows the values and sources for the selected pair under "Compound data and sources".</p>
+          <p>The database holds <span data-v="database.n_compounds" data-d="0"></span> compounds, NRTL parameters for <span data-v="database.n_nrtl" data-d="0"></span> pairs, E-PPR78 groups for <span data-v="database.n_ppr78" data-d="0"></span> compounds (so a temperature-dependent Peng–Robinson \(k_{12}\) for every pair of them), and a fixed DECHEMA \(k_{12}\) for <span data-v="database.n_kij" data-d="0"></span> pairs. The calculator offers the equations of state for the <span data-v="database.n_eos" data-d="0"></span> gases and hydrocarbons and the activity models for the <span data-v="database.n_act" data-d="0"></span> liquids; benzene, toluene, cyclohexane, n-hexane and n-heptane are in both lists. It was generated on <span id="db-date"></span> from the tables cited below. Every value in <code>data/compounds.json</code> carries a tag naming its source, and the calculator shows the values and sources for the selected pair under "Compound data and sources".</p>
           <p class="note">The values are reproduced from the cited sources for teaching use. Check them against the original publication before relying on them.</p>
         </div>
         <div class="table-wrap" id="compound-table"></div>

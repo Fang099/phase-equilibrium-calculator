@@ -1262,6 +1262,10 @@ def run_file(path):
     if rep.status != "SUFFICIENT":
         return
     print("\n" + "=" * 78 + "\nRESULTS\n" + "=" * 78)
+    if len(rep.inputs.components) == 1:                       # a pure fluid
+        import pure_fluid
+        print(pure_fluid.solve_input(rep)[0])
+        return
     system = build_system(text)
     print_results(system, solve(system))
 

@@ -1,7 +1,67 @@
 <!-- {"title": "Calculator", "body_class": "app", "scripts": ["assets/app.js"], "description": "Pick two compounds and a model, and plot their vapor-liquid equilibrium between any two variables. The project's Python code runs in your browser."} -->
-<h1 class="sr-only">Vapor–liquid equilibrium calculator</h1>
+<h1 class="sr-only">Phase equilibrium calculator</h1>
 
-<div class="app-shell" id="main">
+<nav class="modebar" aria-label="What to calculate">
+  <div class="seg" id="mode" role="group" aria-label="Calculator">
+    <button type="button" data-mode="pure">Pure fluid</button>
+    <button type="button" data-mode="binary">Two components</button>
+    <button type="button" data-mode="mix">Three or four components</button>
+    <button type="button" data-mode="file">Input file</button>
+  </div>
+</nav>
+
+<div class="app-shell" id="pure-shell" hidden>
+  <aside aria-label="Pure-fluid settings" id="pure-controls">
+    <section class="panel">
+      <h2>Fluid</h2>
+      <div class="field">
+        <label for="pure-comp">Compound</label>
+        <select id="pure-comp"></select>
+      </div>
+      <div class="field">
+        <span class="label">Equation of state</span>
+        <div class="seg" id="pure-model" role="group" aria-label="Equation of state"></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>State</h2>
+      <div class="check-inputs pure-inputs">
+        <label>Temperature (K)<input type="number" id="pure-T" step="any"></label>
+        <label><span id="pure-P-label">Pressure (bar)</span><input type="number" id="pure-P" step="any"></label>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>External field</h2>
+      <div class="seg" id="pure-field" role="group" aria-label="External field"></div>
+      <div id="pure-field-params" class="check-inputs pure-inputs"></div>
+    </section>
+    <button type="button" class="btn primary" id="pure-run">Calculate</button>
+  </aside>
+  <div class="workspace">
+    <section class="panel">
+      <div class="toprow">
+        <div class="presets seg" id="pure-plots" role="group" aria-label="Diagram"></div>
+      </div>
+      <figure class="chart-figure">
+        <ul class="legend" id="pure-legend"></ul>
+        <div class="chart" id="pure-chart"></div>
+        <figcaption id="pure-caption" class="source"></figcaption>
+      </figure>
+      <div id="pure-status" class="source" aria-live="polite"></div>
+    </section>
+    <section class="panel">
+      <h2>Results</h2>
+      <ul id="pure-facts" class="facts"></ul>
+    </section>
+    <section class="panel">
+      <div class="toolbar"><span id="pure-data-caption"></span><button class="linkbtn" id="pure-download" type="button">Download CSV</button></div>
+      <div class="table-wrap" id="pure-table"></div>
+    </section>
+  </div>
+</div>
+
+
+<div class="app-shell" id="main" hidden>
   <aside aria-label="Settings" id="controls">
     <div class="aside-head">
       <span>Settings</span>
@@ -118,27 +178,6 @@
       </div>
     </section>
 
-    <section class="panel" id="mix-panel">
-      <h2>Three or four components</h2>
-      <div class="seg" id="mix-examples" role="group" aria-label="Examples"></div>
-      <div class="field mix-model">
-        <span class="label">Model</span>
-        <div class="seg" id="mix-model" role="group" aria-label="Model for the mixture"></div>
-      </div>
-      <div id="mix-rows" class="mix-rows"></div>
-      <div class="check-actions"><button type="button" class="linkbtn" id="mix-add">Add a component</button></div>
-      <div class="check-inputs mix-inputs">
-        <label>Temperature (K)<input type="number" id="mix-T" step="any"></label>
-        <label>Pressure (bar)<input type="number" id="mix-P" step="any"></label>
-        <span></span>
-        <button type="button" class="btn primary" id="mix-run">Flash</button>
-      </div>
-      <div id="mix-result" class="check-result" aria-live="polite"></div>
-      <div class="mix-figure" id="mix-figure" hidden>
-        <ul class="legend" id="mix-legend"></ul>
-        <div id="mix-chart"></div>
-      </div>
-    </section>
 
     <section class="panel">
       <div class="tabs" role="tablist">
@@ -160,6 +199,49 @@
         <div class="table-wrap" id="source-table"></div>
         <div id="source-notes"></div>
       </div>
+    </section>
+  </div>
+</div>
+
+<div class="app-shell mix-shell" id="mix-shell" hidden>
+  <div class="workspace">
+    <section class="panel" id="mix-panel">
+      <h2>Three or four components</h2>
+      <div class="seg" id="mix-examples" role="group" aria-label="Examples"></div>
+      <div class="field mix-model">
+        <span class="label">Model</span>
+        <div class="seg" id="mix-model" role="group" aria-label="Model for the mixture"></div>
+      </div>
+      <div id="mix-rows" class="mix-rows"></div>
+      <div class="check-actions"><button type="button" class="linkbtn" id="mix-add">Add a component</button></div>
+      <div class="check-inputs mix-inputs">
+        <label>Temperature (K)<input type="number" id="mix-T" step="any"></label>
+        <label>Pressure (bar)<input type="number" id="mix-P" step="any"></label>
+        <span></span>
+        <button type="button" class="btn primary" id="mix-run">Flash</button>
+      </div>
+      <div id="mix-result" class="check-result" aria-live="polite"></div>
+      <div class="mix-figure" id="mix-figure" hidden>
+        <ul class="legend" id="mix-legend"></ul>
+        <div id="mix-chart"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="app-shell mix-shell" id="file-shell" hidden>
+  <div class="workspace">
+    <section class="panel" id="file-panel">
+      <h2>Any input file</h2>
+      <div class="field">
+        <label for="file-example">Start from an example</label>
+        <select id="file-example"></select>
+      </div>
+      <label for="file-text" class="sr-only">Input file</label>
+      <textarea id="file-text" rows="14" spellcheck="false"></textarea>
+      <div class="check-actions"><button type="button" class="btn primary" id="file-run">Check and solve</button></div>
+      <div id="file-result" class="check-result" aria-live="polite"></div>
+      <div id="file-charts"></div>
     </section>
   </div>
 </div>

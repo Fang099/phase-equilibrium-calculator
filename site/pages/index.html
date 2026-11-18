@@ -2,7 +2,7 @@
 <header class="hero">
   <div class="hero-inner" id="main">
     <div>
-      <h1>Pick a mixture. See how it boils.</h1>
+      <h1>Pick a fluid or a mixture. See how it boils.</h1>
       <p class="lede">A Python program that calculates the equilibrium between a liquid mixture and its vapor, and plots it between any two variables you choose. The same code runs here in your browser.</p>
       <div class="actions">
         <a class="btn primary" href="app.html">Open the calculator</a>
@@ -62,9 +62,11 @@
     <div class="table-wrap">
       <table class="keep-first">
         <tbody>
-          <tr><td>Compounds</td><td><!--reduced--><span data-v="database.n_eos" data-d="0"></span> gases and hydrocarbons for the equations of state, any pair with a predicted k₁₂(T); <span data-v="database.n_act" data-d="0"></span> polar and nonpolar liquids for NRTL, wherever measured parameters exist<!--/reduced--><!--full--><span data-v="database.n_compounds" data-d="0"></span> compounds<!--/full-->. Critical constants and vapor-pressure equations from published tables</td></tr>
+          <tr><td>Compounds</td><td><span data-v="database.n_eos" data-d="0"></span> gases and hydrocarbons for the equations of state, any pair with a predicted k₁₂(T); <span data-v="database.n_act" data-d="0"></span> polar and nonpolar liquids for NRTL, wherever measured parameters exist. Critical constants and vapor-pressure equations from published tables</td></tr>
           <tr><td>Models</td><td><!--full-->Three equations of state (van der Waals, Soave–Redlich–Kwong, Peng–Robinson) and three liquid models (ideal, Margules, NRTL)<!--/full--><!--reduced-->Two equations of state (van der Waals, Peng–Robinson) and two liquid models (ideal solution, NRTL)<!--/reduced-->, with parameters you can change</td></tr>
+          <tr><td>Pure fluids</td><td>Vapor pressure to the critical point, isotherms with the equal-area rule, coexisting densities, enthalpy of vaporization; in a gravity or centrifugal field, the column and how the phase boundary shifts with field strength</td></tr>
           <tr><td>Mixtures</td><td>Two components on every diagram; three or four in a flash, with a triangle diagram for three</td></tr>
+          <tr><td>Input files</td><td>Any input file through the checker and solver, including solids and eutectics, typed property values and incomplete inputs</td></tr>
           <tr><td>Plots</td><td><!--full-->Pxy, Txy, xy and P–T diagrams, K-values, relative volatility, activity coefficients, fugacities and Gibbs energies, or any of these against another<!--/full--><!--reduced-->Pxy, Txy, xy and P–T diagrams, and activity coefficients, flat or as 3D surfaces over temperature or pressure<!--/reduced--></td></tr>
           <tr><td>Found automatically</td><td>Azeotropes<!--full-->, and the three-phase line when a model predicts two liquid layers<!--/full--></td></tr>
           <tr><td>Beyond the calculator</td><td>The Python program also handles solids and eutectics, and gravity and centrifugal fields</td></tr>

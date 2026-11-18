@@ -32,6 +32,7 @@ import compound_db
 from input_checker import check_input
 from thermo_models import NRTL, R, build_system
 import equilibrium_solver as es
+import pure_fluid
 
 EOS_MODELS = ("PR", "SRK", "vdW")
 ACTIVITY_MODELS = ("ideal", "margules", "nrtl")
@@ -465,6 +466,137 @@ def point(req):
 
 
 # --------------------------------------------------------------------------
+# Pure fluids
+# --------------------------------------------------------------------------
+def _pure_field(f, start=None):
+    """pure_fluid.PureField from the request's field: gravity over a height
+    with the reference at the bottom, or a centrifuge between two radii with
+    the reference at the inner radius."""
+    if f["kind"] == "gravity":
+        H = float(f["height"])
+        if H <= 0:
+            raise ValueError("the column height must be positive")
+        return pure_fluid.PureField("gravity", float(f["g"]), 0.0, H, 0.0)
+    if f["kind"] == "centrifugal":
+        r1, r2 = float(f["r_in"]), float(f["r_out"])
+        if not 0 <= r1 < r2:
+            raise ValueError("the outer radius must be larger than the inner radius")
+        return pure_fluid.PureField("centrifugal", float(f["rpm"]) * 2 * math.pi / 60, r1, r2, r1)
+    raise ValueError("field must be 'gravity' or 'centrifugal'")
+
+
+def pure(req):
+    """One compound with a cubic equation of state: the vapor-pressure curve
+    to the critical point, the coexisting densities, Clapeyron's enthalpy of
+    vaporization, isotherms on reduced P-V axes with the equal-area line, the
+    state at (T, P), and the Antoine vapor pressure for comparison. With a
+    'field', also the column at (T, P at the reference position), the band
+    of reference pressures over which the column holds both phases at four
+    field strengths, and the interface position against field strength."""
+    t0 = time.time()
+    old_err = np.seterr(all="ignore")
+    try:
+        model = req.get("model", "PR")
+        if model not in EOS_MODELS:
+            raise ValueError("a pure fluid needs an equation of state (PR, SRK or vdW)")
+        eos, M, rec = pure_fluid.make_eos(req["compound"], model)
+        Tc, Pc, vc = pure_fluid.eos_critical_point(eos)
+        cur = pure_fluid.saturation_curve(eos, npts=int(req.get("npts", 60)))
+        fin = lambda v: None if v is None or not np.isfinite(v) else float(f"{v:.6g}")
+        vec = lambda a: [fin(v) for v in a]
+        a = rec["antoine"]
+        P_ant = [fin(10 ** (a["A"] - a["B"] / (T + a["C"])) / 1e5) if a and a["Tmin"] - 1e-9 <= T <= a["Tmax"] + 1e-9
+                 else None for T in cur.T] if a else [None] * len(cur.T)
+        out = {"ok": True, "compound": rec["id"], "name": rec["name"], "model": model,
+               "M": M * 1000, "Tc": Tc, "Pc": Pc / 1e5, "rhoc": fin(M / vc),
+               "Tb_data": rec["Tb"]["value"] if rec["Tb"] else None,
+               "antoine_range": [a["Tmin"], a["Tmax"]] if a else None,
+               "curve": {"T": vec(cur.T), "P": vec(cur.P / 1e5), "rhoL": vec(M / cur.vL),
+                         "rhoV": vec(M / cur.vV), "dHvap": vec(cur.dHvap / 1000), "P_antoine": P_ant}}
+        try:
+            out["Tb_eos"] = fin(pure_fluid.saturation_temperature(eos, 101325.0))
+        except ValueError:
+            out["Tb_eos"] = None
+        # isotherms in reduced units
+        iso = []
+        for tr in (0.8, 0.85, 0.9, 0.95, 1.0, 1.1):
+            it = pure_fluid.isotherm(eos, tr * Tc, npts=260, V_max_factor=6)
+            keep = it["V"] / vc >= 0.33
+            iso.append({"Tr": tr, "V": vec(it["V"][keep] / vc), "P": vec(it["P"][keep] / Pc),
+                        "Psat": fin(it["Psat"] / Pc) if it["Psat"] else None,
+                        "vL": fin(it["vL"] / vc) if it["vL"] else None,
+                        "vV": fin(it["vV"] / vc) if it["vV"] else None,
+                        "area": fin(it.get("maxwell_area"))})
+        out["isotherms"] = iso
+        out["dome"] = {"vL": vec(cur.vL / vc), "vV": vec(cur.vV / vc), "P": vec(cur.P / Pc)}
+        # the state asked about
+        T, P = float(req.get("T", 0.8 * Tc)), float(req.get("P", 1.01325)) * 1e5
+        st = {"T": T, "P": P / 1e5}
+        if T < Tc * (1 - 1e-4):
+            Ps, vL, vV = pure_fluid.saturation_pressure(eos, T)
+            st.update(Psat=fin(Ps / 1e5), rhoL_sat=fin(M / vL), rhoV_sat=fin(M / vV),
+                      phase="liquid" if P > Ps else "vapor")
+        else:
+            st["phase"] = "supercritical fluid" if P > Pc else "gas (above Tc)"
+        v = eos.molar_volume(T, P, pure_fluid.ONE, "stable")
+        st["rho"] = fin(M / v)
+        st["Z"] = fin(P * v / (8.314462618 * T))
+        try:
+            st["Tsat"] = fin(pure_fluid.saturation_temperature(eos, P)) if P < Pc else None
+        except ValueError:
+            st["Tsat"] = None
+        out["state"] = st
+        if req.get("field"):
+            out["field"] = _pure_field_results(eos, M, T, P, req["field"], cur)
+    except Exception as e:
+        out = {"ok": False, "error": str(e) or type(e).__name__}
+    finally:
+        np.seterr(**old_err)
+    out["ms"] = round(1000 * (time.time() - t0))
+    return out
+
+
+def _pure_field_results(eos, M, T, P_ref, f, cur):
+    fin = lambda v: None if v is None or not np.isfinite(v) else float(f"{v:.6g}")
+    vec = lambda a: [fin(v) for v in a]
+    fld = _pure_field(f)
+    col = pure_fluid.column(eos, M, T, P_ref, fld, npts=81)
+    res = {"kind": fld.kind, "reference": fld.reference,
+           "column": {"position": vec(col.position), "P": vec(col.P / 1e5), "rho": vec(col.rho),
+                      "phase": col.phase, "Psat": fin(col.Psat / 1e5) if col.Psat else None,
+                      "interface": fin(col.interface) if col.interface is not None else None,
+                      "notes": col.notes}}
+    # the band of reference pressures at four field strengths
+    Ts = [t for t in cur.T[:-1] if t > cur.T[0]][::2]
+    bands = []
+    for frac in (0.25, 0.5, 1.0):
+        fs = pure_fluid.PureField(fld.kind, fld.strength * (frac if fld.kind == "gravity" else math.sqrt(frac)),
+                                  fld.start, fld.end, fld.reference)
+        try:
+            Tb, Ps, P1, P2 = pure_fluid.band(eos, M, fs, Ts)
+            bands.append({"fraction": frac, "strength": fs.strength, "T": vec(Tb), "P_first": vec(P1 / 1e5),
+                          "P_last": vec(P2 / 1e5), "Psat": vec(Ps / 1e5)})
+        except Exception:
+            pass
+    res["bands"] = bands
+    # interface position against field strength, at T and P_ref
+    if T < eos.Tc[0] * (1 - 1e-4):
+        sat = pure_fluid.saturation_pressure(eos, T)
+        ln_fs = pure_fluid._ln_f(eos, T, sat[0], "vapor")
+        ph = "liquid" if P_ref > sat[0] else "vapor"
+        ln_fr = pure_fluid._ln_f(eos, T, P_ref, ph)
+        xs, ys = [], []
+        for k in range(1, 41):
+            s_ = fld.strength * k / 40
+            fs = pure_fluid.PureField(fld.kind, s_, fld.start, fld.end, fld.reference)
+            phi_star = fs.phi(fs.reference) + 8.314462618 * T * (ln_fr - ln_fs) / M
+            xs.append(s_ if fld.kind == "gravity" else s_ * 60 / (2 * math.pi))
+            ys.append(fs.position_at(phi_star))
+        res["interface_curve"] = {"strength": vec(xs), "position": [fin(v) if v is not None else None for v in ys]}
+    return res
+
+
+# --------------------------------------------------------------------------
 # Mixtures of three or four components
 # --------------------------------------------------------------------------
 MIXTURE_EXAMPLES = [
@@ -639,26 +771,124 @@ def _ternary_map(L, V, T, P, n, t0, kind, limit=15.0):
 
 def run_input(text, time_limit=20.0):
     """Check any input file and, if it is sufficient, solve it: exactly what
-    `python equilibrium_solver.py file.txt` prints."""
+    `python equilibrium_solver.py file.txt` prints, plus the computed curves
+    as chart data ('charts': phase diagrams, P-T envelopes, solubility
+    curves of solids and the eutectic, profiles along a field)."""
     import contextlib
     import io
     t0 = time.time()
     rep = check_input(text)
-    out = {"ok": True, "status": rep.status, "report": str(rep), "results": ""}
+    out = {"ok": True, "status": rep.status, "report": str(rep), "results": "", "charts": []}
     if rep.status == "SUFFICIENT":
         buf = io.StringIO()
         es._deadline[0] = time.time() + time_limit
+        old_err = np.seterr(all="ignore")
         try:
-            with contextlib.redirect_stdout(buf):
-                system = build_system(text)
-                es.print_results(system, es.solve(system))
+            if len(rep.inputs.components) == 1:                 # a pure fluid
+                txt, out["charts"] = pure_fluid.solve_input(rep)
+                buf.write(txt + "\n")
+            else:
+                with contextlib.redirect_stdout(buf):
+                    system = build_system(text)
+                    results = es.solve(system)
+                    es.print_results(system, results)
+                out["charts"] = _result_charts(system, results)
         except Exception as e:
             buf.write(f"\nThe calculation stopped: {e}\n")
         finally:
             es._deadline[0] = None
+            np.seterr(**old_err)
         out["results"] = buf.getvalue()
     out["ms"] = round(1000 * (time.time() - t0))
     return out
+
+
+def _result_charts(system, results):
+    """Chart data for the results of es.solve(): curves that share axes go on
+    one chart (a Txy diagram, the solubility curves of both solids and the
+    eutectic make one complete T-x diagram)."""
+    fin = lambda v: None if v is None or not np.isfinite(v) else float(f"{v:.6g}")
+    charts = {}
+
+    def chart(key, title, xt, yt):
+        if key not in charts:
+            charts[key] = {"title": title, "xTitle": xt, "yTitle": yt, "series": [], "points": []}
+        return charts[key]
+
+    names = list(system.names) if hasattr(system, "names") else None
+    for res in results:
+        d = res.data
+        nm = names or getattr(d, "names", None) or ["1", "2"]
+        if isinstance(d, es.Diagram):
+            pxy = d.kind == "Pxy"
+            fixed = f"{d.fixed:.6g} K" if pxy else f"{d.fixed / 1e5:.6g} bar"
+            v = (d.var / 1e5) if pxy else d.var
+            c = chart(("x1", "P" if pxy else "T", fixed), f"{d.kind} diagram at {fixed}",
+                      f"Mole fraction of {d.names[0]}", "Pressure (bar)" if pxy else "Temperature (K)")
+            c["series"].append({"name": "Bubble curve (liquid)", "role": "liquid",
+                                "pts": [[fin(a), fin(b)] for a, b in zip(d.x1, v)]})
+            c["series"].append({"name": "Dew curve (vapor)", "role": "vapor",
+                                "pts": [[fin(a), fin(b)] for a, b in zip(d.y1, v)]})
+            if d.azeotrope:
+                c["points"].append({"x": fin(d.azeotrope[0]), "y": fin(d.azeotrope[1] / 1e5 if pxy else d.azeotrope[1]),
+                                    "text": "azeotrope"})
+            if d.three_phase:
+                tp = d.three_phase
+                yv = tp.get("P", tp.get("T"))
+                yv = yv / 1e5 if pxy and yv else yv
+                c["series"].append({"name": "Three-phase line", "role": "third",
+                                    "pts": [[fin(tp["x_alpha"]), fin(yv)], [fin(tp["x_beta"]), fin(yv)]]})
+        elif isinstance(d, es.Envelope):
+            c = chart(("T", "P", "env"), "P–T envelope at fixed composition", "Temperature (K)", "Pressure (bar)")
+            c["series"].append({"name": "Bubble pressure", "role": "liquid",
+                                "pts": [[fin(a), fin(b / 1e5)] for a, b in zip(d.T, d.P_bubble)]})
+            c["series"].append({"name": "Dew pressure", "role": "vapor",
+                                "pts": [[fin(a), fin(b / 1e5)] for a, b in zip(d.T, d.P_dew)]})
+        elif isinstance(d, es.SLECurve):
+            first = nm[0]
+            xs = d.x_solid if d.solid == first else 1 - d.x_solid
+            c = chart(("x1", "T", f"{d.P / 1e5:.6g} bar"), f"T–x diagram at {d.P / 1e5:.6g} bar",
+                      f"Mole fraction of {first}", "Temperature (K)")
+            c["title"] = f"Complete T–x diagram at {d.P / 1e5:.6g} bar"
+            c["series"].append({"name": f"Solid {d.solid} appears (solubility curve)",
+                                "role": "third" if d.solid == first else "solid2",
+                                "pts": [[fin(a), fin(b)] for a, b in zip(xs, d.T)]})
+        elif isinstance(d, dict) and res.equilibrium == "Eutectic":
+            x = d["x"] if d.get("component") == nm[0] else 1 - d["x"]
+            for k, c in charts.items():
+                if k[1] == "T" and k[0] == "x1":
+                    c["points"].append({"x": fin(x), "y": fin(d["T"]), "text": "eutectic"})
+                    for se in c["series"]:            # below the eutectic a solubility curve is metastable
+                        if se["name"].startswith("Solid"):
+                            se["pts"] = [q for q in se["pts"] if q[1] is not None and q[1] >= d["T"] - 1e-6]
+                    c["series"].append({"name": "Eutectic line", "role": "muted",
+                                        "pts": [[0, fin(d["T"])], [1, fin(d["T"])]]})
+        for prof in res.profiles:
+            where = "Height (m)" if prof.kind == "gravity" else "Radius (m)"
+            c = chart(("pos", "P", prof.kind), f"Pressure along the {prof.kind} field ({res.equilibrium})",
+                      where, "Pressure (bar)")
+            c["series"].append({"name": "Pressure", "role": "liquid",
+                                "pts": [[fin(a), fin(b / 1e5)] for a, b in zip(prof.position, prof.P)]})
+            c2 = chart(("pos", "x", prof.kind), f"Composition along the {prof.kind} field ({res.equilibrium})",
+                       where, f"Mole fraction of {prof.names[0]}")
+            c2["series"].append({"name": "Local phase", "role": "vapor",
+                                 "pts": [[fin(a), fin(b)] for a, b in zip(prof.position, prof.x[:, 0])]})
+    return list(charts.values())
+
+
+def example_files():
+    """The example input files, with the checker's verdict on each."""
+    folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "examples")
+    out = []
+    if not os.path.isdir(folder):
+        return {"ok": True, "examples": []}
+    for fn in sorted(os.listdir(folder)):
+        if not fn.endswith(".txt"):
+            continue
+        text = open(os.path.join(folder, fn)).read()
+        title = next((ln.lstrip("# ").strip() for ln in text.splitlines() if ln.startswith("#")), fn)
+        out.append({"file": fn, "title": title, "text": text, "status": check_input(text).status})
+    return {"ok": True, "examples": out}
 
 
 def handle(message):
@@ -682,6 +912,10 @@ def handle(message):
             res = point(msg["request"])
         elif op == "run_input":
             res = run_input(msg["text"])
+        elif op == "examples":
+            res = example_files()
+        elif op == "pure":
+            res = pure(msg["request"])
         elif op == "mixture":
             res = mixture(msg["request"])
         elif op == "mixture_examples":
@@ -818,6 +1052,27 @@ if __name__ == "__main__":
                  "T": 263.15, "npts": 41, "params": {"kij": 0.0}})
     report("with k12 = 0 the azeotrope disappears (the slide's point)",
            r["ok"] and r["azeotrope"] is None, str(r.get("azeotrope")))
+
+    # pure fluids
+    r = pure({"compound": "propane", "model": "PR", "T": 300.0, "P": 10.0,
+              "field": {"kind": "gravity", "g": 9.81, "height": 20.0}})
+    i300 = None
+    report("pure propane: PR vapor pressure at 300 K near the Antoine value",
+           r["ok"] and abs(r["state"]["Psat"] / 9.98 - 1) < 0.02, f"{r.get('state', {}).get('Psat')} bar")
+    report("pure propane under gravity: an interface, liquid below and vapor above",
+           r["ok"] and r["field"]["column"]["interface"] is not None
+           and r["field"]["column"]["phase"][0] == "liquid" and r["field"]["column"]["phase"][-1] == "vapor",
+           f"interface at {r['field']['column']['interface']} m")
+    b = r["field"]["bands"]
+    k = len(b[-1]["T"]) // 2
+    report("the band of reference pressures widens with the field",
+           b[0]["P_last"][k] - b[0]["P_first"][k] < b[-1]["P_last"][k] - b[-1]["P_first"][k],
+           f"{b[0]['P_first'][k]}-{b[0]['P_last'][k]} vs {b[-1]['P_first'][k]}-{b[-1]['P_last'][k]} bar")
+    r = pure({"compound": "nitrogen", "model": "SRK", "T": 300.0, "P": 10.0,
+              "field": {"kind": "centrifugal", "rpm": 30000, "r_in": 0.01, "r_out": 0.1}})
+    report("nitrogen above Tc in a centrifuge: one phase, pressure rising outward",
+           r["ok"] and "interface_curve" not in r["field"] and r["field"]["column"]["P"][-1] > r["field"]["column"]["P"][0],
+           f"{r['field']['column']['P'][0]} to {r['field']['column']['P'][-1]} bar")
 
     # mixtures of three and four components
     for ex in MIXTURE_EXAMPLES:

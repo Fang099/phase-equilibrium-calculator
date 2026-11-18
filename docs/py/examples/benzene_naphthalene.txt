@@ -1,0 +1,12 @@
+# Benzene / naphthalene at 1 atm: full T-x diagram from latent heats only
+components = benzene, naphthalene
+P = 1 atm
+sweep = x
+benzene.Tb = 353.24 K
+benzene.dHvap = 30.72 kJ/mol
+benzene.Tm = 278.68 K
+benzene.dHfus = 9.87 kJ/mol
+naphthalene.Tb = 491.14 K
+naphthalene.dHvap = 43.2 kJ/mol
+naphthalene.Tm = 353.43 K
+naphthalene.dHfus = 19.01 kJ/mol
