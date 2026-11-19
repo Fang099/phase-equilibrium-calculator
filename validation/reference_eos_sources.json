@@ -1,0 +1,92 @@
+{
+ "water": [
+  "H2O",
+  [
+   "Wagner, W., Pru\u00df, A.",
+   "The IAPWS Formulation 1995 for the ThermodynamicProperties of Ordinary Water Substance forGeneral and Scientific Use",
+   "J. Phys. Chem. Ref. Data 31, 387 (2002)",
+   "10.1063/1.1461829"
+  ]
+ ],
+ "methanol": [
+  "Methanol",
+  [
+   "de Reuck, K.M., Craven, R.J.B.",
+   "Methanol, International Thermodynamic Tables of the Fluid State - 12",
+   "IUPAC, Blackwell Scientific Publications, London, 1993.",
+   ""
+  ]
+ ],
+ "ethanol": [
+  "Ethanol",
+  [
+   "Schroeder, J.A.; Penoncello, S.G.; Schroeder, J.S.",
+   "A Fundamental Equation of State for Ethanol",
+   "J. Phys. Chem. Ref. Data 43(4) (2014) 043102",
+   "10.1063/1.4895394"
+  ]
+ ],
+ "acetone": [
+  "Acetone",
+  [
+   "Lemmon, E.W., Span, R.",
+   "Short Fundamental Equations of State for 20 Industrial Fluids",
+   "J. Chem. Eng. Data, 2006, 51 (3), pp 785\u2013850",
+   "10.1021/je050186n"
+  ]
+ ],
+ "benzene": [
+  "Benzene",
+  [
+   "Thol, M., Lemmon, E.W., Span, R.",
+   "Equation of State for Benzene for Temperatures from the Melting Line up to 750 K with Pressures up to 500 MPa",
+   "High Temperatures-High Pressures 41 (2012) 81-97",
+   ""
+  ]
+ ],
+ "n-hexane": [
+  "nC6",
+  [
+   "Span, R., Wagner, W.",
+   "Equations of state for technical applications. II. Results for nonpolar fluids.",
+   "Int. J. Thermophys. 24 (1) (2003) 41-109",
+   "10.1023/A:1022310214958"
+  ]
+ ],
+ "propane": [
+  "C3",
+  [
+   "Lemmon, E.W., McLinden, M.O., Wagner, W.",
+   "Thermodynamic Properties of Propane.  III.  A Reference Equation of State for Temperatures from the Melting Line to 650 K and Pressures up to 1000 MPa",
+   "J. Chem. Eng. Data, 54(12) (2009) 3141-3180",
+   "10.1021/je900217v"
+  ]
+ ],
+ "methane": [
+  "CH4",
+  [
+   "Setzmann, U., Wagner, W.",
+   "A New Equation of State and Tables of Thermodynamic Properties for Methane Covering the Range from the Melting Line to 625 K at Pressures up to 1000 MPa",
+   "J. Phys. Chem. Ref. Data, 20(6) (1991) 1061-1155",
+   "10.1063/1.555898"
+  ]
+ ],
+ "nitrogen": [
+  "N2",
+  [
+   "Span, R., Lemmon, E.W., Jacobsen, R.T, Wagner, W., Yokozeki, A.",
+   "A Reference Equation of State for the Thermodynamic Properties of Nitrogen for Temperatures from 63.151 to 1000 K and Pressures to 2200 MPa",
+   "J. Phys. Chem. Ref. Data 29(6) (2000) 1361-1433",
+   "10.1063/1.1349047"
+  ]
+ ],
+ "carbon-dioxide": [
+  "CO2",
+  [
+   "Span, R., Wagner, W.",
+   "A New Equation of State for Carbon Dioxide Covering the Fluid Region from the Triple\u2010Point Temperature to 1100K at Pressures up to 800MPa",
+   "J. Phys. Chem. Ref. Data, 25(6) (1996) 1509-1596",
+   "10.1063/1.555991"
+  ]
+ ]
+}

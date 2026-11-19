@@ -530,7 +530,9 @@ def part_validation(out):
     # pure fluids: each equation of state against the Antoine vapor pressure
     sc = Scenario(out, "validation", "pure_vapor_pressure",
                   "Normal boiling points and vapor pressures at T = 0.7 Tc from van der Waals, SRK and "
-                  "Peng-Robinson against the Antoine equation (Poling et al.), for ten compounds.")
+                  "Peng-Robinson against the Antoine correlation (a fit to measured vapor pressures, "
+                  "Poling et al.), for ten compounds. The comparison with reference equations of state "
+                  "is in the validation_real_data scenarios.")
     cols = {k: [] for k in ("compound", "Tb_Antoine_K", "Tb_vdW_K", "Tb_SRK_K", "Tb_PR_K", "T_07Tc_K",
                              "Psat_Antoine_bar", "Psat_vdW_bar", "Psat_SRK_bar", "Psat_PR_bar")}
     for cid in PURE:
@@ -567,6 +569,44 @@ def part_validation(out):
             cols["balance_residual"].append((1 - r["beta"]) * r["x"][i] + r["beta"] * r["y"][i] - r["z"][i])
     sc.add(write_csv(sc.file("material_balance.csv"), cols))
     sc.close()
+
+
+def part_real_data(out):
+    """G. the models against measured VLE and reference equations of state
+    (scripts/validate_real_data.py); the data files are copied next to the results."""
+    print("G. validation against measured and reference data")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("vrd", os.path.join(ROOT, "scripts", "validate_real_data.py"))
+    vrd = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(vrd)
+    val = os.path.join(ROOT, "validation")
+    jobs = [("pure saturation vs reference EOS", vrd.pure_saturation,
+             ["reference_saturation.csv", "reference_eos_sources.json"],
+             "Vapor pressure and saturated liquid and vapor densities of ten fluids from vdW, SRK and PR "
+             "against their reference equations of state (IAPWS-95, Span-Wagner, Lemmon et al., ...), "
+             "ten temperatures from 0.5 Tc to 0.95 Tc each; points and average absolute deviations."),
+            ("binary VLE NRTL vs measured", vrd.binary_activity,
+             ["vle_ethanol_water_101kPa_Kamihama2012.csv", "vle_acetone_ethanol_101kPa_KuTu2005.csv",
+              "vle_chloroform_methanol_101kPa_Li2014.csv"],
+             "NRTL and the ideal solution against measured isobaric VLE at 101.3 kPa (ethanol + water, "
+             "acetone + ethanol, chloroform + methanol; data from the NIST TRC ThermoML archive)."),
+            ("methane ethane EOS vs measured", vrd.binary_eos, ["vle_methane_ethane_Han2012.csv"],
+             "PR (E-PPR78, DECHEMA and zero k12), SRK and vdW bubble pressures against 59 measured "
+             "methane + ethane points at 126-140 K (Han et al. 2012)."),
+            ("field vs reference EOS", vrd.field, ["reference_field.csv"],
+             "Field results (propane band width, interface height, water column, CO2 centrifuge) from PR "
+             "and SRK against the reference equations of state integrated through the same field.")]
+    for name, fn, inputs, desc in jobs:
+        sc = Scenario(out, "validation_real_data", name, desc)
+        for f in inputs:
+            shutil.copy(os.path.join(val, f), sc.file(f))
+            sc.add(f)
+        vrd.OUT = sc.path
+        before = set(os.listdir(sc.path))
+        fn()
+        for f in sorted(set(os.listdir(sc.path)) - before):
+            sc.add(f)
+        sc.close()
 
 
 def write_index(out):
@@ -611,6 +651,7 @@ def main(argv=None):
     part_b(a.out)
     part_mix(a.out)
     part_validation(a.out)
+    part_real_data(a.out)
     write_index(a.out)
     print(f"wrote {len(INDEX)} scenarios to {a.out}")
 

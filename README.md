@@ -74,7 +74,7 @@ naphthalene.dHfus = 19.01 kJ/mol
 |---|---|
 | `Tc`, `Pc`, `omega` (or vdW `a`, `b`) | both phases from one cubic equation of state (vdW, SRK, PR) |
 | Antoine constants, a typed `Psat(T)` relation, or `Tb` with `dHvap` | vapor–liquid equilibrium through the pure-liquid fugacity |
-| activity-model parameters (Margules, van Laar, NRTL; NRTL from the database) | non-ideal liquids: azeotropes, and the three-phase line when the model predicts two liquid layers |
+| activity-model parameters (Margules, NRTL; NRTL from the database) | non-ideal liquids: azeotropes, and the three-phase line when the model predicts two liquid layers |
 | `Tm` with `dHfus` (and optionally `dCp_fus`) | solid–liquid equilibrium: crystallization curves and the eutectic |
 | `nonvolatile = yes` | keeps a compound out of the vapor |
 | molar masses (plus liquid volumes without an EOS) | profiles in a gravity or centrifugal field |
@@ -88,7 +88,7 @@ The checker reports every equilibrium it can decide, names the calculation, and 
 | `input_checker.py` | Parses free-form input, converts units, applies the phase rule (`F = n + 2 + m − π`, or Duhem's theorem with a known feed), and decides which equilibria can be calculated and what is missing; a single compound takes its own branch (`check_pure`) |
 | `pure_fluid.py` | One compound: vapor pressure, isotherms, densities, and the fluid in a gravity or centrifugal field |
 | `compound_db.py` | The built-in database (`data/compounds.json`), `database = builtin`, and the E-PPR78 k₁₂(T) |
-| `thermo_models.py` | Fugacity models for each phase: vdW, SRK and PR as a residual Helmholtz energy; liquid solution with Margules, van Laar or NRTL; ideal gas; pure solid from latent heats; gravity and centrifugal potentials |
+| `thermo_models.py` | Fugacity models for each phase: vdW, SRK and PR as a residual Helmholtz energy; liquid solution with Margules or NRTL; ideal gas; pure solid from latent heats; gravity and centrifugal potentials |
 | `equilibrium_solver.py` | Bubble and dew points, flash, Pxy/Txy and P–T diagrams, azeotropes, liquid stability and the three-phase line, activity coefficients and fugacities along a diagram, solid–liquid curves and eutectic, field profiles |
 | `plotter.py` | Matplotlib figures: diagrams, fugacity and activity plots, complete T–x diagrams, field profiles, 3D surfaces |
 | `web_api.py` | JSON interface used by the website's calculator; also usable from Python |
@@ -130,6 +130,20 @@ python scripts/export_data.py --out Data
 
 runs every example input file and every scenario shown on the website (pure fluids, binary diagrams, P–T envelopes, fields, three- and four-component flashes, validation tables) and writes, for each, the input file, the checker's report, the printed results and the computed values as CSV, with a `README.txt` index.
 
+## Validation against measured and reference data
+
+```bash
+python scripts/validate_real_data.py
+```
+
+compares the models with data the program was not built from (files in `validation/`, results in `validation/results/`):
+
+- pure fluids: vdW, SRK and PR vapor pressures and saturated densities of ten fluids against their reference equations of state (IAPWS-95, Span–Wagner, Lemmon et al., ...; generated with the open `iapws`/`pychemqt` packages, sources in `validation/reference_eos_sources.json`);
+- binary VLE: NRTL against measured data at 101.3 kPa for ethanol + water (Kamihama et al. 2012), acetone + ethanol (Ku and Tu 2005) and chloroform + methanol (Li et al. 2014), and PR against methane + ethane at 126–140 K (Han et al. 2012), all from the NIST TRC ThermoML archive;
+- the field: the propane band, interface height, a water column and a CO2 centrifuge against the reference equations integrated through the same field.
+
+The summary is on the website's Examples page, section "Validation".
+
 ## Repository layout
 
 ```text
@@ -144,6 +158,9 @@ scripts/precompute_surfaces.py   solves the 3D surfaces in advance into docs/sur
 scripts/build_compound_db.py   regenerates data/compounds.json from the source tables
 scripts/dev_server.py      local preview of the website with a local calculator engine
 scripts/export_data.py     writes the input and output data of every scenario as .txt/.csv
+scripts/validate_real_data.py  compares the models with measured VLE and reference equations of state
+scripts/make_manuscript_figures.py  figures and numbers of the manuscript (run from the manuscript folder)
+validation/                measured VLE data, reference-EOS values and the comparison results
 ```
 
 After changing any Python module or page, run `python scripts/build_site.py`, then `python scripts/precompute_surfaces.py` to bring the precomputed 3D surfaces (`docs/surfaces/`) up to date. No number on the site is typed by hand. On GitHub, the workflow `.github/workflows/surfaces.yml` runs both automatically on every push to `main` that changes the code, the data or the pages, and commits the result.

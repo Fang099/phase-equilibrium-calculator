@@ -27,7 +27,6 @@ OTHER ROUTES (when an EOS is not used)
     Activity coefficients come from an excess Gibbs energy G^E/RT
     (gamma_i = 1 for an ideal solution):
         Margules  G^E/RT = x1 x2 (A21 x1 + A12 x2)
-        van Laar  G^E/RT = A12 A21 x1 x2 / (A12 x1 + A21 x2)
         NRTL      G^E/RT = sum_i x_i (sum_j tau_ji G_ji x_j) / (sum_k G_ki x_k),
                   tau_ij = dg_ij / RT,  G_ij = exp(-alpha_ij tau_ij)
     with A12 = ln gamma_1 at infinite dilution in 2 (and A21 the reverse);
@@ -347,40 +346,6 @@ class Margules:
                          x1 ** 2 * (A21 + 2 * (A12 - A21) * x2)])
 
 
-class VanLaar:
-    """van Laar model for a binary; A12, A21 dimensionless and positive
-    (or both negative). Each is a constant or a function of T in K, such as
-    the database form A_ij(T) = a_ij + b_ij/T."""
-    name = "van Laar"
-
-    def __init__(self, A12, A21):
-        for A in (A12, A21):
-            if not callable(A) and not np.isfinite(A):
-                raise ValueError("van Laar parameters must be finite")
-        if not callable(A12) and not callable(A21) and A12 * A21 <= 0:
-            raise ValueError("van Laar needs A12 and A21 of the same sign")
-        self.A12, self.A21 = A12, A21
-
-    def params(self, T):
-        A12, A21 = _at(self.A12, T), _at(self.A21, T)
-        if A12 * A21 <= 0:
-            raise ValueError(f"van Laar needs A12 and A21 of the same sign "
-                             f"(at {T:.1f} K they are {A12:.4g} and {A21:.4g})")
-        return A12, A21
-
-    def ge_rt(self, T, x):
-        x1, x2 = x
-        A12, A21 = self.params(T)
-        d = A12 * x1 + A21 * x2
-        return A12 * A21 * x1 * x2 / d
-
-    def ln_gamma(self, T, x):
-        x1, x2 = x
-        A12, A21 = self.params(T)
-        d = A12 * x1 + A21 * x2
-        return np.array([A12 * (A21 * x2 / d) ** 2, A21 * (A12 * x1 / d) ** 2])
-
-
 class NRTL:
     """NRTL for any number of components. dg[i, j] = g_ij - g_jj (J/mol),
     alpha symmetric; tau_ij = dg_ij / RT."""
@@ -558,9 +523,8 @@ def build_activity(inp):
     if inp.activity == "ideal":
         return None
     get = lambda i, j, q: inp.opairs[(names[i], names[j])][q]
-    if inp.activity in ("margules", "vanlaar"):
-        cls = Margules if inp.activity == "margules" else VanLaar
-        return cls(get(0, 1, "A"), get(1, 0, "A"))
+    if inp.activity == "margules":
+        return Margules(get(0, 1, "A"), get(1, 0, "A"))
     dg = np.zeros((n, n))
     alpha = np.full((n, n), 0.3)
     for i in range(n):
@@ -746,7 +710,7 @@ if __name__ == "__main__":
     print("\n4b. Activity models: ln gamma_i = d(n G^E/RT)/dn_i, Gibbs-Duhem, limits")
     dgm = np.array([[0, 2000, -500], [800, 0, 1500], [300, 1200, 0]], float)
     alm = np.array([[0, .3, .4], [.3, 0, .2], [.4, .2, 0]])
-    cases = [(Margules(1.2, 0.7), [0.3, 0.7]), (VanLaar(1.68, 0.92), [0.3, 0.7]),
+    cases = [(Margules(1.2, 0.7), [0.3, 0.7]),
              (NRTL(dgm, alm), [0.2, 0.5, 0.3])]
     for m, xm in cases:
         xm = np.array(xm)
@@ -763,15 +727,13 @@ if __name__ == "__main__":
         gd = xm @ (m.ln_gamma(340.0, xm + dx) - m.ln_gamma(340.0, xm - dx)) / 2e-6
         report(f"{m.name:9s}", err < 1e-8 and abs(gd) < 1e-7,
                f"derivative error {err:.1e}, Gibbs-Duhem residual {abs(gd):.1e}")
-    vl = VanLaar(1.68, 0.92)
     report("infinite dilution: ln gamma_1(x1 -> 0) = A12",
-           abs(vl.ln_gamma(340.0, [0.0, 1.0])[0] - 1.68) < 1e-12
-           and abs(Margules(1.2, 0.7).ln_gamma(340.0, [0.0, 1.0])[0] - 1.2) < 1e-12, "")
+           abs(Margules(1.2, 0.7).ln_gamma(340.0, [0.0, 1.0])[0] - 1.2) < 1e-12, "")
     from input_checker import TFunction
-    vt = VanLaar(TFunction("-0.0065 + 598.8/T"), TFunction("0.5206 + 159.91/T"))
-    ok_t = all(abs(vt.ln_gamma(T, [0.0, 1.0])[0] - (-0.0065 + 598.8 / T)) < 1e-12
-               and np.allclose(vt.ln_gamma(T, [0.3, 0.7]),
-                               VanLaar(-0.0065 + 598.8 / T, 0.5206 + 159.91 / T).ln_gamma(T, [0.3, 0.7]),
+    mt = Margules(TFunction("-0.0065 + 598.8/T"), TFunction("0.5206 + 159.91/T"))
+    ok_t = all(abs(mt.ln_gamma(T, [0.0, 1.0])[0] - (-0.0065 + 598.8 / T)) < 1e-12
+               and np.allclose(mt.ln_gamma(T, [0.3, 0.7]),
+                               Margules(-0.0065 + 598.8 / T, 0.5206 + 159.91 / T).ln_gamma(T, [0.3, 0.7]),
                                rtol=0, atol=1e-14)
                for T in (330.0, 360.0, 390.0))
     report("temperature-dependent A(T) = a + b/T is evaluated at each T", ok_t, "")

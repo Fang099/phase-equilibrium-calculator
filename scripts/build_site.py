@@ -590,6 +590,29 @@ col_ = pure_fluid.column(e_, M_, 300.0, 10.0e5, pure_fluid.PureField("gravity", 
 data["pure"] = {"rows": pure_rows, "propane_interface": r(col_.interface, 3),
                 "propane_Psat": r(col_.Psat / 1e5, 4), "propane_rhoL": r(col_.rho[0], 1)}
 
+# the models against measured VLE and reference equations of state (scripts/validate_real_data.py)
+import importlib.util                                               # noqa: E402
+_spec = importlib.util.spec_from_file_location("vrd", os.path.join(ROOT, "scripts", "validate_real_data.py"))
+vrd = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(vrd)
+_vp = vrd.pure_saturation()
+_va = vrd.binary_activity()
+_ve = vrd.binary_eos()
+_vf = vrd.field()
+_rd = lambda rows: [{k: (r(v, 4) if isinstance(v, float) else v) for k, v in row.items()} for row in rows]
+_me = vrd.read("vle_methane_ethane_Han2012.csv")
+_ew = vrd.read("vle_ethanol_water_101kPa_Kamihama2012.csv")
+_ewc = run(components=["ethanol", "water"], model="nrtl", hold="P", P=1.013, npts=61)
+data["validation"] = {
+    "pure": _rd(_vp), "activity": _rd(_va), "eos": _rd(_ve),
+    "field": _rd([f for f in _vf if not f["case"].startswith("band") or f["T_K"] in (200.0, 305.0, 365.0)]),
+    "band_aad": {m: r(float(np.mean([abs(f["dev_pct"]) for f in _vf if f["model"] == m
+                                     and f["case"].startswith("band")])), 2) for m in ("PR", "SRK")},
+    "ethanol_water": {"x": [float(d["x1"]) for d in _ew], "y": [float(d["y1"]) for d in _ew],
+                      "T": [float(d["T_K"]) for d in _ew],
+                      "model": {"x": _ewc["columns"]["x1"], "y": _ewc["columns"]["y1"], "T": _ewc["columns"]["T"]}},
+}
+
 # mixtures of three and four components (the calculator's examples)
 mixes = []
 for ex in web_api.MIXTURE_EXAMPLES:

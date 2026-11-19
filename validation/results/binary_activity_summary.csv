@@ -1,0 +1,7 @@
+system,model,P_kPa,n,AAD_T_K,max_dT_K,AAD_y1,max_dy1,x_az_exp,T_az_exp_K,x_az_model,T_az_model_K,source
+ethanol+water,nrtl,101.3,21,0.191836,0.734641,0.00436457,0.0213594,0.8946,351.262,0.882332,351.188,vle_ethanol_water_101kPa_Kamihama2012.csv
+ethanol+water,ideal,101.3,21,5.47071,11.2596,0.0922047,0.258789,0.8946,351.262,none,none,vle_ethanol_water_101kPa_Kamihama2012.csv
+acetone+ethanol,nrtl,101.32,19,0.15615,0.272687,0.0078503,0.0124598,none,none,none,none,vle_acetone_ethanol_101kPa_KuTu2005.csv
+acetone+ethanol,ideal,101.32,19,3.15847,4.87676,0.0421828,0.0934357,none,none,none,none,vle_acetone_ethanol_101kPa_KuTu2005.csv
+chloroform+methanol,nrtl,101.3,19,0.189411,0.384455,0.00644155,0.0199199,0.653864,326.732,0.647121,326.581,vle_chloroform_methanol_101kPa_Li2014.csv
+chloroform+methanol,ideal,101.3,19,7.16368,9.04317,0.106203,0.171823,0.653864,326.732,none,none,vle_chloroform_methanol_101kPa_Li2014.csv

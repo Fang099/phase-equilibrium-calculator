@@ -12,7 +12,7 @@ The user lists whatever they know, one quantity per line:
     sweep = x
     benzene.Tm = 278.68 K
     benzene.dHfus = 9.87 kJ/mol
-    activity = vanlaar
+    activity = margules
     A(benzene, naphthalene) = 0.2
     kij(propane, n-butane) = 0.003
     x(L) = 0.3                 (n or n-1 mole fractions, in component order)
@@ -33,7 +33,7 @@ Phi = g z (gravity) or -omega^2 r^2 / 2 (centrifugal); m = sum_i M_i N_i.
     and mu_i, fugacity coefficients, densities follow by differentiation.
   * Vapor pressures, latent heats and melting points give the chemical
     potential of a pure component in each phase (Gibbs-Helmholtz); an
-    optional activity model (Margules, van Laar, NRTL) corrects the liquid
+    optional activity model (Margules, NRTL) corrects the liquid
     for non-ideal mixing. This route needs no critical constants, so it also
     covers components that never vaporize.
   * Each phase has n + 2 + m independent variables; equality of T, P and
@@ -120,7 +120,7 @@ VOCAB = {
     # ---- system definition ----
     ("system", "components"): ("names", None, "component names, comma separated"),
     ("system", "model"): ("word", None, "cubic EOS: vdW, PR or SRK (optional)"),
-    ("system", "activity"): ("word", None, "liquid activity model: ideal (default), margules, vanlaar or nrtl"),
+    ("system", "activity"): ("word", None, "liquid activity model: ideal (default), margules or nrtl"),
     ("system", "phases"): ("word", None, "restrict to one equilibrium: 'L, V' or 'L, S(name)'"),
     ("system", "sweep"): ("word", None, "variable swept to draw a diagram: x, T or P"),
     ("system", "database"): ("word", None, "builtin: fill properties not given here from the built-in database"),
@@ -158,7 +158,7 @@ VOCAB = {
     ("component", "nonvolatile"): ("bool", None, "yes if the component never enters the vapor"),
     # ---- pair data ----
     ("pair", "kij"): ("scalar", "none", "binary interaction parameter for the EOS"),
-    ("pair", "A"): ("scalar", "none", "Margules / van Laar: A(i, j) = ln gamma_i at infinite dilution in j; a number, or a function of T in K such as 0.52 + 160/T"),
+    ("pair", "A"): ("scalar", "none", "Margules: A(i, j) = ln gamma_i at infinite dilution in j; a number, or a function of T in K such as 0.52 + 160/T"),
     ("pair", "dg"): ("scalar", "energy_mol", "NRTL: dg(i, j) = g_ij - g_jj, so tau_ij = dg(i, j)/RT"),
     ("pair", "alpha"): ("scalar", "none", "NRTL non-randomness alpha(i, j) (default 0.3)"),
 }
@@ -168,7 +168,7 @@ MODEL_ALIASES = {"vdw": "vdW", "vanderwaals": "vdW", "van der waals": "vdW",
                  "srk": "SRK", "soave": "SRK", "soaveredlichkwong": "SRK",
                  "soave-redlich-kwong": "SRK"}
 ACTIVITY_ALIASES = {"ideal": "ideal", "none": "ideal", "margules": "margules",
-                    "vanlaar": "vanlaar", "van laar": "vanlaar", "nrtl": "nrtl"}
+                    "nrtl": "nrtl"}
 ORDERED_PAIR = {"A", "dg"}           # value depends on the order (i, j)
 PAIR_QTYS = {"kij", "A", "dg", "alpha"}
 FIELD_ALIASES = {"gravity": "gravity", "gravitational": "gravity",
@@ -210,7 +210,7 @@ def compile_relation(expr, variables):
 
 
 class TFunction:
-    """A parameter written as a function of temperature, e.g. the van Laar
+    """A parameter written as a function of temperature, e.g. the Margules
     'A(ethanol, water) = -0.0065 + 598.8/T' (T in K). Calling it gives the value."""
 
     def __init__(self, expr):
@@ -331,7 +331,7 @@ def parse_input(text):
                 k = raw.lower().strip()
                 if k not in ACTIVITY_ALIASES:
                     raise ValueError(f"unknown activity model '{raw}' "
-                                     f"(use ideal, margules, vanlaar or nrtl)")
+                                     f"(use ideal, margules or nrtl)")
                 inp.activity = ACTIVITY_ALIASES[k]
             elif qty == "field":
                 k = raw.lower().strip()
@@ -588,7 +588,6 @@ def eos_route(inp):
 
 ACTIVITY_LABEL = {"ideal": "ideal solution (gamma = 1)",
                   "margules": "two-parameter Margules activity model",
-                  "vanlaar": "van Laar activity model",
                   "nrtl": "NRTL activity model"}
 
 
@@ -599,7 +598,7 @@ def activity_check(inp):
     if model == "ideal":
         return missing, notes
     for ci, cj in combinations(inp.components, 2):
-        if model in ("margules", "vanlaar"):
+        if model == "margules":
             for a, b in ((ci, cj), (cj, ci)):
                 if "A" not in inp.opairs.get((a, b), {}):
                     missing.append(f"A({a}, {b}) for the {model} model "
@@ -907,13 +906,13 @@ def _antoine_range_notes(inp, comps):
 
 def _global_checks(inp, errors, warnings):
     n = len(inp.components)
-    if inp.activity in ("margules", "vanlaar") and n > 2:
+    if inp.activity == "margules" and n > 2:
         errors.append(f"the {inp.activity} model is for binary mixtures; use "
                       f"activity = nrtl for {n} components")
     if inp.activity == "ideal" and (inp.opairs or any(
             q in v for v in inp.pairs.values() for q in ("alpha",))):
         warnings.append("activity-model parameters given but activity = ideal; "
-                        "they are ignored (set activity = margules, vanlaar or nrtl)")
+                        "they are ignored (set activity = margules or nrtl)")
     if inp.T is not None and inp.T <= 0:
         errors.append("temperature must be above 0 K")
     if inp.P is not None and inp.P <= 0:
@@ -1194,11 +1193,11 @@ water.M = 18.015 g/mol
 ethanol.V_L = 58.7 cm3/mol
 water.V_L = 18.07 cm3/mol
 """,
-    "8. Ethanol / water at 1 atm, van Laar activity model": """
+    "8. Ethanol / water at 1 atm, Margules activity model": """
 components = ethanol, water
 P = 1 atm
 sweep = x
-activity = vanlaar
+activity = margules
 A(ethanol, water) = 1.6798
 A(water, ethanol) = 0.9227
 ethanol.Psat = exp(16.8958 - 3795.17/(T - 273.15 + 230.918)) [kPa, K]

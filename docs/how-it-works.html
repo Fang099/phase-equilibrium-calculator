@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=e8b4414c8e">
+<link rel="stylesheet" href="assets/site.css?v=a678d0667f">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -187,7 +187,7 @@
 <span class="ln" data-n="160"></span>    <span class="tk">return</span> k</code></pre></figure>
         <p>A line such as <code>kij(a, b) = 0.12 + 5/T</code> works the same way: the parser keeps any formula in \(T\) as a <code>TFunction</code>, read with the same safe formula reader used for a typed vapor-pressure relation:</p>
 <figure class="code"><figcaption><span class="code-name">TFunction</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/input_checker.py#L212-L225"><code>input_checker.py</code>, lines 212–225</a></figcaption><pre><code><span class="ln" data-n="212"></span><span class="tk">class</span> <span class="tf">TFunction</span>:
-<span class="ln" data-n="213"></span>    <span class="ts">"""A parameter written as a function of temperature, e.g. the van Laar</span>
+<span class="ln" data-n="213"></span>    <span class="ts">"""A parameter written as a function of temperature, e.g. the Margules</span>
 <span class="ln" data-n="214"></span><span class="ts">    'A(ethanol, water) = -0.0065 + 598.8/T' (T in K). Calling it gives the value."""</span>
 <span class="ln" data-n="215"></span>
 <span class="ln" data-n="216"></span>    <span class="tk">def</span> <span class="tf">__init__</span>(<span class="tv">self</span>, expr):
@@ -202,41 +202,41 @@
 <span class="ln" data-n="225"></span>        <span class="tk">return</span> <span class="tv">self</span>.expr</code></pre></figure>
         <h3>The phase rule</h3>
         <p>With \(n\) compounds, \(\pi = 2\) phases and \(m\) field variables, \(F = n + 2 + m - \pi\). The checker counts what the file fixes (temperature, pressure, a swept composition, a given phase composition) and compares:</p>
-<figure class="code"><figcaption><span class="code-name">input_checker.evaluate (degrees of freedom)</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/input_checker.py#L845-L859"><code>input_checker.py</code>, lines 845–859</a></figcaption><pre><code><span class="ln" data-n="845"></span>dof = n + <span class="tn">2</span> + m - <span class="tn">2</span>
-<span class="ln" data-n="846"></span>state = has[<span class="ts">"T"</span>] + has[<span class="ts">"P"</span>] + sweep_n + (n - <span class="tn">1</span>) * has[<span class="ts">"L"</span>]
-<span class="ln" data-n="847"></span><span class="tk">if</span> has[<span class="ts">"V"</span>]:
-<span class="ln" data-n="848"></span>    <span class="tk">if</span> is_sle:
-<span class="ln" data-n="849"></span>        res.notes.append(<span class="ts">"vapor composition ignored for solid-liquid equilibrium"</span>)
-<span class="ln" data-n="850"></span>    <span class="tk">elif</span> n_vap &gt; <span class="tn">1</span>:
-<span class="ln" data-n="851"></span>        state += n_vap - <span class="tn">1</span>
-<span class="ln" data-n="852"></span>    <span class="tk">else</span>:
-<span class="ln" data-n="853"></span>        res.notes.append(<span class="ts">f"</span><span class="ts">vapor is pure </span>{vapor_comps[<span class="tn">0</span>]}<span class="ts">; its composition </span><span class="ts">"</span>
-<span class="ln" data-n="854"></span>                         <span class="ts">f"</span><span class="ts">is not an independent variable</span><span class="ts">"</span>)
-<span class="ln" data-n="855"></span><span class="tk">if</span> has[<span class="ts">"beta"</span>]:
-<span class="ln" data-n="856"></span>    res.notes.append(<span class="ts">"vapor fraction is ignored without a feed composition z"</span>)
-<span class="ln" data-n="857"></span>res.dof_line = (<span class="ts">f"</span><span class="ts">F = n + 2 + m - pi = </span>{n}<span class="ts"> + 2 + </span>{m}<span class="ts"> - 2 = </span>{dof}<span class="ts">; </span><span class="ts">"</span>
-<span class="ln" data-n="858"></span>                <span class="ts">f"</span><span class="ts">specified </span>{state + field_given}<span class="ts">"</span>
-<span class="ln" data-n="859"></span>                + (<span class="ts">" (incl. swept variable)"</span> <span class="tk">if</span> sweep_n <span class="tk">else</span> <span class="ts">""</span>))</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">input_checker.evaluate (degrees of freedom)</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/input_checker.py#L844-L858"><code>input_checker.py</code>, lines 844–858</a></figcaption><pre><code><span class="ln" data-n="844"></span>dof = n + <span class="tn">2</span> + m - <span class="tn">2</span>
+<span class="ln" data-n="845"></span>state = has[<span class="ts">"T"</span>] + has[<span class="ts">"P"</span>] + sweep_n + (n - <span class="tn">1</span>) * has[<span class="ts">"L"</span>]
+<span class="ln" data-n="846"></span><span class="tk">if</span> has[<span class="ts">"V"</span>]:
+<span class="ln" data-n="847"></span>    <span class="tk">if</span> is_sle:
+<span class="ln" data-n="848"></span>        res.notes.append(<span class="ts">"vapor composition ignored for solid-liquid equilibrium"</span>)
+<span class="ln" data-n="849"></span>    <span class="tk">elif</span> n_vap &gt; <span class="tn">1</span>:
+<span class="ln" data-n="850"></span>        state += n_vap - <span class="tn">1</span>
+<span class="ln" data-n="851"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="852"></span>        res.notes.append(<span class="ts">f"</span><span class="ts">vapor is pure </span>{vapor_comps[<span class="tn">0</span>]}<span class="ts">; its composition </span><span class="ts">"</span>
+<span class="ln" data-n="853"></span>                         <span class="ts">f"</span><span class="ts">is not an independent variable</span><span class="ts">"</span>)
+<span class="ln" data-n="854"></span><span class="tk">if</span> has[<span class="ts">"beta"</span>]:
+<span class="ln" data-n="855"></span>    res.notes.append(<span class="ts">"vapor fraction is ignored without a feed composition z"</span>)
+<span class="ln" data-n="856"></span>res.dof_line = (<span class="ts">f"</span><span class="ts">F = n + 2 + m - pi = </span>{n}<span class="ts"> + 2 + </span>{m}<span class="ts"> - 2 = </span>{dof}<span class="ts">; </span><span class="ts">"</span>
+<span class="ln" data-n="857"></span>                <span class="ts">f"</span><span class="ts">specified </span>{state + field_given}<span class="ts">"</span>
+<span class="ln" data-n="858"></span>                + (<span class="ts">" (incl. swept variable)"</span> <span class="tk">if</span> sweep_n <span class="tk">else</span> <span class="ts">""</span>))</code></pre></figure>
         <p>Here \(F = 2 + 2 - 2 = 2\): the pressure is given and the composition is swept, so the problem is exactly specified. The comparison decides the verdict (when the count matches, the status is SUFFICIENT unless a property is missing):</p>
-<figure class="code"><figcaption><span class="code-name">input_checker.evaluate (verdict)</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/input_checker.py#L861-L879"><code>input_checker.py</code>, lines 861–879</a></figcaption><pre><code><span class="ln" data-n="861"></span>state_dof = dof - m
-<span class="ln" data-n="862"></span><span class="tk">if</span> res.errors:
-<span class="ln" data-n="863"></span>    res.status = <span class="ts">"INVALID"</span>
-<span class="ln" data-n="864"></span><span class="tk">elif</span> state &lt; state_dof:
-<span class="ln" data-n="865"></span>    res.status = <span class="ts">"INSUFFICIENT"</span>
-<span class="ln" data-n="866"></span>    res.missing.insert(<span class="tn">0</span>, <span class="ts">f"</span>{state_dof - state}<span class="ts"> more state variable(s)</span><span class="ts">"</span>)
-<span class="ln" data-n="867"></span>    <span class="tk">if</span> is_sle:
-<span class="ln" data-n="868"></span>        res.options = [<span class="ts">"P and x(L) -&gt; temperature at which the solid forms"</span>,
-<span class="ln" data-n="869"></span>                       <span class="ts">"P and T -&gt; saturated liquid composition"</span>,
-<span class="ln" data-n="870"></span>                       <span class="ts">"P and sweep = x -&gt; full solid-liquid curve"</span>]
-<span class="ln" data-n="871"></span>    <span class="tk">elif</span> has[<span class="ts">"z"</span>]:
-<span class="ln" data-n="872"></span>        res.options = [<span class="ts">"any two of T, P, beta (with z) -&gt; flash"</span>]
-<span class="ln" data-n="873"></span>    <span class="tk">else</span>:
-<span class="ln" data-n="874"></span>        res.options = [<span class="ts">"T and x(L) -&gt; bubble P"</span>, <span class="ts">"P and x(L) -&gt; bubble T"</span>,
-<span class="ln" data-n="875"></span>                       <span class="ts">"T and x(V) -&gt; dew P"</span>, <span class="ts">"P and x(V) -&gt; dew T"</span>,
-<span class="ln" data-n="876"></span>                       <span class="ts">"T (or P) and sweep = x -&gt; Pxy (Txy) diagram"</span>,
-<span class="ln" data-n="877"></span>                       <span class="ts">"T, P and z -&gt; flash"</span>]
-<span class="ln" data-n="878"></span><span class="tk">elif</span> state &gt; state_dof:
-<span class="ln" data-n="879"></span>    res.status = <span class="ts">"OVERSPECIFIED"</span></code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">input_checker.evaluate (verdict)</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/input_checker.py#L860-L878"><code>input_checker.py</code>, lines 860–878</a></figcaption><pre><code><span class="ln" data-n="860"></span>state_dof = dof - m
+<span class="ln" data-n="861"></span><span class="tk">if</span> res.errors:
+<span class="ln" data-n="862"></span>    res.status = <span class="ts">"INVALID"</span>
+<span class="ln" data-n="863"></span><span class="tk">elif</span> state &lt; state_dof:
+<span class="ln" data-n="864"></span>    res.status = <span class="ts">"INSUFFICIENT"</span>
+<span class="ln" data-n="865"></span>    res.missing.insert(<span class="tn">0</span>, <span class="ts">f"</span>{state_dof - state}<span class="ts"> more state variable(s)</span><span class="ts">"</span>)
+<span class="ln" data-n="866"></span>    <span class="tk">if</span> is_sle:
+<span class="ln" data-n="867"></span>        res.options = [<span class="ts">"P and x(L) -&gt; temperature at which the solid forms"</span>,
+<span class="ln" data-n="868"></span>                       <span class="ts">"P and T -&gt; saturated liquid composition"</span>,
+<span class="ln" data-n="869"></span>                       <span class="ts">"P and sweep = x -&gt; full solid-liquid curve"</span>]
+<span class="ln" data-n="870"></span>    <span class="tk">elif</span> has[<span class="ts">"z"</span>]:
+<span class="ln" data-n="871"></span>        res.options = [<span class="ts">"any two of T, P, beta (with z) -&gt; flash"</span>]
+<span class="ln" data-n="872"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="873"></span>        res.options = [<span class="ts">"T and x(L) -&gt; bubble P"</span>, <span class="ts">"P and x(L) -&gt; bubble T"</span>,
+<span class="ln" data-n="874"></span>                       <span class="ts">"T and x(V) -&gt; dew P"</span>, <span class="ts">"P and x(V) -&gt; dew T"</span>,
+<span class="ln" data-n="875"></span>                       <span class="ts">"T (or P) and sweep = x -&gt; Pxy (Txy) diagram"</span>,
+<span class="ln" data-n="876"></span>                       <span class="ts">"T, P and z -&gt; flash"</span>]
+<span class="ln" data-n="877"></span><span class="tk">elif</span> state &gt; state_dof:
+<span class="ln" data-n="878"></span>    res.status = <span class="ts">"OVERSPECIFIED"</span></code></pre></figure>
         <p>The verdict is one of four words. <b>SUFFICIENT</b> means it can be solved. <b>INSUFFICIENT</b> lists what is missing. <b>OVERSPECIFIED</b> says how many variables to remove. <b>INVALID</b> points at a mistake in the input. This is the actual report for the request above:</p>
         <pre id="walk-report"></pre>
       </section>
@@ -259,92 +259,92 @@
 
         <h3>Activity route (this example)</h3>
         <p>The liquid fugacity is the table's first row, one line of code:</p>
-<figure class="code"><figcaption><span class="code-name">SolutionLiquid.ln_f</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L448-L449"><code>thermo_models.py</code>, lines 448–449</a></figcaption><pre><code><span class="ln" data-n="448"></span><span class="tk">def</span> <span class="tf">ln_f</span>(<span class="tv">self</span>, T, P, x):
-<span class="ln" data-n="449"></span>    <span class="tk">return</span> _safe_log(x) + <span class="tv">self</span>.ln_gamma(T, x) + <span class="tv">self</span>.ln_f0(T, P)</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">SolutionLiquid.ln_f</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L413-L414"><code>thermo_models.py</code>, lines 413–414</a></figcaption><pre><code><span class="ln" data-n="413"></span><span class="tk">def</span> <span class="tf">ln_f</span>(<span class="tv">self</span>, T, P, x):
+<span class="ln" data-n="414"></span>    <span class="tk">return</span> _safe_log(x) + <span class="tv">self</span>.ln_gamma(T, x) + <span class="tv">self</span>.ln_f0(T, P)</code></pre></figure>
         <p>The pure-liquid fugacity \(f_i^{L}\) is the vapor pressure from the Antoine equation, times the Poynting correction \(\exp[V_i^{L}(P - P_i^{\mathrm{sat}})/RT]\) when a liquid volume is given. It is computed in logarithms so that very low vapor pressures do not underflow:</p>
-<figure class="code"><figcaption><span class="code-name">SolutionLiquid.ln_f0</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L438-L443"><code>thermo_models.py</code>, lines 438–443</a></figcaption><pre><code><span class="ln" data-n="438"></span>out = np.zeros(len(<span class="tv">self</span>.names))
-<span class="ln" data-n="439"></span><span class="tk">for</span> i, p <span class="tk">in</span> enumerate(<span class="tv">self</span>.props):
-<span class="ln" data-n="440"></span>    VL = p.get(<span class="ts">"V_L"</span>, <span class="tn">0.0</span>)
-<span class="ln" data-n="441"></span>    <span class="tk">if</span> <span class="tv">self</span>.absolute[i]:
-<span class="ln" data-n="442"></span>        lps = ln_psat(p, T)          <span class="tc"># log form: no underflow at low T</span>
-<span class="ln" data-n="443"></span>        out[i] = lps + VL * (P - math.exp(lps)) / (R * T)    <span class="tc"># Poynting</span></code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">SolutionLiquid.ln_f0</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L403-L408"><code>thermo_models.py</code>, lines 403–408</a></figcaption><pre><code><span class="ln" data-n="403"></span>out = np.zeros(len(<span class="tv">self</span>.names))
+<span class="ln" data-n="404"></span><span class="tk">for</span> i, p <span class="tk">in</span> enumerate(<span class="tv">self</span>.props):
+<span class="ln" data-n="405"></span>    VL = p.get(<span class="ts">"V_L"</span>, <span class="tn">0.0</span>)
+<span class="ln" data-n="406"></span>    <span class="tk">if</span> <span class="tv">self</span>.absolute[i]:
+<span class="ln" data-n="407"></span>        lps = ln_psat(p, T)          <span class="tc"># log form: no underflow at low T</span>
+<span class="ln" data-n="408"></span>        out[i] = lps + VL * (P - math.exp(lps)) / (R * T)    <span class="tc"># Poynting</span></code></pre></figure>
         <p>The vapor on this route is an ideal gas, \(\hat f_i = y_i P\). A compound marked non-volatile gets \(\ln \hat f_i = -\infty\), so it never enters the vapor:</p>
-<figure class="code"><figcaption><span class="code-name">IdealGasPhase.ln_f</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L311-L313"><code>thermo_models.py</code>, lines 311–313</a></figcaption><pre><code><span class="ln" data-n="311"></span><span class="tk">def</span> <span class="tf">ln_f</span>(<span class="tv">self</span>, T, P, x):
-<span class="ln" data-n="312"></span>    lf = _safe_log(x) + math.log(P)
-<span class="ln" data-n="313"></span>    <span class="tk">return</span> np.where(<span class="tv">self</span>.present, lf, -np.inf)</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">IdealGasPhase.ln_f</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L310-L312"><code>thermo_models.py</code>, lines 310–312</a></figcaption><pre><code><span class="ln" data-n="310"></span><span class="tk">def</span> <span class="tf">ln_f</span>(<span class="tv">self</span>, T, P, x):
+<span class="ln" data-n="311"></span>    lf = _safe_log(x) + math.log(P)
+<span class="ln" data-n="312"></span>    <span class="tk">return</span> np.where(<span class="tv">self</span>.present, lf, -np.inf)</code></pre></figure>
         <p>\(\ln\gamma_i\) comes from the activity model. NRTL is written for any number of compounds with matrices. <code>_tg</code> gives \(\tau_{ij} = \Delta g_{ij}/RT\) and \(G_{ij} = \exp(-\alpha_{ij}\tau_{ij})\); <code>ln_gamma</code> is the general NRTL expression, with the two sums built by matrix products:</p>
-<figure class="code"><figcaption><span class="code-name">NRTL._tg</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L396-L398"><code>thermo_models.py</code>, lines 396–398</a></figcaption><pre><code><span class="ln" data-n="396"></span><span class="tk">def</span> <span class="tf">_tg</span>(<span class="tv">self</span>, T):
-<span class="ln" data-n="397"></span>    tau = <span class="tv">self</span>.dg / (R * T)
-<span class="ln" data-n="398"></span>    <span class="tk">return</span> tau, np.exp(-<span class="tv">self</span>.alpha * tau)</code></pre></figure>
-<figure class="code"><figcaption><span class="code-name">NRTL.ln_gamma</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L407-L414"><code>thermo_models.py</code>, lines 407–414</a></figcaption><pre><code><span class="ln" data-n="407"></span><span class="tk">def</span> <span class="tf">ln_gamma</span>(<span class="tv">self</span>, T, x):
-<span class="ln" data-n="408"></span>    x = np.asarray(x, float)
-<span class="ln" data-n="409"></span>    tau, G = <span class="tv">self</span>._tg(T)
-<span class="ln" data-n="410"></span>    den = G.T @ x                     <span class="tc"># den_j = sum_k x_k G_kj</span>
-<span class="ln" data-n="411"></span>    num = (tau * G).T @ x             <span class="tc"># num_j = sum_m x_m tau_mj G_mj</span>
-<span class="ln" data-n="412"></span>    term1 = num / den
-<span class="ln" data-n="413"></span>    term2 = (G * (tau - term1[<span class="tk">None</span>, :])) @ (x / den)
-<span class="ln" data-n="414"></span>    <span class="tk">return</span> term1 + term2</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">NRTL._tg</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L361-L363"><code>thermo_models.py</code>, lines 361–363</a></figcaption><pre><code><span class="ln" data-n="361"></span><span class="tk">def</span> <span class="tf">_tg</span>(<span class="tv">self</span>, T):
+<span class="ln" data-n="362"></span>    tau = <span class="tv">self</span>.dg / (R * T)
+<span class="ln" data-n="363"></span>    <span class="tk">return</span> tau, np.exp(-<span class="tv">self</span>.alpha * tau)</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">NRTL.ln_gamma</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L372-L379"><code>thermo_models.py</code>, lines 372–379</a></figcaption><pre><code><span class="ln" data-n="372"></span><span class="tk">def</span> <span class="tf">ln_gamma</span>(<span class="tv">self</span>, T, x):
+<span class="ln" data-n="373"></span>    x = np.asarray(x, float)
+<span class="ln" data-n="374"></span>    tau, G = <span class="tv">self</span>._tg(T)
+<span class="ln" data-n="375"></span>    den = G.T @ x                     <span class="tc"># den_j = sum_k x_k G_kj</span>
+<span class="ln" data-n="376"></span>    num = (tau * G).T @ x             <span class="tc"># num_j = sum_m x_m tau_mj G_mj</span>
+<span class="ln" data-n="377"></span>    term1 = num / den
+<span class="ln" data-n="378"></span>    term2 = (G * (tau - term1[<span class="tk">None</span>, :])) @ (x / den)
+<span class="ln" data-n="379"></span>    <span class="tk">return</span> term1 + term2</code></pre></figure>
         <p>Each model also has <code>ge_rt</code>, \(G^{E}/RT\). The tests differentiate \(nG^{E}/RT\) numerically and check that it reproduces <code>ln_gamma</code>, so the two cannot disagree.</p>
 
         <h3>Equation-of-state route</h3>
         <p><code>CubicEOS</code> stores van der Waals, SRK and Peng–Robinson as one residual Helmholtz energy with two constants:</p>
         \[ \frac{A^{\mathrm{res}}}{NRT} = -\ln\!\left(1-\frac{b}{v}\right) - \frac{a}{bRT(\delta_1-\delta_2)}\,\ln\frac{v+\delta_1 b}{v+\delta_2 b} . \]
         <p>This is the fundamental equation the project starts from, in code. With mixture totals \(D = n^2 a_{\mathrm{mix}}\) and \(B = n\,b_{\mathrm{mix}}\):</p>
-<figure class="code"><figcaption><span class="code-name">CubicEOS.helmholtz_res</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L185-L191"><code>thermo_models.py</code>, lines 185–191</a></figcaption><pre><code><span class="ln" data-n="185"></span><span class="tk">def</span> <span class="tf">helmholtz_res</span>(<span class="tv">self</span>, T, V, n):
-<span class="ln" data-n="186"></span>    <span class="ts">"""Residual Helmholtz energy A_res(T, V, n) in J (V in m3, n in mol)."""</span>
-<span class="ln" data-n="187"></span>    n = np.asarray(n, float)
-<span class="ln" data-n="188"></span>    D, _, B = <span class="tv">self</span>.mix(T, n)
-<span class="ln" data-n="189"></span>    ntot = n.sum()
-<span class="ln" data-n="190"></span>    F = -ntot * math.log(<span class="tn">1</span> - B / V) - D / (R * T * B) * <span class="tv">self</span>._log_term(V, B)
-<span class="ln" data-n="191"></span>    <span class="tk">return</span> R * T * F</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">CubicEOS.helmholtz_res</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L184-L190"><code>thermo_models.py</code>, lines 184–190</a></figcaption><pre><code><span class="ln" data-n="184"></span><span class="tk">def</span> <span class="tf">helmholtz_res</span>(<span class="tv">self</span>, T, V, n):
+<span class="ln" data-n="185"></span>    <span class="ts">"""Residual Helmholtz energy A_res(T, V, n) in J (V in m3, n in mol)."""</span>
+<span class="ln" data-n="186"></span>    n = np.asarray(n, float)
+<span class="ln" data-n="187"></span>    D, _, B = <span class="tv">self</span>.mix(T, n)
+<span class="ln" data-n="188"></span>    ntot = n.sum()
+<span class="ln" data-n="189"></span>    F = -ntot * math.log(<span class="tn">1</span> - B / V) - D / (R * T * B) * <span class="tv">self</span>._log_term(V, B)
+<span class="ln" data-n="190"></span>    <span class="tk">return</span> R * T * F</code></pre></figure>
         <p>Everything else is a derivative of this function. Pressure is \(P = -(\partial A/\partial V)_{T,n}\), and the fugacity coefficient is \(\ln\hat\varphi_i = \partial(A^{\mathrm{res}}/RT)/\partial n_i - \ln Z\), written out analytically:</p>
-<figure class="code"><figcaption><span class="code-name">CubicEOS.ln_phi_TV</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L200-L220"><code>thermo_models.py</code>, lines 200–220</a></figcaption><pre><code><span class="ln" data-n="200"></span><span class="tk">def</span> <span class="tf">ln_phi_TV</span>(<span class="tv">self</span>, T, V, n, _mix=<span class="tk">None</span>):
-<span class="ln" data-n="201"></span>    <span class="ts">"""ln phi_i = d(A_res/RT)/dn_i - ln Z, analytic derivatives."""</span>
-<span class="ln" data-n="202"></span>    n = np.asarray(n, float)
-<span class="ln" data-n="203"></span>    <span class="tk">if</span> _mix <span class="tk">is</span> <span class="tk">None</span>:
-<span class="ln" data-n="204"></span>        _mix = <span class="tv">self</span>.mix(T, n)
-<span class="ln" data-n="205"></span>    D, Di, B = _mix
-<span class="ln" data-n="206"></span>    ntot = n.sum()
-<span class="ln" data-n="207"></span>    b = <span class="tv">self</span>.b
-<span class="ln" data-n="208"></span>    P = <span class="tv">self</span>.pressure(T, V, n, _mix)
-<span class="ln" data-n="209"></span>    Z = P * V / (ntot * R * T)
-<span class="ln" data-n="210"></span>    dF1 = -math.log(<span class="tn">1</span> - B / V) + ntot * b / (V - B)
-<span class="ln" data-n="211"></span>    <span class="tk">if</span> <span class="tv">self</span>.model == <span class="ts">"vdW"</span>:
-<span class="ln" data-n="212"></span>        dF2 = -Di / (R * T * V)
-<span class="ln" data-n="213"></span>    <span class="tk">else</span>:
-<span class="ln" data-n="214"></span>        d1, d2 = <span class="tv">self</span>.d1, <span class="tv">self</span>.d2
-<span class="ln" data-n="215"></span>        g = <span class="tv">self</span>._log_term(V, B)
-<span class="ln" data-n="216"></span>        <span class="tc"># d/dn_i of g = b_i (d1/(V+d1B) - d2/(V+d2B)) / (d1 - d2)</span>
-<span class="ln" data-n="217"></span>        dln = b * (d1 / (V + d1 * B) - d2 / (V + d2 * B)) / (d1 - d2)
-<span class="ln" data-n="218"></span>        dF2 = -(Di / (R * T * B) - D * b / (R * T * B ** <span class="tn">2</span>)) * g \
-<span class="ln" data-n="219"></span>              - D / (R * T * B) * dln
-<span class="ln" data-n="220"></span>    <span class="tk">return</span> dF1 + dF2 - math.log(Z)</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">CubicEOS.ln_phi_TV</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L199-L219"><code>thermo_models.py</code>, lines 199–219</a></figcaption><pre><code><span class="ln" data-n="199"></span><span class="tk">def</span> <span class="tf">ln_phi_TV</span>(<span class="tv">self</span>, T, V, n, _mix=<span class="tk">None</span>):
+<span class="ln" data-n="200"></span>    <span class="ts">"""ln phi_i = d(A_res/RT)/dn_i - ln Z, analytic derivatives."""</span>
+<span class="ln" data-n="201"></span>    n = np.asarray(n, float)
+<span class="ln" data-n="202"></span>    <span class="tk">if</span> _mix <span class="tk">is</span> <span class="tk">None</span>:
+<span class="ln" data-n="203"></span>        _mix = <span class="tv">self</span>.mix(T, n)
+<span class="ln" data-n="204"></span>    D, Di, B = _mix
+<span class="ln" data-n="205"></span>    ntot = n.sum()
+<span class="ln" data-n="206"></span>    b = <span class="tv">self</span>.b
+<span class="ln" data-n="207"></span>    P = <span class="tv">self</span>.pressure(T, V, n, _mix)
+<span class="ln" data-n="208"></span>    Z = P * V / (ntot * R * T)
+<span class="ln" data-n="209"></span>    dF1 = -math.log(<span class="tn">1</span> - B / V) + ntot * b / (V - B)
+<span class="ln" data-n="210"></span>    <span class="tk">if</span> <span class="tv">self</span>.model == <span class="ts">"vdW"</span>:
+<span class="ln" data-n="211"></span>        dF2 = -Di / (R * T * V)
+<span class="ln" data-n="212"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="213"></span>        d1, d2 = <span class="tv">self</span>.d1, <span class="tv">self</span>.d2
+<span class="ln" data-n="214"></span>        g = <span class="tv">self</span>._log_term(V, B)
+<span class="ln" data-n="215"></span>        <span class="tc"># d/dn_i of g = b_i (d1/(V+d1B) - d2/(V+d2B)) / (d1 - d2)</span>
+<span class="ln" data-n="216"></span>        dln = b * (d1 / (V + d1 * B) - d2 / (V + d2 * B)) / (d1 - d2)
+<span class="ln" data-n="217"></span>        dF2 = -(Di / (R * T * B) - D * b / (R * T * B ** <span class="tn">2</span>)) * g \
+<span class="ln" data-n="218"></span>              - D / (R * T * B) * dln
+<span class="ln" data-n="219"></span>    <span class="tk">return</span> dF1 + dF2 - math.log(Z)</code></pre></figure>
         <p>To work at a given \(T\) and \(P\), the cubic in \(Z\) is solved in closed form, and the smallest root is taken for a liquid, the largest for a vapor:</p>
-<figure class="code"><figcaption><span class="code-name">CubicEOS._volume</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L242-L252"><code>thermo_models.py</code>, lines 242–252</a></figcaption><pre><code><span class="ln" data-n="242"></span><span class="tk">def</span> <span class="tf">_volume</span>(<span class="tv">self</span>, T, P, x, phase, mixed):
-<span class="ln" data-n="243"></span>    Z = <span class="tv">self</span>.z_roots(T, P, x, mixed)
-<span class="ln" data-n="244"></span>    <span class="tk">if</span> <span class="tk">not</span> Z:
-<span class="ln" data-n="245"></span>        <span class="tk">raise</span> ValueError(<span class="ts">"no physical root of the cubic"</span>)
-<span class="ln" data-n="246"></span>    <span class="tk">if</span> phase == <span class="ts">"liquid"</span>:
-<span class="ln" data-n="247"></span>        z = Z[<span class="tn">0</span>]
-<span class="ln" data-n="248"></span>    <span class="tk">elif</span> phase == <span class="ts">"vapor"</span>:
-<span class="ln" data-n="249"></span>        z = Z[-<span class="tn">1</span>]
-<span class="ln" data-n="250"></span>    <span class="tk">else</span>:
-<span class="ln" data-n="251"></span>        z = min(Z, key=<span class="tk">lambda</span> zz: x @ <span class="tv">self</span>.ln_phi_TV(T, zz * R * T / P, x, mixed))
-<span class="ln" data-n="252"></span>    <span class="tk">return</span> z * R * T / P</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">CubicEOS._volume</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L241-L251"><code>thermo_models.py</code>, lines 241–251</a></figcaption><pre><code><span class="ln" data-n="241"></span><span class="tk">def</span> <span class="tf">_volume</span>(<span class="tv">self</span>, T, P, x, phase, mixed):
+<span class="ln" data-n="242"></span>    Z = <span class="tv">self</span>.z_roots(T, P, x, mixed)
+<span class="ln" data-n="243"></span>    <span class="tk">if</span> <span class="tk">not</span> Z:
+<span class="ln" data-n="244"></span>        <span class="tk">raise</span> ValueError(<span class="ts">"no physical root of the cubic"</span>)
+<span class="ln" data-n="245"></span>    <span class="tk">if</span> phase == <span class="ts">"liquid"</span>:
+<span class="ln" data-n="246"></span>        z = Z[<span class="tn">0</span>]
+<span class="ln" data-n="247"></span>    <span class="tk">elif</span> phase == <span class="ts">"vapor"</span>:
+<span class="ln" data-n="248"></span>        z = Z[-<span class="tn">1</span>]
+<span class="ln" data-n="249"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="250"></span>        z = min(Z, key=<span class="tk">lambda</span> zz: x @ <span class="tv">self</span>.ln_phi_TV(T, zz * R * T / P, x, mixed))
+<span class="ln" data-n="251"></span>    <span class="tk">return</span> z * R * T / P</code></pre></figure>
         <p>The mixture parameter \(a\) needs \(a_{ij} = \sqrt{a_i a_j}\,(1-k_{ij})\). A \(k_{ij}\) that is a function of temperature (E-PPR78 or a formula) is evaluated here, once per temperature:</p>
-<figure class="code"><figcaption><span class="code-name">CubicEOS.a_matrix</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L156-L168"><code>thermo_models.py</code>, lines 156–168</a></figcaption><pre><code><span class="ln" data-n="156"></span><span class="tk">def</span> <span class="tf">a_matrix</span>(<span class="tv">self</span>, T):
-<span class="ln" data-n="157"></span>    cached = getattr(<span class="tv">self</span>, <span class="ts">"_a_cache"</span>, <span class="tk">None</span>)
-<span class="ln" data-n="158"></span>    <span class="tk">if</span> cached <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span> <span class="tk">and</span> cached[<span class="tn">0</span>] == T:      <span class="tc"># it depends on T only</span>
-<span class="ln" data-n="159"></span>        <span class="tk">return</span> cached[<span class="tn">1</span>]
-<span class="ln" data-n="160"></span>    a = <span class="tv">self</span>.a_pure(T)
-<span class="ln" data-n="161"></span>    k = <span class="tv">self</span>.kij
-<span class="ln" data-n="162"></span>    <span class="tk">if</span> <span class="tv">self</span>._kfun:
-<span class="ln" data-n="163"></span>        k = k.copy()
-<span class="ln" data-n="164"></span>        <span class="tk">for</span> i, j, f <span class="tk">in</span> <span class="tv">self</span>._kfun:
-<span class="ln" data-n="165"></span>            k[i, j] = f(T)
-<span class="ln" data-n="166"></span>    aij = np.sqrt(np.outer(a, a)) * (<span class="tn">1</span> - k)
-<span class="ln" data-n="167"></span>    <span class="tv">self</span>._a_cache = (T, aij)
-<span class="ln" data-n="168"></span>    <span class="tk">return</span> aij</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">CubicEOS.a_matrix</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L155-L167"><code>thermo_models.py</code>, lines 155–167</a></figcaption><pre><code><span class="ln" data-n="155"></span><span class="tk">def</span> <span class="tf">a_matrix</span>(<span class="tv">self</span>, T):
+<span class="ln" data-n="156"></span>    cached = getattr(<span class="tv">self</span>, <span class="ts">"_a_cache"</span>, <span class="tk">None</span>)
+<span class="ln" data-n="157"></span>    <span class="tk">if</span> cached <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span> <span class="tk">and</span> cached[<span class="tn">0</span>] == T:      <span class="tc"># it depends on T only</span>
+<span class="ln" data-n="158"></span>        <span class="tk">return</span> cached[<span class="tn">1</span>]
+<span class="ln" data-n="159"></span>    a = <span class="tv">self</span>.a_pure(T)
+<span class="ln" data-n="160"></span>    k = <span class="tv">self</span>.kij
+<span class="ln" data-n="161"></span>    <span class="tk">if</span> <span class="tv">self</span>._kfun:
+<span class="ln" data-n="162"></span>        k = k.copy()
+<span class="ln" data-n="163"></span>        <span class="tk">for</span> i, j, f <span class="tk">in</span> <span class="tv">self</span>._kfun:
+<span class="ln" data-n="164"></span>            k[i, j] = f(T)
+<span class="ln" data-n="165"></span>    aij = np.sqrt(np.outer(a, a)) * (<span class="tn">1</span> - k)
+<span class="ln" data-n="166"></span>    <span class="tv">self</span>._a_cache = (T, aij)
+<span class="ln" data-n="167"></span>    <span class="tk">return</span> aij</code></pre></figure>
         <p>\(\ln\hat\varphi_i\) is a derivative with respect to \(n_i\) at fixed \(T\) and \(V\), so a temperature-dependent \(k_{ij}\) changes nothing in it. The tests compare the pressure and \(\ln\hat\varphi_i\) with numerical derivatives of <code>helmholtz_res</code>.</p>
       </section>
 
@@ -502,11 +502,11 @@
 
         <h3>External fields</h3>
         <p>In a gravity or centrifugal field the equilibrium condition becomes \(\ln\hat f_i + M_i\Phi/RT = \text{constant}\) along the system. The potential per unit mass:</p>
-<figure class="code"><figcaption><span class="code-name">Field.potential</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L504-L508"><code>thermo_models.py</code>, lines 504–508</a></figcaption><pre><code><span class="ln" data-n="504"></span><span class="tk">def</span> <span class="tf">potential</span>(<span class="tv">self</span>, pos):
-<span class="ln" data-n="505"></span>    <span class="ts">"""Phi(pos) - Phi(reference), J/kg."""</span>
-<span class="ln" data-n="506"></span>    <span class="tk">if</span> <span class="tv">self</span>.kind == <span class="ts">"gravity"</span>:
-<span class="ln" data-n="507"></span>        <span class="tk">return</span> <span class="tv">self</span>.strength * (pos - <span class="tv">self</span>.reference)
-<span class="ln" data-n="508"></span>    <span class="tk">return</span> -<span class="tn">0.5</span> * <span class="tv">self</span>.strength ** <span class="tn">2</span> * (pos ** <span class="tn">2</span> - <span class="tv">self</span>.reference ** <span class="tn">2</span>)</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">Field.potential</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/thermo_models.py#L469-L473"><code>thermo_models.py</code>, lines 469–473</a></figcaption><pre><code><span class="ln" data-n="469"></span><span class="tk">def</span> <span class="tf">potential</span>(<span class="tv">self</span>, pos):
+<span class="ln" data-n="470"></span>    <span class="ts">"""Phi(pos) - Phi(reference), J/kg."""</span>
+<span class="ln" data-n="471"></span>    <span class="tk">if</span> <span class="tv">self</span>.kind == <span class="ts">"gravity"</span>:
+<span class="ln" data-n="472"></span>        <span class="tk">return</span> <span class="tv">self</span>.strength * (pos - <span class="tv">self</span>.reference)
+<span class="ln" data-n="473"></span>    <span class="tk">return</span> -<span class="tn">0.5</span> * <span class="tv">self</span>.strength ** <span class="tn">2</span> * (pos ** <span class="tn">2</span> - <span class="tv">self</span>.reference ** <span class="tn">2</span>)</code></pre></figure>
         <p><code>column_profile()</code> marches along height or radius. At each position it solves for the pressure and composition that put every compound's fugacity on its target:</p>
 <figure class="code"><figcaption><span class="code-name">_solve_at</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/equilibrium_solver.py#L826-L832"><code>equilibrium_solver.py</code>, lines 826–832</a></figcaption><pre><code><span class="ln" data-n="826"></span><span class="tk">def</span> <span class="tf">_solve_at</span>(phase, T, idx, c, n, pos, u0, M, fld):
 <span class="ln" data-n="827"></span>    <span class="ts">"""At one position, solve  ln f_i(T, P, x) = c_i - M_i Phi(pos)/RT  for</span>
@@ -522,38 +522,38 @@
       <section id="pure-code">
         <h2>The pure-fluid module</h2>
         <p>With one compound the input checker takes its own branch, <code>check_pure()</code>: one degree of freedom for two phases, so the calculation follows from what is given (\(T\) only: the vapor pressure; \(P\) only: the boiling temperature; neither: the whole curve; \(T\), \(P\) and a field: the column):</p>
-<figure class="code"><figcaption><span class="code-name">check_pure</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/input_checker.py#L1011-L1042"><code>input_checker.py</code>, lines 1011–1042</a></figcaption><pre><code><span class="ln" data-n="1011"></span>T, P = inp.T, inp.P
-<span class="ln" data-n="1012"></span><span class="tk">if</span> inp.field_kind:
-<span class="ln" data-n="1013"></span>    eq.dof_line = <span class="ts">"F = C + 2 - pi = 1 + 2 - 2 = 1 at each position; T and P at the reference fix the column"</span>
-<span class="ln" data-n="1014"></span>    <span class="tk">if</span> inp.model <span class="tk">is</span> <span class="tk">None</span>:
-<span class="ln" data-n="1015"></span>        missing.append(<span class="ts">"a field needs the densities of both phases: give model = PR, SRK or vdW"</span>)
-<span class="ln" data-n="1016"></span>    <span class="tk">if</span> <span class="ts">"M"</span> <span class="tk">not</span> <span class="tk">in</span> p:
-<span class="ln" data-n="1017"></span>        missing.append(<span class="ts">f"</span>{c}<span class="ts">.M (molar mass, for the potential energy M Phi)</span><span class="ts">"</span>)
-<span class="ln" data-n="1018"></span>    <span class="tk">if</span> T <span class="tk">is</span> <span class="tk">None</span>:
-<span class="ln" data-n="1019"></span>        missing.append(<span class="ts">"T (the column is at uniform temperature)"</span>)
-<span class="ln" data-n="1020"></span>    <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span>:
-<span class="ln" data-n="1021"></span>        missing.append(<span class="ts">"P (pressure at the reference position)"</span>)
-<span class="ln" data-n="1022"></span>    <span class="tk">if</span> inp.field_kind == <span class="ts">"gravity"</span>:
-<span class="ln" data-n="1023"></span>        <span class="tk">if</span> inp.g <span class="tk">is</span> <span class="tk">None</span>:
-<span class="ln" data-n="1024"></span>            missing.append(<span class="ts">"g (m/s2)"</span>)
-<span class="ln" data-n="1025"></span>        <span class="tk">if</span> <span class="tk">not</span> inp.height <span class="tk">or</span> len(inp.height) != <span class="tn">2</span>:
-<span class="ln" data-n="1026"></span>            missing.append(<span class="ts">"height = bottom, top (m)"</span>)
-<span class="ln" data-n="1027"></span>    <span class="tk">else</span>:
-<span class="ln" data-n="1028"></span>        <span class="tk">if</span> inp.omega <span class="tk">is</span> <span class="tk">None</span>:
-<span class="ln" data-n="1029"></span>            missing.append(<span class="ts">"omega (angular velocity, rad/s or rpm)"</span>)
-<span class="ln" data-n="1030"></span>        <span class="tk">if</span> <span class="tk">not</span> inp.radius <span class="tk">or</span> len(inp.radius) != <span class="tn">2</span>:
-<span class="ln" data-n="1031"></span>            missing.append(<span class="ts">"radius = inner, outer (m)"</span>)
-<span class="ln" data-n="1032"></span>    eq.calc = <span class="ts">"pressure, density and phase along the field; the liquid-vapor interface"</span>
-<span class="ln" data-n="1033"></span><span class="tk">else</span>:
-<span class="ln" data-n="1034"></span>    eq.dof_line = <span class="ts">"F = C + 2 - pi = 1 + 2 - 2 = 1"</span>
-<span class="ln" data-n="1035"></span>    <span class="tk">if</span> T <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span> <span class="tk">and</span> P <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>:
-<span class="ln" data-n="1036"></span>        eq.calc = <span class="ts">"the stable phase at T and P (one phase there: F = 2), with Psat(T) for comparison"</span>
-<span class="ln" data-n="1037"></span>    <span class="tk">elif</span> T <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>:
-<span class="ln" data-n="1038"></span>        eq.calc = <span class="ts">"vapor pressure at T, with the coexisting densities"</span>
-<span class="ln" data-n="1039"></span>    <span class="tk">elif</span> P <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>:
-<span class="ln" data-n="1040"></span>        eq.calc = <span class="ts">"boiling temperature at P"</span>
-<span class="ln" data-n="1041"></span>    <span class="tk">else</span>:
-<span class="ln" data-n="1042"></span>        eq.calc = <span class="ts">"vapor-pressure curve up to the critical point"</span></code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">check_pure</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/input_checker.py#L1010-L1041"><code>input_checker.py</code>, lines 1010–1041</a></figcaption><pre><code><span class="ln" data-n="1010"></span>T, P = inp.T, inp.P
+<span class="ln" data-n="1011"></span><span class="tk">if</span> inp.field_kind:
+<span class="ln" data-n="1012"></span>    eq.dof_line = <span class="ts">"F = C + 2 - pi = 1 + 2 - 2 = 1 at each position; T and P at the reference fix the column"</span>
+<span class="ln" data-n="1013"></span>    <span class="tk">if</span> inp.model <span class="tk">is</span> <span class="tk">None</span>:
+<span class="ln" data-n="1014"></span>        missing.append(<span class="ts">"a field needs the densities of both phases: give model = PR, SRK or vdW"</span>)
+<span class="ln" data-n="1015"></span>    <span class="tk">if</span> <span class="ts">"M"</span> <span class="tk">not</span> <span class="tk">in</span> p:
+<span class="ln" data-n="1016"></span>        missing.append(<span class="ts">f"</span>{c}<span class="ts">.M (molar mass, for the potential energy M Phi)</span><span class="ts">"</span>)
+<span class="ln" data-n="1017"></span>    <span class="tk">if</span> T <span class="tk">is</span> <span class="tk">None</span>:
+<span class="ln" data-n="1018"></span>        missing.append(<span class="ts">"T (the column is at uniform temperature)"</span>)
+<span class="ln" data-n="1019"></span>    <span class="tk">if</span> P <span class="tk">is</span> <span class="tk">None</span>:
+<span class="ln" data-n="1020"></span>        missing.append(<span class="ts">"P (pressure at the reference position)"</span>)
+<span class="ln" data-n="1021"></span>    <span class="tk">if</span> inp.field_kind == <span class="ts">"gravity"</span>:
+<span class="ln" data-n="1022"></span>        <span class="tk">if</span> inp.g <span class="tk">is</span> <span class="tk">None</span>:
+<span class="ln" data-n="1023"></span>            missing.append(<span class="ts">"g (m/s2)"</span>)
+<span class="ln" data-n="1024"></span>        <span class="tk">if</span> <span class="tk">not</span> inp.height <span class="tk">or</span> len(inp.height) != <span class="tn">2</span>:
+<span class="ln" data-n="1025"></span>            missing.append(<span class="ts">"height = bottom, top (m)"</span>)
+<span class="ln" data-n="1026"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="1027"></span>        <span class="tk">if</span> inp.omega <span class="tk">is</span> <span class="tk">None</span>:
+<span class="ln" data-n="1028"></span>            missing.append(<span class="ts">"omega (angular velocity, rad/s or rpm)"</span>)
+<span class="ln" data-n="1029"></span>        <span class="tk">if</span> <span class="tk">not</span> inp.radius <span class="tk">or</span> len(inp.radius) != <span class="tn">2</span>:
+<span class="ln" data-n="1030"></span>            missing.append(<span class="ts">"radius = inner, outer (m)"</span>)
+<span class="ln" data-n="1031"></span>    eq.calc = <span class="ts">"pressure, density and phase along the field; the liquid-vapor interface"</span>
+<span class="ln" data-n="1032"></span><span class="tk">else</span>:
+<span class="ln" data-n="1033"></span>    eq.dof_line = <span class="ts">"F = C + 2 - pi = 1 + 2 - 2 = 1"</span>
+<span class="ln" data-n="1034"></span>    <span class="tk">if</span> T <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span> <span class="tk">and</span> P <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>:
+<span class="ln" data-n="1035"></span>        eq.calc = <span class="ts">"the stable phase at T and P (one phase there: F = 2), with Psat(T) for comparison"</span>
+<span class="ln" data-n="1036"></span>    <span class="tk">elif</span> T <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>:
+<span class="ln" data-n="1037"></span>        eq.calc = <span class="ts">"vapor pressure at T, with the coexisting densities"</span>
+<span class="ln" data-n="1038"></span>    <span class="tk">elif</span> P <span class="tk">is</span> <span class="tk">not</span> <span class="tk">None</span>:
+<span class="ln" data-n="1039"></span>        eq.calc = <span class="ts">"boiling temperature at P"</span>
+<span class="ln" data-n="1040"></span>    <span class="tk">else</span>:
+<span class="ln" data-n="1041"></span>        eq.calc = <span class="ts">"vapor-pressure curve up to the critical point"</span></code></pre></figure>
         <h3>Vapor pressure</h3>
         <p><code>pure_fluid.py</code> uses the same <code>CubicEOS</code> object as the mixtures, with one component. The vapor pressure lies between the two pressures where the isotherm turns, where the cubic has three roots; between them the program finds where the liquid and vapor fugacities are equal:</p>
 <figure class="code"><figcaption><span class="code-name">saturation_pressure</span><a href="https://github.com/Fang099/phase-equilibrium-calculator/blob/main/pure_fluid.py#L136-L145"><code>pure_fluid.py</code>, lines 136–145</a></figcaption><pre><code><span class="ln" data-n="136"></span><span class="tk">def</span> <span class="tf">g</span>(lnP):
@@ -702,9 +702,9 @@
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=e8b4414c8e"></script>
-<script src="assets/charts.js?v=e8b4414c8e"></script>
-<script src="assets/data.js?v=e8b4414c8e"></script>
+<script src="assets/edition.js?v=a678d0667f"></script>
+<script src="assets/charts.js?v=a678d0667f"></script>
+<script src="assets/data.js?v=a678d0667f"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, W = D.walkthrough, $ = function (id) { return document.getElementById(id); };

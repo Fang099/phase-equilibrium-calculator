@@ -1,0 +1,83 @@
+case,model,T_K,g_factor,reference,model_value,unit,dev_pct
+"band width, propane, 100 m",SRK,200,1,6.03971,5.71694,bar,-5.34424
+"band width, propane, 100 m",SRK,200,5,30.2468,28.6422,bar,-5.30484
+"band width, propane, 100 m",SRK,200,10,60.6118,57.4233,bar,-5.26045
+"band width, propane, 100 m",SRK,215,1,5.87923,5.56809,bar,-5.29214
+"band width, propane, 100 m",SRK,215,5,29.4509,27.9098,bar,-5.23272
+"band width, propane, 100 m",SRK,215,10,59.0354,55.9862,bar,-5.1651
+"band width, propane, 100 m",SRK,230,1,5.71337,5.40605,bar,-5.37895
+"band width, propane, 100 m",SRK,230,5,28.6294,27.1138,bar,-5.29399
+"band width, propane, 100 m",SRK,230,10,57.4112,54.4275,bar,-5.197
+"band width, propane, 100 m",SRK,245,1,5.52226,5.22892,bar,-5.31203
+"band width, propane, 100 m",SRK,245,5,27.6833,26.2457,bar,-5.19309
+"band width, propane, 100 m",SRK,245,10,55.5408,52.7319,bar,-5.05735
+"band width, propane, 100 m",SRK,260,1,5.34138,5.03435,bar,-5.74808
+"band width, propane, 100 m",SRK,260,5,26.7914,25.2948,bar,-5.5862
+"band width, propane, 100 m",SRK,260,10,53.7859,50.8803,bar,-5.40221
+"band width, propane, 100 m",SRK,275,1,5.14923,4.8193,bar,-6.40724
+"band width, propane, 100 m",SRK,275,5,25.8473,24.2477,bar,-6.18848
+"band width, propane, 100 m",SRK,275,10,51.9352,48.8494,bar,-5.9417
+"band width, propane, 100 m",SRK,290,1,4.95833,4.57967,bar,-7.63686
+"band width, propane, 100 m",SRK,290,5,24.9165,23.0869,bar,-7.34308
+"band width, propane, 100 m",SRK,290,10,50.126,46.6094,bar,-7.01552
+"band width, propane, 100 m",SRK,305,1,4.73053,4.30965,bar,-8.89697
+"band width, propane, 100 m",SRK,305,5,23.8111,21.7885,bar,-8.49446
+"band width, propane, 100 m",SRK,305,10,47.9866,44.1219,bar,-8.05365
+"band width, propane, 100 m",SRK,320,1,4.46055,4.0004,bar,-10.316
+"band width, propane, 100 m",SRK,320,5,22.5129,20.3185,bar,-9.74708
+"band width, propane, 100 m",SRK,320,10,45.4934,41.3346,bar,-9.14155
+"band width, propane, 100 m",SRK,335,1,4.16222,3.63683,bar,-12.6227
+"band width, propane, 100 m",SRK,335,5,21.1141,18.6249,bar,-11.7896
+"band width, propane, 100 m",SRK,335,10,42.865,38.1737,bar,-10.9443
+"band width, propane, 100 m",SRK,350,1,3.78659,3.18818,bar,-15.8034
+"band width, propane, 100 m",SRK,350,5,19.4353,16.6195,bar,-14.4884
+"band width, propane, 100 m",SRK,350,10,39.8111,34.5296,bar,-13.2664
+"band width, propane, 100 m",SRK,365,1,3.22007,2.56536,bar,-20.3321
+"band width, propane, 100 m",SRK,365,5,17.2362,14.1347,bar,-17.9942
+"band width, propane, 100 m",SRK,365,10,36.0617,30.2293,bar,-16.1735
+"interface height, propane, 10 bar at bottom",SRK,300,1,0.483,nan,m,nan
+"interface height, propane, same P - Psat at bottom",SRK,300,1,0.483,0.52765,m,9.24437
+"interface radius, CO2 centrifuge 20000 rpm, P_in = 0.9 Psat",SRK,280,,4.59546,4.62638,cm,0.672863
+"interface radius, CO2 centrifuge 20000 rpm, P_in = 0.97 Psat",SRK,280,,2.96693,2.98278,cm,0.534523
+"band width, propane, 100 m",PR,200,1,6.03971,6.44298,bar,6.67684
+"band width, propane, 100 m",PR,200,5,30.2468,32.2753,bar,6.70652
+"band width, propane, 100 m",PR,200,10,60.6118,64.6961,bar,6.73856
+"band width, propane, 100 m",PR,215,1,5.87923,6.28334,bar,6.87344
+"band width, propane, 100 m",PR,215,5,29.4509,31.4902,bar,6.92463
+"band width, propane, 100 m",PR,215,10,59.0354,63.1569,bar,6.98145
+"band width, propane, 100 m",PR,230,1,5.71337,6.10833,bar,6.91305
+"band width, propane, 100 m",PR,230,5,28.6294,30.6314,bar,6.99258
+"band width, propane, 100 m",PR,230,10,57.4112,61.4769,bar,7.08176
+"band width, propane, 100 m",PR,245,1,5.52226,5.91558,bar,7.12241
+"band width, propane, 100 m",PR,245,5,27.6833,29.6878,bar,7.24079
+"band width, propane, 100 m",PR,245,10,55.5408,59.6363,bar,7.3739
+"band width, propane, 100 m",PR,260,1,5.34138,5.70207,bar,6.75271
+"band width, propane, 100 m",PR,260,5,26.7914,28.6458,bar,6.92177
+"band width, propane, 100 m",PR,260,10,53.7859,57.6108,bar,7.11131
+"band width, propane, 100 m",PR,275,1,5.14923,5.46389,bar,6.1108
+"band width, propane, 100 m",PR,275,5,25.8473,27.4883,bar,6.34901
+"band width, propane, 100 m",PR,275,10,51.9352,55.3702,bar,6.61412
+"band width, propane, 100 m",PR,290,1,4.95833,5.19578,bar,4.78893
+"band width, propane, 100 m",PR,290,5,24.9165,26.1926,bar,5.12131
+"band width, propane, 100 m",PR,290,10,50.126,52.8763,bar,5.48662
+"band width, propane, 100 m",PR,305,1,4.73053,4.89037,bar,3.37884
+"band width, propane, 100 m",PR,305,5,23.8111,24.7281,bar,3.85116
+"band width, propane, 100 m",PR,305,10,47.9866,50.0789,bar,4.36027
+"band width, propane, 100 m",PR,320,1,4.46055,4.53647,bar,1.70197
+"band width, propane, 100 m",PR,320,5,22.5129,23.0518,bar,2.39358
+"band width, propane, 100 m",PR,320,10,45.4934,46.9111,bar,3.11638
+"band width, propane, 100 m",PR,335,1,4.16222,4.11541,bar,-1.12454
+"band width, propane, 100 m",PR,335,5,21.1141,21.0982,bar,-0.075458
+"band width, propane, 100 m",PR,335,10,42.865,43.2791,bar,0.966103
+"band width, propane, 100 m",PR,350,1,3.78659,3.5899,bar,-5.19458
+"band width, propane, 100 m",PR,350,5,19.4353,18.7596,bar,-3.47665
+"band width, propane, 100 m",PR,350,10,39.8111,39.0454,bar,-1.92327
+"band width, propane, 100 m",PR,365,1,3.22007,2.85492,bar,-11.3399
+"band width, propane, 100 m",PR,365,5,17.2362,15.8357,bar,-8.1251
+"band width, propane, 100 m",PR,365,10,36.0617,33.9975,bar,-5.72412
+"interface height, propane, 10 bar at bottom",PR,300,1,0.483,1.00508,m,108.091
+"interface height, propane, same P - Psat at bottom",PR,300,1,0.483,0.465006,m,-3.72553
+"interface radius, CO2 centrifuge 20000 rpm, P_in = 0.9 Psat",PR,280,,4.59546,4.58181,cm,-0.296868
+"interface radius, CO2 centrifuge 20000 rpm, P_in = 0.97 Psat",PR,280,,2.96693,2.96252,cm,-0.148425
+"water column 50 m, 10 bar at bottom: top pressure",SRK,300,1,5.11045,6.30151,bar,-24.3593
+"water column 50 m, 10 bar at bottom: top pressure",PR,300,1,5.11045,5.8463,bar,-15.0495

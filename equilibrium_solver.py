@@ -1357,8 +1357,8 @@ elif __name__ == "__main__":
            f"{bN.T:.3f} K (hand calculation {Tb_hand:.3f} K)")
     report("nonvolatile solute absent from the vapor", bN.y[1] == 0.0, "")
 
-    print("\n5b. Activity model: ethanol / water at 1 atm, van Laar")
-    sysA = build_system(DEMOS["8. Ethanol / water at 1 atm, van Laar activity model"])
+    print("\n5b. Activity model: ethanol / water at 1 atm, Margules")
+    sysA = build_system(DEMOS["8. Ethanol / water at 1 atm, Margules activity model"])
     LA, VA = sysA.equilibria[0].phases
     bA = bubble_P(LA, VA, 350.0, [0.3, 0.7])
     lg = LA.ln_gamma(350.0, [0.3, 0.7])
@@ -1378,8 +1378,7 @@ elif __name__ == "__main__":
            f"x_ethanol = {az[0]:.4f}, T = {az[1]:.3f} K" if az else "none found")
 
     print("\n5c. A liquid model that predicts two liquid phases")
-    split_text = (DEMOS["8. Ethanol / water at 1 atm, van Laar activity model"]
-                  .replace("activity = vanlaar", "activity = margules")
+    split_text = (DEMOS["8. Ethanol / water at 1 atm, Margules activity model"]
                   .replace("A(ethanol, water) = 1.6798", "A(ethanol, water) = 2.6")
                   .replace("A(water, ethanol) = 0.9227", "A(water, ethanol) = 2.6"))
     sysX = build_system(split_text)
@@ -1455,7 +1454,7 @@ elif __name__ == "__main__":
     print("\n" + "=" * 78 + "\nDEMO OUTPUT\n" + "=" * 78)
     for title, text in [("PR propane / n-butane", PR_TEXT),
                         ("Benzene / naphthalene", DEMOS["3. Benzene / naphthalene at 1 atm from latent heats only"]),
-                        ("Ethanol / water, van Laar", DEMOS["8. Ethanol / water at 1 atm, van Laar activity model"]),
+                        ("Ethanol / water, Margules", DEMOS["8. Ethanol / water at 1 atm, Margules activity model"]),
                         ("Gravity column, propane / n-butane", grav_text),
                         ("Centrifuge, ethanol-water", DEMOS["5. Ethanol / water, user Psat relations, centrifuge"])]:
         print(f"\n### {title}")

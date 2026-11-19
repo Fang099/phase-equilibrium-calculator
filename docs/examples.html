@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@87,500;87,650;100,400;100,500;100,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
-<link rel="stylesheet" href="assets/site.css?v=e8b4414c8e">
+<link rel="stylesheet" href="assets/site.css?v=a678d0667f">
 </head>
 <body class="" data-math>
 <a class="skip" href="#main">Skip to content</a>
@@ -139,9 +139,31 @@ naphthalene.dHfus = 19.01 kJ/mol</code></pre>
       <section id="pure">
         <h2>Pure fluids: vapor pressure and a column in gravity</h2>
         <p><code>examples/pure_water_vapor_pressure.txt</code> asks for water's vapor pressure at 373.15 K with Peng–Robinson; <code>examples/pure_propane_gravity_column.txt</code> puts propane at 300 K in a 20 m column with 10.0 bar at the bottom. The vapor pressure there is <span data-v="pure.propane_Psat" data-d="3"></span> bar, so the bottom is liquid (<span data-v="pure.propane_rhoL" data-d="0"></span> kg/m³); the fugacity falls with height and reaches its saturation value at <span data-v="pure.propane_interface" data-d="2"></span> m, which is where the liquid ends: close to \((P_0 - P^{\mathrm{sat}})/\rho_L g\), as hydrostatics says. <code>examples/pure_co2_missing_data.txt</code> shows the checker listing what a centrifuge calculation still needs.</p>
-        <p>How well do the three equations of state give pure-compound vapor pressures? The table compares their normal boiling points with the Antoine data, and their vapor pressure at \(T = 0.7\,T_c\) (the temperature that defines the acentric factor):</p>
+        <p>How well do the three equations of state give pure-compound vapor pressures? The table compares their normal boiling points with the Antoine correlation (a fit to measured vapor pressures), and their vapor pressure at \(T = 0.7\,T_c\) (the temperature that defines the acentric factor):</p>
         <div class="table-wrap"><table id="pure-table"></table></div>
-        <p>van der Waals has no acentric factor and misses by a factor of several; SRK and Peng–Robinson bring in the acentric factor, which is defined by the vapor pressure at \(0.7\,T_c\), so they land within about 1% there and within a degree or two of the normal boiling point. Water is the hardest case (Peng–Robinson boils it at 374.6 K), and the liquid densities are poorer than the pressures: Peng–Robinson gives water about 800 kg/m³ at its boiling point instead of 958.</p>
+        <p>van der Waals has no acentric factor and misses by a factor of several; SRK and Peng–Robinson bring in the acentric factor, which is defined by the vapor pressure at \(0.7\,T_c\), so they land within about 1% there and within a degree or two of the normal boiling point. The comparison over the whole saturation curve, against reference equations of state, is in <a href="#validation">the validation section</a>. Water is the hardest case (Peng–Robinson boils it at 374.6 K), and the liquid densities are poorer than the pressures: Peng–Robinson gives water about 800 kg/m³ at its boiling point instead of 958.</p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="validation">
+        <h2>Validation against measured and reference data</h2>
+        <p><code>scripts/validate_real_data.py</code> compares the models with data that the program was not built from; the data files are in <code>validation/</code>. For pure fluids the reference is each fluid's reference equation of state (IAPWS-95 for water, Span–Wagner for CO₂, Lemmon et al. for propane, and so on), which reproduces the measured vapor pressures and densities to within their uncertainty; it is evaluated at ten temperatures from 0.5 T<sub>c</sub> to 0.95 T<sub>c</sub>. For mixtures the reference is measured VLE from the literature, taken from the NIST TRC ThermoML archive.</p>
+        <h3>Pure fluids: average absolute deviation (%) along the saturation curve</h3>
+        <div class="table-wrap"><table id="val-pure"></table></div>
+        <p>Peng–Robinson gets the vapor pressure within about 2% for nonpolar fluids and 1–6% for polar ones, but its liquid density is 13–19% low for water, methanol and acetone. van der Waals overestimates the vapor pressure by a large factor at low temperature.</p>
+        <h3>Binary VLE at 101.3 kPa: NRTL against measurements</h3>
+        <div class="table-wrap"><table id="val-act"></table></div>
+        <figure class="chart">
+          <div class="legend" id="val-ew-legend"></div>
+          <div id="chart-val-ew"></div>
+          <figcaption><b>Ethanol–water at 101.3 kPa.</b> NRTL with the DECHEMA parameters (lines) against the measurements of Kamihama et al. (J. Chem. Eng. Data 2012, 57, 339).</figcaption>
+        </figure>
+        <h3>Methane–ethane, 126–140 K: Peng–Robinson against 59 measured points</h3>
+        <div class="table-wrap"><table id="val-eos"></table></div>
+        <p>The E-PPR78 \(k_{12}(T)\) gives the smallest pressure error and almost no bias; the fixed DECHEMA value underpredicts the pressure. Data: Han et al., J. Chem. Eng. Data 2012, 57, 3242.</p>
+        <h3>The field: Peng–Robinson and SRK against the reference equations of state in the same field</h3>
+        <div class="table-wrap"><table id="val-field"></table></div>
+        <p>No measured phase boundaries in a laboratory-scale field were found, so the reference equations were integrated through the same field. The propane band width is within <span data-v="validation.band_aad.PR" data-d="1"></span>% on average with PR and <span data-v="validation.band_aad.SRK" data-d="1"></span>% with SRK, the same order as their liquid-density errors. The interface height depends strongly on the vapor pressure: with the same absolute bottom pressure PR puts it twice as high as the reference, because its vapor pressure is 0.3% low; with the same excess pressure above each model's own vapor pressure they agree within 4%.</p>
       </section>
 
       <!-- ============================================================ -->
@@ -227,9 +249,9 @@ sweep = x</code></pre>
 
 <script src="assets/vendor/katex/katex.min.js"></script>
 <script src="assets/vendor/katex/auto-render.min.js"></script>
-<script src="assets/edition.js?v=e8b4414c8e"></script>
-<script src="assets/charts.js?v=e8b4414c8e"></script>
-<script src="assets/data.js?v=e8b4414c8e"></script>
+<script src="assets/edition.js?v=a678d0667f"></script>
+<script src="assets/charts.js?v=a678d0667f"></script>
+<script src="assets/data.js?v=a678d0667f"></script>
 <script>
 (function () {
   var D = window.PEC_DATA, zip = PEC.zip, fmt = PEC.fmt, $ = function (id) { return document.getElementById(id); };
@@ -284,6 +306,36 @@ sweep = x</code></pre>
     document.getElementById("pure-table").innerHTML = "<thead><tr><th>Compound</th><th>Tb data (K)</th><th>Tb vdW</th><th>Tb SRK</th><th>Tb PR</th><th>Psat at 0.7 Tc: vdW</th><th>SRK</th><th>PR</th></tr></thead><tbody>" +
       D.pure.rows.map(function (r) { return "<tr><td>" + r.name + "</td><td>" + f(r.Tb, 2) + "</td><td>" + f(r.Tb_vdW, 1) + "</td><td>" + f(r.Tb_SRK, 1) + "</td><td>" + f(r.Tb_PR, 1) +
         "</td><td>" + sg(r.dP07_vdW) + "</td><td>" + sg(r.dP07_SRK) + "</td><td>" + sg(r.dP07_PR) + "</td></tr>"; }).join("") + "</tbody>";
+  })();
+  /* validation */
+  (function () {
+    var V = D.validation, f = function (v, d) { return v == null || v === "none" ? "–" : PEC.fmt(v, d); };
+    var names = {};
+    V.pure.forEach(function (r) { (names[r.compound] = names[r.compound] || {})[r.model] = r; });
+    document.getElementById("val-pure").innerHTML = "<thead><tr><th>Fluid</th><th>P<sup>sat</sup> vdW</th><th>SRK</th><th>PR</th><th>ρ<sup>L</sup> SRK</th><th>PR</th><th>ρ<sup>V</sup> SRK</th><th>PR</th></tr></thead><tbody>" +
+      Object.keys(names).map(function (c) { var m = names[c];
+        return "<tr><td>" + c + "</td><td>" + f(m.vdW.AAD_Psat_pct, 0) + "</td><td>" + f(m.SRK.AAD_Psat_pct, 1) + "</td><td>" + f(m.PR.AAD_Psat_pct, 1) +
+          "</td><td>" + f(m.SRK.AAD_rhoL_pct, 1) + "</td><td>" + f(m.PR.AAD_rhoL_pct, 1) + "</td><td>" + f(m.SRK.AAD_rhoV_pct, 1) + "</td><td>" + f(m.PR.AAD_rhoV_pct, 1) + "</td></tr>"; }).join("") + "</tbody>";
+    document.getElementById("val-act").innerHTML = "<thead><tr><th>System</th><th>Model</th><th>Points</th><th>|ΔT| (K)</th><th>|Δy₁|</th><th>Azeotrope x₁, model</th><th>data</th></tr></thead><tbody>" +
+      V.activity.map(function (r) { return "<tr><td>" + r.system.replace("+", " + ") + "</td><td>" + r.model + "</td><td>" + r.n + "</td><td>" + f(r.AAD_T_K, 2) + "</td><td>" + f(r.AAD_y1, 4) +
+        "</td><td>" + f(r.x_az_model, 3) + "</td><td>" + f(r.x_az_exp, 3) + "</td></tr>"; }).join("") + "</tbody>";
+    document.getElementById("val-eos").innerHTML = "<thead><tr><th>Equation</th><th>k₁₂</th><th>|ΔP| (%)</th><th>Bias (%)</th><th>|Δy₁|</th></tr></thead><tbody>" +
+      V.eos.map(function (r) { return "<tr><td>" + r.model + "</td><td>" + r.kij + "</td><td>" + f(r.AAD_P_pct, 2) + "</td><td>" + f(r.bias_P_pct, 2) + "</td><td>" + f(r.AAD_y, 4) + "</td></tr>"; }).join("") + "</tbody>";
+    document.getElementById("val-field").innerHTML = "<thead><tr><th>Case</th><th>Model</th><th>T (K)</th><th>Reference</th><th>Model</th><th>Unit</th><th>Deviation</th></tr></thead><tbody>" +
+      V.field.map(function (r) { return "<tr><td>" + r.case + (r.g_factor && r.case.indexOf("band") === 0 ? ", " + r.g_factor + " g" : "") + "</td><td>" + r.model + "</td><td>" + f(r.T_K, 0) + "</td><td>" + PEC.sig(r.reference, 4) +
+        "</td><td>" + (r.model_value == null || isNaN(r.model_value) ? "no liquid" : PEC.sig(r.model_value, 4)) + "</td><td>" + r.unit + "</td><td>" + (isNaN(r.dev_pct) || r.dev_pct == null ? "–" : (r.dev_pct > 0 ? "+" : "") + PEC.fmt(r.dev_pct, 1) + "%") + "</td></tr>"; }).join("") + "</tbody>";
+    var E = V.ethanol_water;
+    PEC.legend("val-ew-legend", [{ name: "Bubble curve, NRTL", color: "--liquid" }, { name: "Dew curve, NRTL", color: "--vapor" },
+      { name: "Measured x", color: "--liquid", dot: true }, { name: "Measured y", color: "--vapor", dot: true }]);
+    PEC.drawChart($("chart-val-ew"), {
+      aria: "Ethanol-water at 101.3 kPa, NRTL against measured data", ratio: 0.5,
+      series: [{ name: "Bubble curve, NRTL", color: "--liquid", pts: zip(E.model.x, E.model.T) },
+               { name: "Dew curve, NRTL", color: "--vapor", pts: zip(E.model.y, E.model.T) }],
+      points: zip(E.x, E.T).map(function (p) { return { x: p[0], y: p[1], color: "--liquid" }; })
+        .concat(zip(E.y, E.T).map(function (p) { return { x: p[0], y: p[1], color: "--vapor" }; })),
+      xDomain: [0, 1], xDec: 1, xTitle: "Mole fraction of ethanol", yTitle: "Temperature (K)",
+      fx: function (v) { return "x = " + fmt(v, 3); }, fy: function (v) { return "T = " + fmt(v, 2) + " K"; }
+    });
   })();
   /* three and four components */
   (function () {
